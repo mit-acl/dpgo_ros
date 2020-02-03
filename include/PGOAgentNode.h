@@ -23,10 +23,16 @@ public:
 	void initialize(unsigned ID, const PGOAgentParameters& params);
 
 
+	void startOptimizationLoop(double freq);
+
+
+	void endOptimizationLoop();
+
+
 private:
 
 	// Underlying PGOAgent object that stores and optimizes local pose graph
-	PGOAgent* agent;
+	PGOAgent* agent = nullptr;
 
 	// ROS node handle
 	ros::NodeHandle nh;
