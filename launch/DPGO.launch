@@ -1,0 +1,16 @@
+<launch>
+  <!-- Set dimension and relaxation rank -->
+  <param name="/dimension" type="int" value="3" />
+  <param name="/relaxation_rank" type="int" value="5" />
+
+  <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
+	  <arg name="agent_id" value="1" />
+  </include>
+
+  <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
+	  <arg name="agent_id" value="2" />
+  </include>
+
+
+
+</launch>
