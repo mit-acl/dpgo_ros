@@ -9,25 +9,13 @@ using namespace DPGO;
 
 namespace DPGO_ROS{
 
-PGOAgentNode::PGOAgentNode(ros::NodeHandle nh_):nh(nh_){}
+PGOAgentNode::PGOAgentNode(ros::NodeHandle nh_, unsigned ID, const PGOAgentParameters& params):nh(nh_){
+	agent = new PGOAgent(ID, params);
+}
 
 PGOAgentNode::~PGOAgentNode()
 {	
 	delete agent; // this also ensures that optimization thread is not running
-}
-
-
-void PGOAgentNode::initialize(unsigned ID, const PGOAgentParameters& params){
-	agent = new PGOAgent(ID, params);
-}
-
-void PGOAgentNode::startOptimizationLoop(double freq){
-	agent->startOptimizationLoop(freq);
-}
-
-
-void PGOAgentNode::endOptimizationLoop(){
-	agent->endOptimizationLoop();
 }
 
 }
@@ -129,14 +117,49 @@ int main(int argc, char **argv) {
 	
 	PGOAgentParameters options(d,r,ROPTALG::RTR,true);
 	
-	DPGO_ROS::PGOAgentNode node(nh);
-
-	node.initialize(ID, options);
+	DPGO_ROS::PGOAgentNode node(nh, ID, options);
 
 
 	/** 
 	##########################################################################################
 	Add measurements to node
+	##########################################################################################
+	*/
+
+	for(size_t k = 0; k < dataset.size(); ++k){
+        RelativeSEMeasurement mIn = dataset[k];
+        PoseID src = PoseMap[mIn.p1];
+        PoseID dst = PoseMap[mIn.p2];
+
+        unsigned srcRobot = get<0>(src);
+        unsigned srcIdx = get<1>(src);
+        unsigned dstRobot = get<0>(dst);
+        unsigned dstIdx = get<1>(dst);
+
+        RelativeSEMeasurement m(srcRobot, dstRobot, srcIdx, dstIdx, mIn.R, mIn.t, mIn.kappa, mIn.tau);
+        unsigned mID = (unsigned) ID;
+
+        if (mID == srcRobot && mID == dstRobot){
+        	if (srcIdx + 1 == dstIdx){
+        		// odometry
+        		node.addOdometry(m);
+        	}
+        	else{
+        		// private loop closure
+        		node.addPrivateLoopClosure(m);
+        	}
+        }else if(mID != srcRobot && mID != dstRobot){
+        	// discard
+        }else{
+        	// shared loop closure
+        	node.addSharedLoopClosure(m);
+        }
+    }
+
+
+	/** 
+	##########################################################################################
+	Kick off optimization
 	##########################################################################################
 	*/
 

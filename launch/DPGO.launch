@@ -6,7 +6,7 @@
   <param name="/pose_update_topic" type="str" value="/pose_update" />
   <param name="/num_robots" type="int" value="1" />
   <!-- Input path to the dataset -->
-  <param name="/dataset" type="str" value="$(find dpgo_ros)/data/tinyGrid3D.g2o" />
+  <param name="/dataset" type="str" value="$(find dpgo_ros)/data/smallGrid3D.g2o" />
 
 
 
