@@ -2,19 +2,29 @@
   
   <param name="/dimension" type="int" value="3" />
   <param name="/relaxation_rank" type="int" value="5" />
-  <param name="/optimization_rate" type="double" value="1.0" />
+  <param name="/optimization_rate" type="double" value="1e4" />
+  <param name="/rgd_step_size" type="double" value="1e-4" />
   <param name="/pose_update_topic" type="str" value="/pose_update" />
-  <param name="/num_robots" type="int" value="1" />
-  <!-- Input path to the dataset -->
+  <param name="/num_robots" type="int" value="2" />
   <param name="/dataset" type="str" value="$(find dpgo_ros)/data/smallGrid3D.g2o" />
 
 
+  <!-- Launch visualization in rviz -->
+  <node name="rviz" pkg="rviz" type="rviz" output="screen">
+  </node>
 
 
   <!-- Launch indivial PGO agents. Number must match /num_robots -->
   <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
 	  <arg name="agent_id" value="0" />
   </include>
+
+  <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
+    <arg name="agent_id" value="1" />
+  </include>
+
+
+
 
 
 </launch>

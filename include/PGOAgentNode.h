@@ -2,9 +2,9 @@
 #define PGOAGENTNODE_H
 
 #include "distributed/PGOAgent.h"
-
 #include <ros/ros.h>
 #include <ros/console.h>
+#include <nav_msgs/Path.h>
 
 using namespace std;
 using namespace DPGO;
@@ -42,6 +42,14 @@ public:
 
 
     /**
+    Set maximum stepsize during Riemannian optimization (only used by RGD)
+    */
+    void setStepsize(double s){
+        agent->setStepsize(s);
+    }
+
+
+    /**
 	Start the optimization loop in a separate thread
     */
 	void startOptimizationLoop(double freq){
@@ -58,6 +66,11 @@ public:
 	}
 
 
+    /**
+    Publish the currently estimated trajectory in the local frame
+    */
+    void localTrajectoryPublishCallback(const ros::TimerEvent&);
+
 private:
 
 	// Underlying PGOAgent object that stores and optimizes local pose graph
@@ -65,6 +78,12 @@ private:
 
 	// ROS node handle
 	ros::NodeHandle nh;
+
+    // ROS timers
+    ros::Timer localTrajectoryPublishTimer;
+
+    // ROS publisher
+    ros::Publisher localTrajectoryPublisher;
 
 
 };
