@@ -4,6 +4,7 @@
 #include "DPGO_types.h"
 #include "RelativeSEMeasurement.h"
 #include <tf/tf.h>
+#include <dpgo_ros/LiftedPoseStamped.h>
 
 using namespace std;
 using namespace DPGO;
@@ -15,6 +16,7 @@ PGOAgentNode::PGOAgentNode(ros::NodeHandle nh_, unsigned ID, const PGOAgentParam
 
 	localTrajectoryPublisher = nh.advertise<nav_msgs::Path>("local_trajectory", 1);
 	localTrajectoryPublishTimer = nh.createTimer(ros::Duration(0.5), &PGOAgentNode::localTrajectoryPublishCallback, this);
+
 }
 
 PGOAgentNode::~PGOAgentNode()
