@@ -3,7 +3,7 @@ project(dpgo_ros)
 
 include(DPGO.cmake)
 get_target_property(DPGO_INCLUDE_DIRS DPGO INTERFACE_INCLUDE_DIRECTORIES)
-message("DPGO_INCLUDE_DIRS: " ${DPGO_INCLUDE_DIRS})
+# message("DPGO_INCLUDE_DIRS: " ${DPGO_INCLUDE_DIRS})
 
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -18,7 +18,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   message_generation
 )
-
 
 # find_package(ROPTLIB REQUIRED)
 
@@ -59,6 +58,7 @@ find_package(catkin REQUIRED COMPONENTS
  add_message_files(
    FILES
    LiftedPoseStamped.msg
+   LiftedPoseArray.msg
  )
 
 ## Generate services in the 'srv' folder

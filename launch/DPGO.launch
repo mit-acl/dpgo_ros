@@ -10,7 +10,7 @@
 
 
   <!-- Launch visualization in rviz -->
-  <node name="rviz" pkg="rviz" type="rviz" output="screen">
+  <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find dpgo_ros)/rviz/default.rviz">
   </node>
 
 

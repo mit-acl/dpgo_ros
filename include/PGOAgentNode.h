@@ -71,6 +71,12 @@ public:
     */
     void localTrajectoryPublishCallback(const ros::TimerEvent&);
 
+
+    /**
+	Publish the current values of all shared poses
+    */
+    void sharedPosePublishCallback(const ros::TimerEvent&);
+
 private:
 
 	// Underlying PGOAgent object that stores and optimizes local pose graph
@@ -81,9 +87,11 @@ private:
 
     // ROS timers
     ros::Timer localTrajectoryPublishTimer;
+    ros::Timer sharedPosePublishTimer;
 
     // ROS publisher
     ros::Publisher localTrajectoryPublisher;
+    ros::Publisher sharedPosePublisher;
 
 
 };

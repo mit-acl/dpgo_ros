@@ -5,9 +5,12 @@
 #include "RelativeSEMeasurement.h"
 #include <tf/tf.h>
 #include <dpgo_ros/LiftedPoseStamped.h>
+#include <dpgo_ros/LiftedPoseArray.h>
 
 using namespace std;
 using namespace DPGO;
+using dpgo_ros::LiftedPoseStamped;
+using dpgo_ros::LiftedPoseArray;
 
 namespace DPGO_ROS{
 
@@ -16,6 +19,11 @@ PGOAgentNode::PGOAgentNode(ros::NodeHandle nh_, unsigned ID, const PGOAgentParam
 
 	localTrajectoryPublisher = nh.advertise<nav_msgs::Path>("local_trajectory", 1);
 	localTrajectoryPublishTimer = nh.createTimer(ros::Duration(0.5), &PGOAgentNode::localTrajectoryPublishCallback, this);
+
+	string pose_update_topic;
+	nh.getParam("/pose_update_topic", pose_update_topic);
+	sharedPosePublisher = nh.advertise<LiftedPoseArray>(pose_update_topic, 1);
+	sharedPosePublishTimer = nh.createTimer(ros::Duration(0.5), &PGOAgentNode::sharedPosePublishCallback, this);
 
 }
 
@@ -63,6 +71,32 @@ void PGOAgentNode::localTrajectoryPublishCallback(const ros::TimerEvent&){
 	}
 
 	localTrajectoryPublisher.publish(trajectory);
+}
+
+
+void PGOAgentNode::sharedPosePublishCallback(const ros::TimerEvent&){
+	ros::Time timestamp = ros::Time::now();
+	PoseDict sharedPoses = agent->getSharedPoses();
+
+	LiftedPoseArray arrayMsg; 
+	arrayMsg.header.stamp = timestamp;
+
+	for(auto it = sharedPoses.begin(); it != sharedPoses.end(); ++it){
+		PoseID nID = it->first;
+		Matrix Y = it->second;
+
+		LiftedPoseStamped poseMsg;
+		poseMsg.header.stamp = timestamp;
+		poseMsg.robot_id.data = (unsigned) get<0>(nID);
+		poseMsg.pose_id.data = (unsigned) get<1>(nID);
+
+		// serialize the matrix (using Eigen?)
+
+		arrayMsg.poses.push_back(poseMsg);
+	}
+
+	sharedPosePublisher.publish(arrayMsg);
+
 }
 
 
