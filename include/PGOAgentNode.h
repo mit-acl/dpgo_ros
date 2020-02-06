@@ -16,6 +16,7 @@ namespace DPGO_ROS{
 
 class PGOAgentNode{
 public:
+
 	PGOAgentNode(ros::NodeHandle nh_, unsigned ID, const PGOAgentParameters& params);
 
 

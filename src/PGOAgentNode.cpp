@@ -23,7 +23,7 @@ PGOAgentNode::PGOAgentNode(ros::NodeHandle nh_, unsigned ID, const PGOAgentParam
 	string pose_update_topic;
 	nh.getParam("/pose_update_topic", pose_update_topic);
 	sharedPosePublisher = nh.advertise<LiftedPoseArray>(pose_update_topic, 1);
-	sharedPosePublishTimer = nh.createTimer(ros::Duration(0.1), &PGOAgentNode::sharedPosePublishCallback, this);
+	sharedPosePublishTimer = nh.createTimer(ros::Duration(0.01), &PGOAgentNode::sharedPosePublishCallback, this);
 	sharedPoseSubscriber = nh.subscribe(pose_update_topic, 1, &PGOAgentNode::sharedPoseSubscribeCallback, this);
 
 
@@ -137,9 +137,6 @@ void PGOAgentNode::sharedPoseSubscribeCallback(const dpgo_ros::LiftedPoseArrayCo
 
 		if(neighborID == mID) continue;
 
-		// ROS_WARN_STREAM("Agent " << mID << " received shared pose " << neighborID << ", " << neighborPoseID);
-
-
 		// Copy pose data from pose message to Eigen Matrix (row-major)
 		Matrix Y = Matrix::Zero(r,d+1);
 		for(unsigned row = 0; row < r; ++row){
@@ -190,9 +187,7 @@ void PGOAgentNode::clusterAnchorPublishCallback(const ros::TimerEvent&){
 
 void PGOAgentNode::clusterAnchorSubscribeCallback(const dpgo_ros::LiftedPoseStampedConstPtr& msg){
 	// TODO: general setting with initially disconnected global pose graph
-
-	// ROS_WARN_STREAM("Agent " << agent->getID() << " received global anchor.");
-
+	
 	unsigned d = agent->dimension();
 	unsigned r = agent->relaxation_rank();
 
