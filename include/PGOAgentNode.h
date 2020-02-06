@@ -5,6 +5,9 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <nav_msgs/Path.h>
+#include <dpgo_ros/LiftedPose.h>
+#include <dpgo_ros/LiftedPoseStamped.h>
+#include <dpgo_ros/LiftedPoseArray.h>
 
 using namespace std;
 using namespace DPGO;
@@ -14,6 +17,7 @@ namespace DPGO_ROS{
 class PGOAgentNode{
 public:
 	PGOAgentNode(ros::NodeHandle nh_, unsigned ID, const PGOAgentParameters& params);
+
 
 	~PGOAgentNode();
 
@@ -69,13 +73,33 @@ public:
     /**
     Publish the currently estimated trajectory in the local frame
     */
-    void localTrajectoryPublishCallback(const ros::TimerEvent&);
+    void trajectoryPublishCallback(const ros::TimerEvent&);
 
 
     /**
 	Publish the current values of all shared poses
     */
     void sharedPosePublishCallback(const ros::TimerEvent&);
+
+
+    /**
+    Participate in the bidding of cluster anchor
+    */
+    void clusterAnchorPublishCallback(const ros::TimerEvent&);
+
+
+    /**
+    Subscribe to shared poses from other robots
+    */
+    void sharedPoseSubscribeCallback(const dpgo_ros::LiftedPoseArrayConstPtr& msg);
+
+
+    /**
+    Subscribe to cluster anchor topic
+    */
+    void clusterAnchorSubscribeCallback(const dpgo_ros::LiftedPoseStampedConstPtr& msg);
+
+
 
 private:
 
@@ -86,12 +110,18 @@ private:
 	ros::NodeHandle nh;
 
     // ROS timers
-    ros::Timer localTrajectoryPublishTimer;
+    ros::Timer trajectoryPublishTimer;
     ros::Timer sharedPosePublishTimer;
+    ros::Timer clusterAnchorPublishTimer;
 
     // ROS publisher
-    ros::Publisher localTrajectoryPublisher;
+    ros::Publisher trajectoryPublisher;
     ros::Publisher sharedPosePublisher;
+    ros::Publisher clusterAnchorPublisher;
+
+    // ROS subscriber
+    ros::Subscriber sharedPoseSubscriber;
+    ros::Subscriber clusterAnchorSubscriber;
 
 
 };

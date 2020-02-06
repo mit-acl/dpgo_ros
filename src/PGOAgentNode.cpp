@@ -4,11 +4,11 @@
 #include "DPGO_types.h"
 #include "RelativeSEMeasurement.h"
 #include <tf/tf.h>
-#include <dpgo_ros/LiftedPoseStamped.h>
-#include <dpgo_ros/LiftedPoseArray.h>
+
 
 using namespace std;
 using namespace DPGO;
+using dpgo_ros::LiftedPose;
 using dpgo_ros::LiftedPoseStamped;
 using dpgo_ros::LiftedPoseArray;
 
@@ -17,13 +17,21 @@ namespace DPGO_ROS{
 PGOAgentNode::PGOAgentNode(ros::NodeHandle nh_, unsigned ID, const PGOAgentParameters& params):nh(nh_){
 	agent = new PGOAgent(ID, params);
 
-	localTrajectoryPublisher = nh.advertise<nav_msgs::Path>("local_trajectory", 1);
-	localTrajectoryPublishTimer = nh.createTimer(ros::Duration(0.5), &PGOAgentNode::localTrajectoryPublishCallback, this);
+	trajectoryPublisher = nh.advertise<nav_msgs::Path>("trajectory", 1);
+	trajectoryPublishTimer = nh.createTimer(ros::Duration(0.5), &PGOAgentNode::trajectoryPublishCallback, this);
 
 	string pose_update_topic;
 	nh.getParam("/pose_update_topic", pose_update_topic);
 	sharedPosePublisher = nh.advertise<LiftedPoseArray>(pose_update_topic, 1);
-	sharedPosePublishTimer = nh.createTimer(ros::Duration(0.5), &PGOAgentNode::sharedPosePublishCallback, this);
+	sharedPosePublishTimer = nh.createTimer(ros::Duration(0.1), &PGOAgentNode::sharedPosePublishCallback, this);
+	sharedPoseSubscriber = nh.subscribe(pose_update_topic, 1, &PGOAgentNode::sharedPoseSubscribeCallback, this);
+
+
+	string cluster_anchor_topic;
+	nh.getParam("/cluster_anchor_topic", cluster_anchor_topic);
+	clusterAnchorPublisher = nh.advertise<LiftedPoseStamped>(cluster_anchor_topic, 1);
+	clusterAnchorPublishTimer = nh.createTimer(ros::Duration(0.5), &PGOAgentNode::clusterAnchorPublishCallback, this);
+	clusterAnchorSubscriber = nh.subscribe(cluster_anchor_topic, 1, &PGOAgentNode::clusterAnchorSubscribeCallback, this);
 
 }
 
@@ -33,10 +41,10 @@ PGOAgentNode::~PGOAgentNode()
 }
 
 
-void PGOAgentNode::localTrajectoryPublishCallback(const ros::TimerEvent&){
+void PGOAgentNode::trajectoryPublishCallback(const ros::TimerEvent&){
 	unsigned n = agent->num_poses();
 	unsigned d = agent->dimension();
-	Matrix T = agent->getTrajectoryInLocalFrame();
+	Matrix T = agent->getTrajectoryInGlobalFrame();
 
 	// initialize ROS message
 	nav_msgs::Path trajectory;
@@ -70,13 +78,17 @@ void PGOAgentNode::localTrajectoryPublishCallback(const ros::TimerEvent&){
 		trajectory.poses.push_back(poseMsgStamped);
 	}
 
-	localTrajectoryPublisher.publish(trajectory);
+	trajectoryPublisher.publish(trajectory);
 }
 
 
 void PGOAgentNode::sharedPosePublishCallback(const ros::TimerEvent&){
 	ros::Time timestamp = ros::Time::now();
 	PoseDict sharedPoses = agent->getSharedPoses();
+
+	unsigned r = agent->relaxation_rank();
+	unsigned d = agent->dimension();
+	unsigned cluster = agent->getCluster();
 
 	LiftedPoseArray arrayMsg; 
 	arrayMsg.header.stamp = timestamp;
@@ -85,12 +97,22 @@ void PGOAgentNode::sharedPosePublishCallback(const ros::TimerEvent&){
 		PoseID nID = it->first;
 		Matrix Y = it->second;
 
-		LiftedPoseStamped poseMsg;
-		poseMsg.header.stamp = timestamp;
-		poseMsg.robot_id.data = (unsigned) get<0>(nID);
-		poseMsg.pose_id.data = (unsigned) get<1>(nID);
+		LiftedPose poseMsg;
+		poseMsg.dimension.data = d;
+		poseMsg.relaxation_rank.data = r;
+		poseMsg.cluster_id.data = cluster;
+		poseMsg.robot_id.data = get<0>(nID);
+		poseMsg.pose_id.data =  get<1>(nID);
 
-		// serialize the matrix (using Eigen?)
+		// Copy pose data from Eigen Matrix to pose message (row-major)
+		std_msgs::Float64 scalar;
+		for(unsigned row = 0; row < r; ++row){
+			for(unsigned col = 0; col < (d+1); ++col){
+				scalar.data = Y(row,col);
+				poseMsg.pose.push_back(scalar);
+			}
+		}
+
 
 		arrayMsg.poses.push_back(poseMsg);
 	}
@@ -99,5 +121,95 @@ void PGOAgentNode::sharedPosePublishCallback(const ros::TimerEvent&){
 
 }
 
+
+void PGOAgentNode::sharedPoseSubscribeCallback(const dpgo_ros::LiftedPoseArrayConstPtr& msg){
+
+
+	unsigned r = agent->relaxation_rank();
+	unsigned d = agent->dimension();
+	unsigned mID = agent->getID();
+
+	for(size_t i = 0; i < msg->poses.size(); ++i){
+
+		LiftedPose poseMsg = msg->poses[i];
+		unsigned neighborID = poseMsg.robot_id.data;
+		unsigned neighborPoseID = poseMsg.pose_id.data;
+
+		if(neighborID == mID) continue;
+
+		// ROS_WARN_STREAM("Agent " << mID << " received shared pose " << neighborID << ", " << neighborPoseID);
+
+
+		// Copy pose data from pose message to Eigen Matrix (row-major)
+		Matrix Y = Matrix::Zero(r,d+1);
+		for(unsigned row = 0; row < r; ++row){
+			for(unsigned col = 0; col < (d+1); ++col){
+				unsigned index = row * (d+1) + col;
+				std_msgs::Float64 scalar = poseMsg.pose[index];
+				Y(row,col) = scalar.data;
+			}
+		}
+
+		agent->updateNeighborPose(0, neighborID, neighborPoseID, Y);
+	}
+}
+
+
+void PGOAgentNode::clusterAnchorPublishCallback(const ros::TimerEvent&){
+	// TODO: general setting with initially disconnected global pose graph
+
+	unsigned mID = agent->getID();
+	unsigned d = agent->dimension();
+	unsigned r = agent->relaxation_rank();
+	
+	
+	if(mID == 0){
+		LiftedPoseStamped msg;
+		msg.header.stamp = ros::Time::now();
+
+		msg.pose.dimension.data = d;
+		msg.pose.relaxation_rank.data = r;
+		msg.pose.cluster_id.data = agent->getCluster();
+		msg.pose.robot_id.data = agent->getID();
+		msg.pose.pose_id.data = 0; // always use the first pose as anchor
+
+		// Copy pose data from Eigen Matrix to pose message (row-major)
+		Matrix Y = agent->getYComponent(0);
+		std_msgs::Float64 scalar;
+		for(unsigned row = 0; row < r; ++row){
+			for(unsigned col = 0; col < (d+1); ++col){
+				scalar.data = Y(row,col);
+				msg.pose.pose.push_back(scalar);
+			}
+		}
+
+		clusterAnchorPublisher.publish(msg);
+	}
+}
+
+
+void PGOAgentNode::clusterAnchorSubscribeCallback(const dpgo_ros::LiftedPoseStampedConstPtr& msg){
+	// TODO: general setting with initially disconnected global pose graph
+
+	// ROS_WARN_STREAM("Agent " << agent->getID() << " received global anchor.");
+
+	unsigned d = agent->dimension();
+	unsigned r = agent->relaxation_rank();
+
+
+	LiftedPose poseMsg = msg->pose;
+
+	// Copy pose data from pose message to Eigen Matrix (row-major)
+	Matrix Y = Matrix::Zero(r,d+1);
+	for(unsigned row = 0; row < r; ++row){
+		for(unsigned col = 0; col < (d+1); ++col){
+			unsigned index = row * (d+1) + col;
+			std_msgs::Float64 scalar = poseMsg.pose[index];
+			Y(row,col) = scalar.data;
+		}
+	}
+
+	agent->setGlobalAnchor(Y);
+}
 
 }

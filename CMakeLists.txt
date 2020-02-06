@@ -5,7 +5,6 @@ include(DPGO.cmake)
 get_target_property(DPGO_INCLUDE_DIRS DPGO INTERFACE_INCLUDE_DIRECTORIES)
 # message("DPGO_INCLUDE_DIRS: " ${DPGO_INCLUDE_DIRS})
 
-
 ## Compile as C++11, supported in ROS Kinetic and newer
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -O3 -march=native -pthread")
 
@@ -18,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   message_generation
 )
+
 
 # find_package(ROPTLIB REQUIRED)
 
@@ -57,6 +57,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
  add_message_files(
    FILES
+   LiftedPose.msg
    LiftedPoseStamped.msg
    LiftedPoseArray.msg
  )
