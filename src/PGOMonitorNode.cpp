@@ -70,6 +70,7 @@ namespace DPGO_ROS{
 		unsigned r = problem->relaxation_rank();
 		unsigned d = problem->dimension();
 
+		// Update the solution 
 		for(size_t i = 0; i < msg->poses.size(); ++i){
 			LiftedPose poseMsg = msg->poses[i];
 
@@ -78,6 +79,8 @@ namespace DPGO_ROS{
 
 			Y.block(0,index*(d+1),r,d+1) = deserializeMatrix(r,d+1,poseMsg.pose);
 		}
+
+		ROS_WARN_STREAM("Cost = " << problem->f(Y) << "; Gradnorm = " << problem->gradNorm(Y));
 	}
 }
 
