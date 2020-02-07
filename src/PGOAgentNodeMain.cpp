@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 	if (stepsize > 0){
-		ROS_WARN_STREAM("Using Riemannian gradient descent with stepsize " << stepsize);
+		ROS_INFO_STREAM("Using Riemannian gradient descent with stepsize " << stepsize);
 		algorithm = ROPTALG::RGD;
 	}
 
@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
 	Set initial guess
 	##########################################################################################
 	*/
-    
+
 
 
 

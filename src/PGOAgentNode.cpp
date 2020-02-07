@@ -1,5 +1,6 @@
 #include "PGOAgentNode.h"
 #include <map>
+#include "msgUtils.h"
 #include "DPGO_utils.h"
 #include "DPGO_types.h"
 #include "RelativeSEMeasurement.h"
@@ -110,14 +111,7 @@ void PGOAgentNode::sharedPosePublishCallback(const ros::TimerEvent&){
 		poseMsg.pose_id.data =  get<1>(nID);
 
 		// Copy pose data from Eigen Matrix to pose message (row-major)
-		std_msgs::Float64 scalar;
-		for(unsigned row = 0; row < r; ++row){
-			for(unsigned col = 0; col < (d+1); ++col){
-				scalar.data = Y(row,col);
-				poseMsg.pose.push_back(scalar);
-			}
-		}
-
+		poseMsg.pose = serializeMatrix(r,d+1,Y);
 
 		arrayMsg.poses.push_back(poseMsg);
 	}
@@ -128,7 +122,6 @@ void PGOAgentNode::sharedPosePublishCallback(const ros::TimerEvent&){
 
 
 void PGOAgentNode::sharedPoseSubscribeCallback(const dpgo_ros::LiftedPoseArrayConstPtr& msg){
-
 
 	unsigned r = agent->relaxation_rank();
 	unsigned d = agent->dimension();
@@ -143,14 +136,7 @@ void PGOAgentNode::sharedPoseSubscribeCallback(const dpgo_ros::LiftedPoseArrayCo
 		if(neighborID == mID) continue;
 
 		// Copy pose data from pose message to Eigen Matrix (row-major)
-		Matrix Y = Matrix::Zero(r,d+1);
-		for(unsigned row = 0; row < r; ++row){
-			for(unsigned col = 0; col < (d+1); ++col){
-				unsigned index = row * (d+1) + col;
-				std_msgs::Float64 scalar = poseMsg.pose[index];
-				Y(row,col) = scalar.data;
-			}
-		}
+		Matrix Y = deserializeMatrix(r,d+1,poseMsg.pose);
 
 		agent->updateNeighborPose(0, neighborID, neighborPoseID, Y);
 	}
@@ -177,13 +163,7 @@ void PGOAgentNode::clusterAnchorPublishCallback(const ros::TimerEvent&){
 
 		// Copy pose data from Eigen Matrix to pose message (row-major)
 		Matrix Y = agent->getYComponent(0);
-		std_msgs::Float64 scalar;
-		for(unsigned row = 0; row < r; ++row){
-			for(unsigned col = 0; col < (d+1); ++col){
-				scalar.data = Y(row,col);
-				msg.pose.pose.push_back(scalar);
-			}
-		}
+		msg.pose.pose = serializeMatrix(r,d+1,Y);
 
 		clusterAnchorPublisher.publish(msg);
 	}
@@ -200,20 +180,42 @@ void PGOAgentNode::clusterAnchorSubscribeCallback(const dpgo_ros::LiftedPoseStam
 	LiftedPose poseMsg = msg->pose;
 
 	// Copy pose data from pose message to Eigen Matrix (row-major)
-	Matrix Y = Matrix::Zero(r,d+1);
-	for(unsigned row = 0; row < r; ++row){
-		for(unsigned col = 0; col < (d+1); ++col){
-			unsigned index = row * (d+1) + col;
-			std_msgs::Float64 scalar = poseMsg.pose[index];
-			Y(row,col) = scalar.data;
-		}
-	}
+	Matrix Y = deserializeMatrix(r,d+1,poseMsg.pose);
 
 	agent->setGlobalAnchor(Y);
 }
 
 
 void PGOAgentNode::YPublishCallback(const ros::TimerEvent&){
+
+	ros::Time timestamp = ros::Time::now();
+	unsigned n = agent->num_poses();
+	unsigned r = agent->relaxation_rank();
+	unsigned d = agent->dimension();
+	unsigned cluster = agent->getCluster();
+	unsigned mID = agent->getID();
+	Matrix Y = agent->getY();
+
+	LiftedPoseArray arrayMsg; 
+	arrayMsg.header.stamp = timestamp;
+
+	for(unsigned i = 0; i < n; ++i){
+		Matrix Yi = Y.block(0,i*(d+1),r,d+1);
+
+		LiftedPose poseMsg;
+		poseMsg.dimension.data = d;
+		poseMsg.relaxation_rank.data = r;
+		poseMsg.cluster_id.data = cluster;
+		poseMsg.robot_id.data = mID;
+		poseMsg.pose_id.data =  i;
+
+		// Copy pose data from Eigen Matrix to pose message (row-major)
+		poseMsg.pose = serializeMatrix(r,d+1,Yi);
+
+		arrayMsg.poses.push_back(poseMsg);
+	}
+
+	YPublisher.publish(arrayMsg);
 
 }
 

@@ -32,7 +32,9 @@
   </include>
 
 
-
+  <!-- Launch PGO Coordinator -->
+  <node name="dpgo_monitor" pkg="dpgo_ros" type="dpgo_ros_monitor_node" output="screen">
+  </node>
 
 
 </launch>
