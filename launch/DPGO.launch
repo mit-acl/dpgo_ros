@@ -8,7 +8,7 @@
   <param name="/cluster_anchor_topic" type="str" value="/cluster_anchor_update" />
   <param name="/Y_topic" type="str" value="/Y" />
   <param name="/num_robots" type="int" value="3" />
-  <param name="/dataset" type="str" value="$(find dpgo_ros)/data/smallGrid3D.g2o" />
+  <param name="/dataset" type="str" value="$(find dpgo_ros)/data/simulation/simulation.g2o" />
 
 
   <!-- Launch visualization in rviz -->
