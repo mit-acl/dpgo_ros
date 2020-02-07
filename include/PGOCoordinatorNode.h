@@ -1,9 +1,13 @@
 #ifndef PGOCOORDINATORNODE_H
 #define PGOCOORDINATORNODE_H
 
+#include <ros/ros.h>
+#include <ros/console.h>
+#include <dpgo_ros/LiftedPose.h>
+#include <dpgo_ros/LiftedPoseStamped.h>
+#include <dpgo_ros/LiftedPoseArray.h>
 
 using namespace std;
-using namespace DPGO;
 
 namespace DPGO_ROS{
 
@@ -14,6 +18,8 @@ public:
 
 	~PGOCoordinatorNode();
 
+	void YSubscribeCallback(const dpgo_ros::LiftedPoseArrayConstPtr& msg);
+
 
 private:
 
@@ -21,6 +27,8 @@ private:
 	ros::NodeHandle nh;
 
 
+	// ROS subscriber
+	ros::Subscriber YSubscriber;
 	
 
 

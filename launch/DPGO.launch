@@ -3,7 +3,7 @@
   <param name="/dimension" type="int" value="3" />
   <param name="/relaxation_rank" type="int" value="5" />
   <param name="/optimization_rate" type="double" value="1e6" />
-  <param name="/rgd_step_size" type="double" value="1e-4" />
+  <!-- <param name="/rgd_step_size" type="double" value="1e-4" /> -->
   <param name="/pose_update_topic" type="str" value="/pose_update" />
   <param name="/cluster_anchor_topic" type="str" value="/cluster_anchor_update" />
   <param name="/Y_topic" type="str" value="/Y" />

@@ -23,7 +23,7 @@ PGOAgentNode::PGOAgentNode(ros::NodeHandle nh_, unsigned ID, const PGOAgentParam
 	string pose_update_topic;
 	nh.getParam("/pose_update_topic", pose_update_topic);
 	sharedPosePublisher = nh.advertise<LiftedPoseArray>(pose_update_topic, 1);
-	sharedPosePublishTimer = nh.createTimer(ros::Duration(0.01), &PGOAgentNode::sharedPosePublishCallback, this);
+	sharedPosePublishTimer = nh.createTimer(ros::Duration(0.5), &PGOAgentNode::sharedPosePublishCallback, this);
 	sharedPoseSubscriber = nh.subscribe(pose_update_topic, 1, &PGOAgentNode::sharedPoseSubscribeCallback, this);
 
 
@@ -32,6 +32,11 @@ PGOAgentNode::PGOAgentNode(ros::NodeHandle nh_, unsigned ID, const PGOAgentParam
 	clusterAnchorPublisher = nh.advertise<LiftedPoseStamped>(cluster_anchor_topic, 1);
 	clusterAnchorPublishTimer = nh.createTimer(ros::Duration(0.5), &PGOAgentNode::clusterAnchorPublishCallback, this);
 	clusterAnchorSubscriber = nh.subscribe(cluster_anchor_topic, 1, &PGOAgentNode::clusterAnchorSubscribeCallback, this);
+
+	string Y_topic;
+	nh.getParam("/Y_topic", Y_topic);
+	YPublisher = nh.advertise<LiftedPoseArray>(Y_topic, 1);
+	YPublishTimer = nh.createTimer(ros::Duration(0.5), &PGOAgentNode::YPublishCallback, this);
 
 }
 
@@ -205,6 +210,11 @@ void PGOAgentNode::clusterAnchorSubscribeCallback(const dpgo_ros::LiftedPoseStam
 	}
 
 	agent->setGlobalAnchor(Y);
+}
+
+
+void PGOAgentNode::YPublishCallback(const ros::TimerEvent&){
+
 }
 
 }

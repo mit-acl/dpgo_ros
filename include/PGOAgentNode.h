@@ -78,6 +78,12 @@ public:
 
 
     /**
+    Publish the current solution before rounding
+    */
+    void YPublishCallback(const ros::TimerEvent&);
+
+
+    /**
 	Publish the current values of all shared poses
     */
     void sharedPosePublishCallback(const ros::TimerEvent&);
@@ -114,9 +120,11 @@ private:
     ros::Timer trajectoryPublishTimer;
     ros::Timer sharedPosePublishTimer;
     ros::Timer clusterAnchorPublishTimer;
+    ros::Timer YPublishTimer;
 
     // ROS publisher
     ros::Publisher trajectoryPublisher;
+    ros::Publisher YPublisher;
     ros::Publisher sharedPosePublisher;
     ros::Publisher clusterAnchorPublisher;
 
