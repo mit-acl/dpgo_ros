@@ -22,6 +22,15 @@ public:
 
 	~PGOAgentNode();
 
+
+	/** Helper function to reset the internal solution
+        In deployment, probably should not use this, except optionally at initialization
+     */
+	void setY(const Matrix& Yin){
+		agent->setY(Yin);
+	}
+
+
 	/**
     Add an odometric measurement of this robot.
     This function automatically initialize the new pose, by propagating odometry

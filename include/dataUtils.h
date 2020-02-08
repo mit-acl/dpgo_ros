@@ -1,5 +1,5 @@
-#ifndef MSGUTILS_H
-#define MSGUTILS_H
+#ifndef DATAUTILS_H
+#define DATAUTILS_H
 
 #include <cassert>
 #include "DPGO_types.h"

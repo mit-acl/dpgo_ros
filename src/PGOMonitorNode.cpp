@@ -3,7 +3,7 @@
 #include "DPGO_utils.h"
 #include "DPGO_types.h"
 #include "RelativeSEMeasurement.h"
-#include "msgUtils.h"
+#include "dataUtils.h"
 
 using namespace std;
 using namespace DPGO;
@@ -14,16 +14,17 @@ namespace DPGO_ROS{
 
 	PGOMonitorNode::PGOMonitorNode(ros::NodeHandle nh_):nh(nh_){
 
-		string filename;
-		nh.getParam("/dataset", filename);
-
 		int num_robots = 0;
 		nh.getParam("/num_robots", num_robots);
 		ROS_WARN_STREAM("Number of robots: " << num_robots << ".");
 
+
+		string filename;
+		nh.getParam("/dataset", filename);
 		size_t N = 0; 
 	    vector<RelativeSEMeasurement> dataset = DPGO::read_g2o_file(filename, N);
 	    ROS_WARN_STREAM("Loaded dataset: " << filename << ".");
+
 
 	    unsigned int num_poses_per_robot = N / num_robots;
 	   	ROS_WARN_STREAM("Creating mapping from local to global pose... ");
@@ -38,6 +39,7 @@ namespace DPGO_ROS{
 	        }
 	    }
 
+
 	    int d = -1;
 	    int r = -1;
 		nh.getParam("/dimension", d);
@@ -51,11 +53,17 @@ namespace DPGO_ROS{
 			ros::shutdown();
 		}
 
+
 		Y = Matrix::Zero(r, (d+1) * N);
 		SparseMatrix Q = constructConnectionLaplacianSE(dataset);
 		SparseMatrix G(r, (d+1) * N);
 		G.setZero();
 		problem = new QuadraticProblem(N, d, r, Q, G);
+
+
+		nh.getParam("/Yopt", filename);
+		Yopt = read_matrix_from_file(filename);
+
 
 		string Y_topic;
 		nh.getParam("/Y_topic", Y_topic);
@@ -80,12 +88,13 @@ namespace DPGO_ROS{
 			Y.block(0,index*(d+1),r,d+1) = deserializeMatrix(r,d+1,poseMsg.pose);
 		}
 
-		ROS_WARN_STREAM("Cost = " << problem->f(Y) << "; Gradnorm = " << problem->gradNorm(Y));
+		ROS_WARN_STREAM("Cost suboptimality = " << problem->f(Y) - problem->f(Yopt) << "; Gradnorm = " << problem->gradNorm(Y));
 	}
 }
 
 
 int main(int argc, char **argv) {
+	
 	ros::init(argc, argv, "coordinator_node");
 	
 	ros::NodeHandle nh;

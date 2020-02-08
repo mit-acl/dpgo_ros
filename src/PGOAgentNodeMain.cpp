@@ -167,8 +167,12 @@ int main(int argc, char **argv) {
 	Set initial guess
 	##########################################################################################
 	*/
-
-
+    nh.getParam("/Yinit", filename);
+    Matrix Yinit = read_matrix_from_file(filename);
+    unsigned startIdx = ID * num_poses_per_robot;
+    unsigned endIdx = (ID+1) * num_poses_per_robot; // non-inclusive
+    if (ID ==  num_robots - 1) endIdx = N;
+    node.setY(Yinit.block(0, startIdx*(d+1), r, (endIdx-startIdx)*(d+1)));
 
 
 
@@ -177,7 +181,6 @@ int main(int argc, char **argv) {
 	Kick off optimization
 	##########################################################################################
 	*/
-	
 	cout << "Sleeping..." << endl;
 	sleep(2);
 

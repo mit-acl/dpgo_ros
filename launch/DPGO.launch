@@ -2,14 +2,15 @@
   
   <param name="/dimension" type="int" value="3" />
   <param name="/relaxation_rank" type="int" value="5" />
-  <param name="/optimization_rate" type="double" value="1e6" />
+  <param name="/optimization_rate" type="double" value="1e3" />
   <param name="/rgd_step_size" type="double" value="1e-4" />
   <param name="/pose_update_topic" type="str" value="/pose_update" />
   <param name="/cluster_anchor_topic" type="str" value="/cluster_anchor_update" />
   <param name="/Y_topic" type="str" value="/Y" />
-  <param name="/num_robots" type="int" value="3" />
+  <param name="/num_robots" type="int" value="5" />
   <param name="/dataset" type="str" value="$(find dpgo_ros)/data/simulation/simulation.g2o" />
-
+  <param name="/Yopt" type="str" value="$(find dpgo_ros)/data/simulation/Yopt.txt" />
+  <param name="/Yinit" type="str" value="$(find dpgo_ros)/data/simulation/Yinit.txt" />
 
   <!-- Launch visualization in rviz -->
   <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find dpgo_ros)/rviz/default.rviz">
@@ -29,6 +30,16 @@
 
   <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
     <arg name="agent_id" value="2" />
+  </include>
+
+
+  <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
+    <arg name="agent_id" value="3" />
+  </include>
+
+
+  <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
+    <arg name="agent_id" value="4" />
   </include>
 
 

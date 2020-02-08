@@ -40,6 +40,8 @@ private:
 	// Current solution
 	Matrix Y;
 
+	// Optimal solution (loaded from MATLAB)
+	Matrix Yopt;
 
 };
 
