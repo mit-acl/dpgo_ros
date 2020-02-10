@@ -130,6 +130,13 @@ namespace DPGO_ROS{
 		    std::cout << endl;
 		}
 
+		filename = "/home/yulun/catkin_ws/src/dpgo_ros/results/Y.csv";
+		std::ofstream file2(filename.c_str());
+		if (file2.is_open()){
+			file2 << Y;
+		    file2.close();
+		}
+
 		ros::shutdown();
 	}
 }
