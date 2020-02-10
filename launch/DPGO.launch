@@ -3,7 +3,7 @@
   <param name="/dimension" type="int" value="3" />
   <param name="/relaxation_rank" type="int" value="5" />
   <param name="/optimization_rate" type="double" value="1e3" />
-  <param name="/rgd_step_size" type="double" value="1e-4" />
+  <param name="/rgd_step_size" type="double" value="5e-4" />
   <param name="/pose_update_topic" type="str" value="/pose_update" />
   <param name="/cluster_anchor_topic" type="str" value="/cluster_anchor_update" />
   <param name="/Y_topic" type="str" value="/Y" />
@@ -43,7 +43,7 @@
   </include>
 
 
-  <!-- Launch PGO Coordinator -->
+  <!-- Launch PGO Monitor -->
   <node name="dpgo_monitor" pkg="dpgo_ros" type="dpgo_ros_monitor_node" output="screen">
   </node>
 

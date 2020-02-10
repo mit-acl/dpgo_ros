@@ -1,9 +1,12 @@
 #include "PGOMonitorNode.h"
 #include <map>
+#include <iostream>
+#include <fstream>
 #include "DPGO_utils.h"
 #include "DPGO_types.h"
 #include "RelativeSEMeasurement.h"
 #include "dataUtils.h"
+
 
 using namespace std;
 using namespace DPGO;
@@ -17,7 +20,7 @@ namespace DPGO_ROS{
 		int num_robots = 0;
 		nh.getParam("/num_robots", num_robots);
 		ROS_WARN_STREAM("Number of robots: " << num_robots << ".");
-
+		for(int i = 0; i < num_robots; ++i) initialized.push_back(false);
 
 		string filename;
 		nh.getParam("/dataset", filename);
@@ -68,6 +71,8 @@ namespace DPGO_ROS{
 		string Y_topic;
 		nh.getParam("/Y_topic", Y_topic);
 		YSubscriber = nh.subscribe(Y_topic, 1, &PGOMonitorNode::YSubscribeCallback, this);
+
+		timer = nh.createTimer(ros::Duration(20), &PGOMonitorNode::shutdownCallback, this);
 	}
 
 
@@ -77,6 +82,8 @@ namespace DPGO_ROS{
 	void PGOMonitorNode::YSubscribeCallback(const dpgo_ros::LiftedPoseArrayConstPtr& msg){
 		unsigned r = problem->relaxation_rank();
 		unsigned d = problem->dimension();
+		unsigned robot = msg->poses[0].robot_id.data;
+		initialized[robot] = true;
 
 		// Update the solution 
 		for(size_t i = 0; i < msg->poses.size(); ++i){
@@ -88,7 +95,42 @@ namespace DPGO_ROS{
 			Y.block(0,index*(d+1),r,d+1) = deserializeMatrix(r,d+1,poseMsg.pose);
 		}
 
-		ROS_WARN_STREAM("Cost suboptimality = " << problem->f(Y) - problem->f(Yopt) << "; Gradnorm = " << problem->gradNorm(Y));
+
+		// Do not record result if not all robots have been initialized
+		for(size_t i = 0; i < initialized.size(); ++i){
+			if (!initialized[i]) return;
+		}
+
+		if(!time_initialized){
+			startTime = ros::Time::now();
+			time_initialized = true;
+		}
+
+		double t = ros::Time::now().toSec() - startTime.toSec();
+		optimalityGap.push_back(problem->f(Y) - problem->f(Yopt));
+		gradnorm.push_back(problem->gradNorm(Y));
+		elapsedTime.push_back(t);
+
+	}
+
+	void PGOMonitorNode::shutdownCallback(const ros::TimerEvent&){
+
+		// save results to file
+		std::string filename = "/home/yulun/catkin_ws/src/dpgo_ros/results/result.csv";
+		std::ofstream file(filename.c_str());
+		if (file.is_open()){
+			ROS_INFO_STREAM("Writing results to file...");
+			for(size_t i = 0; i < optimalityGap.size(); ++i){
+				std::cout << ".";
+				file << optimalityGap[i] << ","
+				     << gradnorm[i] << ","
+				     << elapsedTime[i] << std::endl;
+			}
+		    file.close();
+		    std::cout << endl;
+		}
+
+		ros::shutdown();
 	}
 }
 

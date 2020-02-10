@@ -22,6 +22,8 @@ public:
 
 	void YSubscribeCallback(const dpgo_ros::LiftedPoseArrayConstPtr& msg);
 
+	void shutdownCallback(const ros::TimerEvent&);
+
 
 private:
 
@@ -30,6 +32,9 @@ private:
 
 	// ROS subscriber
 	ros::Subscriber YSubscriber;
+
+	// Shutdown timer
+	ros::Timer timer;
 
 	// Underlying Riemannian optimization problem
 	QuadraticProblem* problem = nullptr;
@@ -42,6 +47,23 @@ private:
 
 	// Optimal solution (loaded from MATLAB)
 	Matrix Yopt;
+
+	// Store history of optimality gap
+	vector<double> optimalityGap;
+
+	// Store history of gradient norm
+	vector<double> gradnorm;
+
+	// Store corresponding elapsed time in seconds
+	vector<double> elapsedTime;
+
+	// Start time
+	ros::Time startTime;
+
+	// Whether all robots are initialized
+	vector<bool> initialized;
+	bool time_initialized = false;
+
 
 };
 
