@@ -1,21 +1,18 @@
 <launch>
-  
-  <param name="/dimension" type="int" value="3" />
+  <arg name="folder" default="intel"/>
+
+  <param name="/dimension" type="int" value="2" />
   <param name="/relaxation_rank" type="int" value="5" />
   <param name="/optimization_rate" type="double" value="1e3" />
-  <param name="/rgd_step_size" type="double" value="5e-4" />
+  <param name="/rgd_step_size" type="double" value="1e-4" />
   <param name="/pose_update_topic" type="str" value="/pose_update" />
   <param name="/cluster_anchor_topic" type="str" value="/cluster_anchor_update" />
   <param name="/Y_topic" type="str" value="/Y" />
   <param name="/num_robots" type="int" value="5" />
-  
-<!--   <param name="/dataset" type="str" value="$(find dpgo_ros)/data/simulation500/simulation.g2o" />
-  <param name="/Yopt" type="str" value="$(find dpgo_ros)/data/simulation500/Yopt.txt" />
-  <param name="/Yinit" type="str" value="$(find dpgo_ros)/data/simulation500/Yinit.txt" /> -->
 
-  <param name="/dataset" type="str" value="$(find dpgo_ros)/data/parking-garage/parking-garage.g2o" />
-  <param name="/Yopt" type="str" value="$(find dpgo_ros)/data/parking-garage/Yopt.txt" />
-  <param name="/Yinit" type="str" value="$(find dpgo_ros)/data/parking-garage/Yinit.txt" />
+  <param name="/dataset" type="str" value="$(find dpgo_ros)/data/$(arg folder)/$(arg folder).g2o" />
+  <param name="/Yopt" type="str" value="$(find dpgo_ros)/data/$(arg folder)/Yopt.txt" />
+  <param name="/Yinit" type="str" value="$(find dpgo_ros)/data/$(arg folder)/Yinit.txt" />
 
   <!-- Launch visualization in rviz -->
   <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find dpgo_ros)/rviz/default.rviz">
