@@ -23,8 +23,10 @@ PGOAgentNode::PGOAgentNode(ros::NodeHandle nh_, unsigned ID, const PGOAgentParam
 
 	string pose_update_topic;
 	nh.getParam("/pose_update_topic", pose_update_topic);
+	double communication_rate;
+	nh.getParam("/communication_rate", communication_rate);
 	sharedPosePublisher = nh.advertise<LiftedPoseArray>(pose_update_topic, 1);
-	sharedPosePublishTimer = nh.createTimer(ros::Duration(0.5), &PGOAgentNode::sharedPosePublishCallback, this);
+	sharedPosePublishTimer = nh.createTimer(ros::Duration(1/communication_rate), &PGOAgentNode::sharedPosePublishCallback, this);
 	sharedPoseSubscriber = nh.subscribe(pose_update_topic, 1, &PGOAgentNode::sharedPoseSubscribeCallback, this);
 
 

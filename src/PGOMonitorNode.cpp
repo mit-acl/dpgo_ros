@@ -72,7 +72,7 @@ namespace DPGO_ROS{
 		nh.getParam("/Y_topic", Y_topic);
 		YSubscriber = nh.subscribe(Y_topic, 1, &PGOMonitorNode::YSubscribeCallback, this);
 
-		timer = nh.createTimer(ros::Duration(20), &PGOMonitorNode::shutdownCallback, this);
+		timer = nh.createTimer(ros::Duration(30), &PGOMonitorNode::shutdownCallback, this);
 	}
 
 
