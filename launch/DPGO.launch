@@ -13,13 +13,9 @@
   <param name="/Yopt" type="str" value="$(find dpgo_ros)/data/simulation500/Yopt.txt" />
   <param name="/Yinit" type="str" value="$(find dpgo_ros)/data/simulation500/Yinit.txt" /> -->
 
-<!--   <param name="/dataset" type="str" value="$(find dpgo_ros)/data/parking-garage/parking-garage.g2o" />
+  <param name="/dataset" type="str" value="$(find dpgo_ros)/data/parking-garage/parking-garage.g2o" />
   <param name="/Yopt" type="str" value="$(find dpgo_ros)/data/parking-garage/Yopt.txt" />
-  <param name="/Yinit" type="str" value="$(find dpgo_ros)/data/parking-garage/Yinit.txt" /> -->
-
-  <param name="/dataset" type="str" value="$(find dpgo_ros)/data/cubicle/cubicle.g2o" />
-  <param name="/Yopt" type="str" value="$(find dpgo_ros)/data/cubicle/Yopt.txt" />
-  <param name="/Yinit" type="str" value="$(find dpgo_ros)/data/cubicle/Yinit.txt" />
+  <param name="/Yinit" type="str" value="$(find dpgo_ros)/data/parking-garage/Yinit.txt" />
 
   <!-- Launch visualization in rviz -->
   <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find dpgo_ros)/rviz/default.rviz">
