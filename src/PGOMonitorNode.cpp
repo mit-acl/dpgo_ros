@@ -111,6 +111,8 @@ namespace DPGO_ROS{
 		gradnorm.push_back(problem->gradNorm(Y));
 		elapsedTime.push_back(t);
 
+		ROS_WARN_STREAM("Optimality gap = " << optimalityGap.back() << "; gradnorm = " << gradnorm.back());
+
 	}
 
 	void PGOMonitorNode::shutdownCallback(const ros::TimerEvent&){
