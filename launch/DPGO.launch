@@ -1,5 +1,5 @@
 <launch>
-  <arg name="folder" default="parking-garage"/>
+  <arg name="folder" default="simulation500"/>
 
   <param name="/dimension" type="int" value="3" />
   <param name="/relaxation_rank" type="int" value="5" />

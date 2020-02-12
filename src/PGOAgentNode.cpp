@@ -132,6 +132,7 @@ void PGOAgentNode::sharedPoseSubscribeCallback(const dpgo_ros::LiftedPoseArrayCo
 	for(size_t i = 0; i < msg->poses.size(); ++i){
 
 		LiftedPose poseMsg = msg->poses[i];
+		unsigned clusterID = poseMsg.cluster_id.data;
 		unsigned neighborID = poseMsg.robot_id.data;
 		unsigned neighborPoseID = poseMsg.pose_id.data;
 
@@ -140,7 +141,7 @@ void PGOAgentNode::sharedPoseSubscribeCallback(const dpgo_ros::LiftedPoseArrayCo
 		// Copy pose data from pose message to Eigen Matrix (row-major)
 		Matrix Y = deserializeMatrix(r,d+1,poseMsg.pose);
 
-		agent->updateNeighborPose(0, neighborID, neighborPoseID, Y);
+		agent->updateNeighborPose(clusterID, neighborID, neighborPoseID, Y);
 	}
 }
 
