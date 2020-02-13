@@ -3,7 +3,7 @@
   <!-- args that needs to be passed in from higher-level launch files -->
   <arg name="agent_id" default="0"/> 
 
-  <node ns="dpgo_agent_$(arg agent_id)" name="agent" pkg="dpgo_ros" type="dpgo_ros_agent_node" output="screen">
+  <node ns="dpgo_agent_$(arg agent_id)" name="agent" pkg="dpgo_ros" type="dpgo_ros_agent_node" output="screen" launch-prefix="gnome-terminal -x gdb -ex run --args">
     <param name="~agent_id" type="int" value="$(arg agent_id)" />
   </node>
 

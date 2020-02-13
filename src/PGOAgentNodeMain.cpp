@@ -123,9 +123,53 @@ int main(int argc, char **argv) {
 
 	/** 
 	##########################################################################################
-	Add measurements to node
+	Staic pose graph: add all measurements to node before starting optimization
 	##########################################################################################
 	*/
+
+ //   for(size_t k = 0; k < dataset.size(); ++k){
+ //        RelativeSEMeasurement mIn = dataset[k];
+ //        PoseID src = PoseMap[mIn.p1];
+ //        PoseID dst = PoseMap[mIn.p2];
+
+ //        unsigned srcRobot = get<0>(src);
+ //        unsigned srcIdx = get<1>(src);
+ //        unsigned dstRobot = get<0>(dst);
+ //        unsigned dstIdx = get<1>(dst);
+
+ //        RelativeSEMeasurement m(srcRobot, dstRobot, srcIdx, dstIdx, mIn.R, mIn.t, mIn.kappa, mIn.tau);
+ //        unsigned mID = (unsigned) ID;
+
+ //        if (mID == srcRobot && mID == dstRobot){
+ //        	if (srcIdx + 1 == dstIdx){
+ //        		// odometry
+ //        		node.addOdometry(m);
+ //        	}
+ //        	else{
+ //        		// private loop closure
+ //        		node.addPrivateLoopClosure(m);
+ //        	}
+ //        }else if(mID != srcRobot && mID != dstRobot){
+ //        	// discard
+ //        }else{
+ //        	// shared loop closure
+ //        	node.addSharedLoopClosure(m);
+ //        }
+ //    }
+
+
+    /** 
+	##########################################################################################
+	Dynamic pose graph: add measurements to queue
+	##########################################################################################
+	*/
+
+	size_t n = num_poses_per_robot;
+	if (ID == num_robots){
+		n = N - (num_robots-1)*num_poses_per_robot;
+	} 
+
+	node.initializeLoopClosureQueues(n);
 
 	for(size_t k = 0; k < dataset.size(); ++k){
         RelativeSEMeasurement mIn = dataset[k];
@@ -143,19 +187,21 @@ int main(int argc, char **argv) {
         if (mID == srcRobot && mID == dstRobot){
         	if (srcIdx + 1 == dstIdx){
         		// odometry
-        		node.addOdometry(m);
+        		node.addOdometryToQueue(m);
         	}
         	else{
         		// private loop closure
-        		node.addPrivateLoopClosure(m);
+        		node.addPrivateLoopClosureToQueue(m);
         	}
         }else if(mID != srcRobot && mID != dstRobot){
         	// discard
         }else{
         	// shared loop closure
-        	node.addSharedLoopClosure(m);
+        	node.addSharedLoopClosureToQueue(m);
         }
     }
+
+    node.registerPoseInsertionCallback();
 
     /** 
 	##########################################################################################

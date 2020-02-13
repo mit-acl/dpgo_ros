@@ -13,7 +13,7 @@
   
   <param name="/num_robots" type="int" value="5" />
 
-  <arg name="folder" default="simulation500"/>
+  <arg name="folder" default="parking-garage"/>
   <param name="/dataset" type="str" value="$(find dpgo_ros)/data/$(arg folder)/$(arg folder).g2o" />
   <param name="/Yopt" type="str" value="$(find dpgo_ros)/data/$(arg folder)/Yopt.txt" />
   <param name="/Yinit" type="str" value="$(find dpgo_ros)/data/$(arg folder)/Yinit.txt" />
@@ -50,8 +50,8 @@
 
 
   <!-- Launch PGO Monitor -->
-  <node name="dpgo_monitor" pkg="dpgo_ros" type="dpgo_ros_monitor_node" output="screen">
-  </node>
+<!--   <node name="dpgo_monitor" pkg="dpgo_ros" type="dpgo_ros_monitor_node" output="screen">
+  </node> -->
 
 
 </launch>
