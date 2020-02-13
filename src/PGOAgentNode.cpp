@@ -17,30 +17,6 @@ namespace DPGO_ROS{
 
 PGOAgentNode::PGOAgentNode(ros::NodeHandle nh_, unsigned ID, const PGOAgentParameters& params):nh(nh_){
 	agent = new PGOAgent(ID, params);
-
-	trajectoryPublisher = nh.advertise<nav_msgs::Path>("trajectory", 1);
-	trajectoryPublishTimer = nh.createTimer(ros::Duration(0.5), &PGOAgentNode::trajectoryPublishCallback, this);
-
-	string pose_update_topic;
-	nh.getParam("/pose_update_topic", pose_update_topic);
-	double communication_rate;
-	nh.getParam("/communication_rate", communication_rate);
-	sharedPosePublisher = nh.advertise<LiftedPoseArray>(pose_update_topic, 1);
-	sharedPosePublishTimer = nh.createTimer(ros::Duration(1/communication_rate), &PGOAgentNode::sharedPosePublishCallback, this);
-	sharedPoseSubscriber = nh.subscribe(pose_update_topic, 1, &PGOAgentNode::sharedPoseSubscribeCallback, this);
-
-
-	string cluster_anchor_topic;
-	nh.getParam("/cluster_anchor_topic", cluster_anchor_topic);
-	clusterAnchorPublisher = nh.advertise<LiftedPoseStamped>(cluster_anchor_topic, 1);
-	clusterAnchorPublishTimer = nh.createTimer(ros::Duration(0.5), &PGOAgentNode::clusterAnchorPublishCallback, this);
-	clusterAnchorSubscriber = nh.subscribe(cluster_anchor_topic, 1, &PGOAgentNode::clusterAnchorSubscribeCallback, this);
-
-	string Y_topic;
-	nh.getParam("/Y_topic", Y_topic);
-	YPublisher = nh.advertise<LiftedPoseArray>(Y_topic, 1);
-	YPublishTimer = nh.createTimer(ros::Duration(0.5), &PGOAgentNode::YPublishCallback, this);
-
 }
 
 PGOAgentNode::~PGOAgentNode()

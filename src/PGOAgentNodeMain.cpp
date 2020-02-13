@@ -8,16 +8,13 @@ using namespace std;
 using namespace DPGO;
 
 /** 
-
 This script implements the entry point for running a single PGO Agent in ROS
-
 */
 
 int main(int argc, char **argv) {
 	ros::init(argc, argv, "agent_node");
 	ros::NodeHandle nh;
 
-	// Get agent ID
 	int ID = -1;
 	ros::param::get("~agent_id", ID);
 	if (ID < 0){
@@ -47,6 +44,7 @@ int main(int argc, char **argv) {
 	nh.getParam("/dataset", filename);
 	cout << "Reading dataset: " << filename << "..." << endl;
 
+
 	size_t N = 0; // total number of poses in the dataset
     vector<RelativeSEMeasurement> dataset = DPGO::read_g2o_file(filename, N);
     cout << "Loaded dataset: " << filename << "." << endl;
@@ -75,24 +73,23 @@ int main(int argc, char **argv) {
         }
     }
 
+
     /** 
 	##########################################################################################
 	Initialize PGOAgent 
 	##########################################################################################
 	*/
-
-	
 	int d = -1;
 	int r = -1;
 	double rate = -1.0;
 	double stepsize = -1.0;
-	ROPTALG algorithm = ROPTALG::RTR; // default to RTR
+	ROPTALG algorithm = ROPTALG::RTR;
 	bool verbose = false;
 
 	nh.getParam("/dimension", d);
 	nh.getParam("/relaxation_rank", r);
 	nh.getParam("/optimization_rate", rate);
-	nh.getParam("/rgd_step_size", stepsize);
+	nh.getParam("/rgd_stepsize", stepsize);
 	if (d < 0){
 		ROS_ERROR_STREAM("Negative dimension!");
 		return -1;
@@ -160,20 +157,22 @@ int main(int argc, char **argv) {
         }
     }
 
-    
-
     /** 
 	##########################################################################################
-	Set initial guess
+	Set up callbacks
 	##########################################################################################
 	*/
-    // nh.getParam("/Yinit", filename);
-    // Matrix Yinit = read_matrix_from_file(filename);
-    // unsigned startIdx = ID * num_poses_per_robot;
-    // unsigned endIdx = (ID+1) * num_poses_per_robot; // non-inclusive
-    // if (ID ==  num_robots - 1) endIdx = N;
-    // node.setY(Yinit.block(0, startIdx*(d+1), r, (endIdx-startIdx)*(d+1)));
 
+    string pose_update_topic, anchor_topic, solution_topic;
+    double pose_update_publish_rate;
+	nh.getParam("/pose_update_topic", pose_update_topic);
+	nh.getParam("/pose_update_publish_rate", pose_update_publish_rate);
+	nh.getParam("/anchor_topic", anchor_topic);
+	nh.getParam("/solution_topic", solution_topic);
+	node.registerPoseUpdateCallback(pose_update_topic, pose_update_publish_rate);
+	node.registerAnchorCallback(anchor_topic);
+	node.registerSolutionCallback(solution_topic);
+	node.registerTrajectoryCallback();
 
 
 	/** 

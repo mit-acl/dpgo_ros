@@ -1,16 +1,19 @@
 <launch>
-  <arg name="folder" default="simulation500"/>
 
   <param name="/dimension" type="int" value="3" />
-  <param name="/relaxation_rank" type="int" value="5" />
-  <param name="/optimization_rate" type="double" value="1e3" />
-  <param name="/communication_rate" type="double" value="10" />
-  <param name="/rgd_step_size" type="double" value="5e-4" />
+  <param name="/relaxation_rank" type="int" value="3" />
+
+  <param name="/anchor_topic" type="str" value="/anchor_update" />
+  <param name="/solution_topic" type="str" value="/solution" />
   <param name="/pose_update_topic" type="str" value="/pose_update" />
-  <param name="/cluster_anchor_topic" type="str" value="/cluster_anchor_update" />
-  <param name="/Y_topic" type="str" value="/Y" />
+  <param name="/pose_update_publish_rate" type="double" value="10" />
+
+  <param name="/optimization_rate" type="double" value="1e3" />
+  <param name="/rgd_stepsize" type="double" value="5e-4" />
+  
   <param name="/num_robots" type="int" value="5" />
 
+  <arg name="folder" default="simulation500"/>
   <param name="/dataset" type="str" value="$(find dpgo_ros)/data/$(arg folder)/$(arg folder).g2o" />
   <param name="/Yopt" type="str" value="$(find dpgo_ros)/data/$(arg folder)/Yopt.txt" />
   <param name="/Yinit" type="str" value="$(find dpgo_ros)/data/$(arg folder)/Yinit.txt" />

@@ -68,9 +68,9 @@ namespace DPGO_ROS{
 		Yopt = read_matrix_from_file(filename);
 
 
-		string Y_topic;
-		nh.getParam("/Y_topic", Y_topic);
-		YSubscriber = nh.subscribe(Y_topic, 1, &PGOMonitorNode::YSubscribeCallback, this);
+		string solution_topic;
+		nh.getParam("/solution_topic", solution_topic);
+		YSubscriber = nh.subscribe(solution_topic, 1, &PGOMonitorNode::YSubscribeCallback, this);
 
 		timer = nh.createTimer(ros::Duration(30), &PGOMonitorNode::shutdownCallback, this);
 	}
