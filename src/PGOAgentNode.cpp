@@ -63,6 +63,8 @@ void PGOAgentNode::trajectoryPublishCallback(const ros::TimerEvent&){
 	}
 
 	trajectoryPublisher.publish(trajectory);
+
+	ROS_INFO_STREAM("Agent " << agent->getID() << " gradient norm: " << agent->gradNorm());
 }
 
 
@@ -203,16 +205,17 @@ void PGOAgentNode::poseInsertionCallback(const ros::TimerEvent&){
 	if (OdometryQueue.empty()) return;
 
 	// add the next odometry measurement
-	RelativeSEMeasurement m;
 	addOdometry(OdometryQueue[0]);
 	OdometryQueue.erase(OdometryQueue.begin());
 
 	// add all loop closures attached to the new pose
 	size_t index = agent->num_poses() - 1;
-	for(size_t i = 0; i < PrivateLoopClosureQueue[index].size(); ++i) 
+	for(size_t i = 0; i < PrivateLoopClosureQueue[index].size(); ++i){
 		addPrivateLoopClosure(PrivateLoopClosureQueue[index][i]);
-	for(size_t i = 0; i < SharedLoopClosureQueue[index].size(); ++i) 
+	}
+	for(size_t i = 0; i < SharedLoopClosureQueue[index].size(); ++i){
 		addSharedLoopClosure(SharedLoopClosureQueue[index][i]);
+	}
 
 }
 
