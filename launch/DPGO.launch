@@ -1,19 +1,20 @@
 <launch>
 
   <param name="/dimension" type="int" value="3" />
-  <param name="/relaxation_rank" type="int" value="3" />
+  <param name="/relaxation_rank" type="int" value="5" />
 
   <param name="/anchor_topic" type="str" value="/anchor_update" />
   <param name="/solution_topic" type="str" value="/solution" />
   <param name="/pose_update_topic" type="str" value="/pose_update" />
   <param name="/pose_update_publish_rate" type="double" value="10" />
 
-  <param name="/optimization_rate" type="double" value="10" />
-  <param name="/rgd_stepsize" type="double" value="5e-4" />
+  <param name="/optimization_rate" type="double" value="1e3" />
+  <!-- Default solver is RTR. Uncomment below to use RGD with a constant stepsize -->
+  <!-- <param name="/rgd_stepsize" type="double" value="5e-4" /> -->
   
-  <param name="/num_robots" type="int" value="3" />
+  <param name="/num_robots" type="int" value="5" />
 
-  <arg name="folder" default="parking-garage"/>
+  <arg name="folder" default="simulation500"/>
   <param name="/dataset" type="str" value="$(find dpgo_ros)/data/$(arg folder)/$(arg folder).g2o" />
   <param name="/Yopt" type="str" value="$(find dpgo_ros)/data/$(arg folder)/Yopt.txt" />
   <param name="/Yinit" type="str" value="$(find dpgo_ros)/data/$(arg folder)/Yinit.txt" />
@@ -39,19 +40,19 @@
   </include>
 
 
-  <!-- <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
+  <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
     <arg name="agent_id" value="3" />
-  </include> -->
+  </include>
 
 
-  <!-- <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
+  <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
     <arg name="agent_id" value="4" />
-  </include> -->
+  </include>
 
 
   <!-- Launch PGO Monitor -->
-  <!-- <node name="dpgo_monitor" pkg="dpgo_ros" type="dpgo_ros_monitor_node" output="screen">
-  </node> -->
+  <node name="dpgo_monitor" pkg="dpgo_ros" type="dpgo_ros_monitor_node" output="screen">
+  </node>
 
 
 </launch>

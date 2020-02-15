@@ -63,8 +63,6 @@ void PGOAgentNode::trajectoryPublishCallback(const ros::TimerEvent&){
 	}
 
 	trajectoryPublisher.publish(trajectory);
-
-	ROS_INFO_STREAM("Agent " << agent->getID() << " gradient norm: " << agent->gradNorm());
 }
 
 
