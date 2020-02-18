@@ -39,12 +39,24 @@ void PGOAgentNode::trajectoryPublishCallback(const ros::TimerEvent&){
 		Matrix R = T.block(0,i*(d+1),d,d);
 		Matrix t = T.block(0,i*(d+1)+d,d,1);
 
-		tf::Point tTF(t(0), t(1), t(2));
+		tf::Point tTF;
+		tf::Matrix3x3 RTF;
 
-		// convert rotation matrix to quaternion
-		tf::Matrix3x3 RTF(R(0,0),R(0,1),R(0,2),
-						  R(1,0),R(1,1),R(1,2),
-						  R(2,0),R(2,1),R(2,2));
+		if(d == 3){
+			tTF.setValue(t(0), t(1), t(2));
+			
+			RTF.setValue(R(0,0),R(0,1),R(0,2),
+						 R(1,0),R(1,1),R(1,2),
+						 R(2,0),R(2,1),R(2,2));
+		}
+		else{
+			assert(d == 2);
+			tTF.setValue(t(0), t(1), 0);
+
+			RTF.setValue(R(0,0),R(0,1),0,
+						 R(1,0),R(1,1),0,
+						 0,     0,     0);
+		}
 
 		tf::Quaternion quatTF;
 		RTF.getRotation(quatTF);

@@ -72,7 +72,7 @@ namespace DPGO_ROS{
 		nh.getParam("/solution_topic", solution_topic);
 		YSubscriber = nh.subscribe(solution_topic, 1, &PGOMonitorNode::YSubscribeCallback, this);
 
-		timer = nh.createTimer(ros::Duration(30), &PGOMonitorNode::shutdownCallback, this);
+		timer = nh.createTimer(ros::Duration(60), &PGOMonitorNode::shutdownCallback, this);
 	}
 
 
@@ -111,7 +111,9 @@ namespace DPGO_ROS{
 		gradnorm.push_back(problem->gradNorm(Y));
 		elapsedTime.push_back(t);
 
-		ROS_WARN_STREAM("Optimality gap = " << optimalityGap.back() << "; gradnorm = " << gradnorm.back());
+		auto minOptGapIt = std::min_element(optimalityGap.begin(), optimalityGap.end());
+		auto minGradNormIt = std::min_element(gradnorm.begin(), gradnorm.end());
+		ROS_WARN_STREAM("Min optimality gap = " << *minOptGapIt << "; min gradnorm = " << *minGradNormIt);
 
 	}
 
