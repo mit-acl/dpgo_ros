@@ -10,7 +10,7 @@
 
   <param name="/optimization_rate" type="double" value="1e3" />
   <!-- Default solver is RTR. Uncomment below to use RGD with a constant stepsize -->
-  <!-- <param name="/rgd_stepsize" type="double" value="5e-4" /> -->
+  <param name="/rgd_stepsize" type="double" value="5e-4" />
   
   <param name="/num_robots" type="int" value="5" />
 
