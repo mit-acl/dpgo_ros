@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(dpgo_ros)
 
-include(DPGO.cmake)
-get_target_property(DPGO_INCLUDE_DIRS DPGO INTERFACE_INCLUDE_DIRECTORIES)
-# message("DPGO_INCLUDE_DIRS: " ${DPGO_INCLUDE_DIRS})
+
+find_package(DPGO REQUIRED)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -march=native -pthread -O3")
@@ -18,8 +17,6 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
 )
 
-
-# find_package(ROPTLIB REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -127,7 +124,6 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${DPGO_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
