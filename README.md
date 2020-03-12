@@ -1,6 +1,7 @@
 # DPGO_ROS
 
-ROS wrapper for the DPGO library
+## Introduction
+This repository implements a ROS wrapper for the DPGO library
 
 ## Building the package
 
