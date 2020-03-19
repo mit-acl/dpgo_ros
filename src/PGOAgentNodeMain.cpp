@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
 
     /** 
 	##########################################################################################
-	Dynamic pose graph: add measurements to queue
+	Dynamic pose graph: add measurements online
 	##########################################################################################
 	*/
 

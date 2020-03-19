@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  geometry_msgs
   message_generation
 )
 
@@ -57,6 +58,7 @@ find_package(catkin REQUIRED COMPONENTS
    LiftedPose.msg
    LiftedPoseStamped.msg
    LiftedPoseArray.msg
+   RelativeMeasurementStamped.msg
  )
 
 ## Generate services in the 'srv' folder
@@ -77,6 +79,7 @@ find_package(catkin REQUIRED COMPONENTS
  generate_messages(
    DEPENDENCIES
    std_msgs
+   geometry_msgs
  )
 
 ################################################
