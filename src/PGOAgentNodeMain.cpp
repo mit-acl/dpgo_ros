@@ -165,52 +165,6 @@ int main(int argc, char **argv) {
     node.setY(Yinit.block(0, startIdx*(d+1), r, (endIdx-startIdx)*(d+1)));
 
 
-
-    /** 
-	##########################################################################################
-	Dynamic pose graph: add measurements online
-	##########################################################################################
-	*/
-
-	// size_t n = num_poses_per_robot;
-	// if (ID == num_robots){
-	// 	n = N - (num_robots-1)*num_poses_per_robot;
-	// } 
-
-	// node.initializeLoopClosureQueues(n);
-
-	// for(size_t k = 0; k < dataset.size(); ++k){
-        // RelativeSEMeasurement mIn = dataset[k];
-        // PoseID src = PoseMap[mIn.p1];
-        // PoseID dst = PoseMap[mIn.p2];
-
-        // unsigned srcRobot = get<0>(src);
-        // unsigned srcIdx = get<1>(src);
-        // unsigned dstRobot = get<0>(dst);
-        // unsigned dstIdx = get<1>(dst);
-
-        // RelativeSEMeasurement m(srcRobot, dstRobot, srcIdx, dstIdx, mIn.R, mIn.t, mIn.kappa, mIn.tau);
-        // unsigned mID = (unsigned) ID;
-
-        // if (mID == srcRobot && mID == dstRobot){
-        	// if (srcIdx + 1 == dstIdx){
-        		// // odometry
-        		// node.addOdometryToQueue(m);
-        	// }
-        	// else{
-        		// // private loop closure
-        		// node.addPrivateLoopClosureToQueue(m);
-        	// }
-        // }else if(mID != srcRobot && mID != dstRobot){
-        	// discard
-        // }else{
-        	// shared loop closure
-        	// node.addSharedLoopClosureToQueue(m);
-        // }
-    // }
-
-    // node.registerPoseInsertionCallback();
-
     /** 
 	##########################################################################################
 	Set up callbacks
