@@ -93,6 +93,7 @@ int main(int argc, char **argv) {
 	double stepsize = -1.0;
 	ROPTALG algorithm = ROPTALG::RTR;
 	bool verbose = false;
+	bool online = false;
 
 	nh.getParam("/dimension", d);
 	nh.getParam("/relaxation_rank", r);
@@ -122,7 +123,7 @@ int main(int argc, char **argv) {
 
 	cout << "Initializing PGO Agent: ID = " << ID << ", dimension = " << d << ", relaxation_rank = " << r << ", optimization_rate = " << rate <<  endl;
 	
-	PGOAgentParameters options(d,r,algorithm,verbose);
+	PGOAgentParameters options(d,r,algorithm,verbose,online);
 	
 	DPGO_ROS::PGOAgentNode node(nh, ID, options);
 
