@@ -100,17 +100,9 @@ void PGOAgentNode::sharedPosePublishCallback(const ros::TimerEvent&){
 	for(auto it = sharedPoses.begin(); it != sharedPoses.end(); ++it){
 		PoseID nID = it->first;
 		Matrix Y = it->second;
-
-		LiftedPose poseMsg;
-		poseMsg.dimension.data = d;
-		poseMsg.relaxation_rank.data = r;
-		poseMsg.cluster_id.data = cluster;
-		poseMsg.robot_id.data = get<0>(nID);
-		poseMsg.pose_id.data =  get<1>(nID);
-
-		// Copy pose data from Eigen Matrix to pose message (row-major)
-		poseMsg.pose = serializeMatrix(r,d+1,Y);
-
+		size_t robot_id = get<0>(nID);
+		size_t pose_id = get<1>(nID);
+		LiftedPose poseMsg = constructLiftedPoseMsg(d, r, cluster, robot_id, pose_id, Y);
 		arrayMsg.poses.push_back(poseMsg);
 	}
 
@@ -128,9 +120,9 @@ void PGOAgentNode::sharedPoseSubscribeCallback(const dpgo_ros::LiftedPoseArrayCo
 	for(size_t i = 0; i < msg->poses.size(); ++i){
 
 		LiftedPose poseMsg = msg->poses[i];
-		unsigned clusterID = poseMsg.cluster_id.data;
-		unsigned neighborID = poseMsg.robot_id.data;
-		unsigned neighborPoseID = poseMsg.pose_id.data;
+		unsigned clusterID = poseMsg.cluster_id;
+		unsigned neighborID = poseMsg.robot_id;
+		unsigned neighborPoseID = poseMsg.pose_id;
 
 		if(neighborID == mID) continue;
 
@@ -148,21 +140,16 @@ void PGOAgentNode::clusterAnchorPublishCallback(const ros::TimerEvent&){
 	unsigned mID = agent->getID();
 	unsigned d = agent->dimension();
 	unsigned r = agent->relaxation_rank();
+	unsigned cluster = agent->getCluster();
 	
 	
 	if(mID == 0){
 		LiftedPoseStamped msg;
 		msg.header.stamp = ros::Time::now();
-
-		msg.pose.dimension.data = d;
-		msg.pose.relaxation_rank.data = r;
-		msg.pose.cluster_id.data = agent->getCluster();
-		msg.pose.robot_id.data = agent->getID();
-		msg.pose.pose_id.data = 0; // always use the first pose as anchor
-
-		// Copy pose data from Eigen Matrix to pose message (row-major)
-		Matrix Y = agent->getYComponent(0);
-		msg.pose.pose = serializeMatrix(r,d+1,Y);
+		
+		// always use the first pose as anchor
+		size_t pose_id = 0;
+		msg.pose = constructLiftedPoseMsg(d, r, cluster, mID, pose_id, agent->getYComponent(pose_id));
 
 		clusterAnchorPublisher.publish(msg);
 	}
@@ -200,17 +187,7 @@ void PGOAgentNode::YPublishCallback(const ros::TimerEvent&){
 
 	for(unsigned i = 0; i < n; ++i){
 		Matrix Yi = Y.block(0,i*(d+1),r,d+1);
-
-		LiftedPose poseMsg;
-		poseMsg.dimension.data = d;
-		poseMsg.relaxation_rank.data = r;
-		poseMsg.cluster_id.data = cluster;
-		poseMsg.robot_id.data = mID;
-		poseMsg.pose_id.data =  i;
-
-		// Copy pose data from Eigen Matrix to pose message (row-major)
-		poseMsg.pose = serializeMatrix(r,d+1,Yi);
-
+		LiftedPose poseMsg = constructLiftedPoseMsg(d, r, cluster, mID, i, Yi);
 		arrayMsg.poses.push_back(poseMsg);
 	}
 

@@ -4,16 +4,16 @@
 std_msgs/Header header
 
 # ID of first robot
-std_msgs/UInt32 robot1
+uint32 robot1
 
 # local ID of first pose
-std_msgs/UInt32 pose1
+uint32 pose1
 
 # ID of second robot
-std_msgs/UInt32 robot2
+uint32 robot2
 
 # local ID of second pose
-std_msgs/UInt32 pose2
+uint32 pose2
 
 # relative rotation
 geometry_msgs/Quaternion rotation
@@ -22,7 +22,7 @@ geometry_msgs/Quaternion rotation
 geometry_msgs/Vector3 translation
 
 # rotation measurement weight
-std_msgs/Float64 kappa
+float64 kappa
 
 # translation measurement weight
-std_msgs/Float64 tau
+float64 tau

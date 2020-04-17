@@ -90,14 +90,14 @@ namespace DPGO_ROS{
 	void PGOMonitorNode::YSubscribeCallback(const dpgo_ros::LiftedPoseArrayConstPtr& msg){
 		unsigned r = problem->relaxation_rank();
 		unsigned d = problem->dimension();
-		unsigned robot = msg->poses[0].robot_id.data;
+		unsigned robot = msg->poses[0].robot_id;
 		initialized[robot] = true;
 
 		// Update the solution 
 		for(size_t i = 0; i < msg->poses.size(); ++i){
 			LiftedPose poseMsg = msg->poses[i];
 
-			PoseID localID = make_pair(poseMsg.robot_id.data, poseMsg.pose_id.data);
+			PoseID localID = make_pair(poseMsg.robot_id, poseMsg.pose_id);
 			unsigned index = PoseMap[localID];
 
 			Y.block(0,index*(d+1),r,d+1) = deserializeMatrix(r,d+1,poseMsg.pose);
