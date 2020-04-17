@@ -30,3 +30,4 @@ roslaunch dpgo_ros DPGO.launch
 
 ## TODO list:
 * [ ]  Simplify LiftedPose message.
+* [ ]  Create helper functions to read/write custom messages.
