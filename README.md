@@ -28,5 +28,5 @@ roslaunch dpgo_ros DPGO.launch
 ```
 
 
-TODO:
+## TODO list:
 * [ ]  Simplify LiftedPose message.
