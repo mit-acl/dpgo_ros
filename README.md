@@ -26,3 +26,7 @@ source ~/catkin_ws/devel/setup.bash
 # run demo of asynchronous DPGO
 roslaunch dpgo_ros DPGO.launch
 ```
+
+
+TODO:
+* [ ]  Simplify LiftedPose message.
