@@ -29,5 +29,7 @@ roslaunch dpgo_ros DPGO.launch
 
 
 ## TODO list:
-* [ ]  Simplify LiftedPose message.
-* [ ]  Create helper functions to read/write custom messages.
+* [x]  Simplify LiftedPose message.
+* [x]  Create helper functions to read/write custom messages.
+* [ ]  Add type of M-estimator to the option struct.
+* [ ]  Update feature/online branch to publish dataset in ROS instead of manually reading the measurements.
