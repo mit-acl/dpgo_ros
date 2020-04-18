@@ -33,3 +33,4 @@ roslaunch dpgo_ros DPGO.launch
 * [x]  Create helper functions to read/write custom messages.
 * [ ]  Add type of M-estimator to the option struct.
 * [ ]  Update feature/online branch to publish dataset in ROS instead of manually reading the measurements.
+* [ ]  Merge monitor node with simulator node in feature/online branch. Remove monitor node in feature/kimera branch.
