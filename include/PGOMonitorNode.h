@@ -29,8 +29,7 @@ public:
 
 	void YSubscribeCallback(const dpgo_ros::LiftedPoseArrayConstPtr& msg);
 
-	void shutdownCallback(const ros::TimerEvent&);
-
+	void shutdown();
 
 private:
 

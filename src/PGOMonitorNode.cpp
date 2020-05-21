@@ -9,6 +9,7 @@
 #include "PGOMonitorNode.h"
 #include <map>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include "DPGO_utils.h"
 #include "DPGO_types.h"
@@ -80,7 +81,6 @@ namespace DPGO_ROS{
 		nh.getParam("/solution_topic", solution_topic);
 		YSubscriber = nh.subscribe(solution_topic, 1, &PGOMonitorNode::YSubscribeCallback, this);
 
-		timer = nh.createTimer(ros::Duration(60), &PGOMonitorNode::shutdownCallback, this);
 	}
 
 
@@ -121,33 +121,63 @@ namespace DPGO_ROS{
 
 		auto minOptGapIt = std::min_element(optimalityGap.begin(), optimalityGap.end());
 		auto minGradNormIt = std::min_element(gradnorm.begin(), gradnorm.end());
-		ROS_WARN_STREAM("Min optimality gap = " << *minOptGapIt << "; min gradnorm = " << *minGradNormIt);
+		
+		std::cout << std::fixed << std::setprecision(4);
+		std::cout << " | fgap=" << optimalityGap.back();
+		std::cout << " | gn="   << gradnorm.back();
+		std::cout << " | min_fgap="   << *minOptGapIt;
+		std::cout << " | min_gn="     << *minGradNormIt;
+		std::cout << " | time= " << t;
+		std::cout << std::endl;
+
+		if (t > 60){
+			shutdown();
+		}
 
 	}
 
-	void PGOMonitorNode::shutdownCallback(const ros::TimerEvent&){
+	void PGOMonitorNode::shutdown(){
 
 		// save results to file
-		std::string filename = "/home/yulun/catkin_ws/src/dpgo_ros/results/result.csv";
-		std::ofstream file(filename.c_str());
-		if (file.is_open()){
-			ROS_INFO_STREAM("Writing results to file...");
-			for(size_t i = 0; i < optimalityGap.size(); ++i){
-				std::cout << ".";
-				file << optimalityGap[i] << ","
-				     << gradnorm[i] << ","
-				     << elapsedTime[i] << std::endl;
-			}
-		    file.close();
-		    std::cout << endl;
-		}
+		// std::string filename = "/home/yulun/catkin_ws/src/dpgo_ros/results/result.csv";
+		// std::ofstream file(filename.c_str());
+		// if (file.is_open()){
+		// 	ROS_INFO_STREAM("Writing results to file...");
+		// 	for(size_t i = 0; i < optimalityGap.size(); ++i){
+		// 		std::cout << ".";
+		// 		file << optimalityGap[i] << ","
+		// 		     << gradnorm[i] << ","
+		// 		     << elapsedTime[i] << std::endl;
+		// 	}
+		//     file.close();
+		//     std::cout << endl;
+		// }
 
-		filename = "/home/yulun/catkin_ws/src/dpgo_ros/results/Y.csv";
+		std::string filename = "/home/yulun/Desktop/Ysol.csv";
 		std::ofstream file2(filename.c_str());
 		if (file2.is_open()){
 			file2 << Y;
 		    file2.close();
 		}
+
+		string dataset;
+		double stepsize;
+		nh.getParam("/dataset", dataset);
+		nh.getParam("/rgd_stepsize", stepsize);
+		auto minOptGapIt = std::min_element(optimalityGap.begin(), optimalityGap.end());
+		auto minGradNormIt = std::min_element(gradnorm.begin(), gradnorm.end());
+		
+		std::ofstream logfile;
+		logfile.open("/home/yulun/Desktop/dpgo_experiment_log.txt", std::ios_base::app); // append instead of overwrite
+
+		logfile << std::fixed << std::setprecision(4);
+		logfile << "dataset = " << dataset;
+		logfile << " | stepsize = " << stepsize; 
+		logfile << " | fgap = " << optimalityGap.back();
+		logfile << " | gn = "   << gradnorm.back();
+		logfile << " | min_fgap = "   << *minOptGapIt;
+		logfile << " | min_gn = "     << *minGradNormIt;
+		logfile << std::endl;
 
 		ros::shutdown();
 	}

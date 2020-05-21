@@ -115,12 +115,6 @@ public:
 
 
     /**
-    Insert new pose to simulate growing pose graph
-    */
-    void poseInsertionCallback(const ros::TimerEvent&);
-
-
-    /**
     Subscribe to shared poses from other robots
     */
     void sharedPoseSubscribeCallback(const dpgo_ros::LiftedPoseArrayConstPtr& msg);
@@ -170,62 +164,6 @@ public:
     }
 
 
-    /**
-    Setup callback to periodically insert new poses to simulate growing pose graph
-    */
-    void registerPoseInsertionCallback(){
-        poseInsertionTimer = nh.createTimer(ros::Duration(0.2), &PGOAgentNode::poseInsertionCallback, this);
-    }
-
-
-    /**
-    Add odometry to measurement queue
-    */
-    void addOdometryToQueue(const RelativeSEMeasurement& m){
-        OdometryQueue.push_back(m);
-    }
-
-
-    /**
-    Initialize empty loop closure queue
-    */
-    void initializeLoopClosureQueues(const size_t n){
-        vector<RelativeSEMeasurement> v;
-        for(size_t i = 0; i < n; ++i) {
-            PrivateLoopClosureQueue.push_back(v);
-            SharedLoopClosureQueue.push_back(v);
-        }
-    }
-
-
-    /**
-    Add loop closure to measurement queue
-    */
-    void addPrivateLoopClosureToQueue(const RelativeSEMeasurement& m){
-        assert(m.r1 == agent->getID());
-        assert(m.r2 == agent->getID());
-        if (m.p1 > m.p2){
-            PrivateLoopClosureQueue[m.p1].push_back(m);
-        }else{
-            PrivateLoopClosureQueue[m.p2].push_back(m);
-        }
-    }
-
-
-    /**
-    Add loop closure to measurement queue
-    */
-    void addSharedLoopClosureToQueue(const RelativeSEMeasurement& m){
-        if(m.r1 == agent->getID()){
-            assert(m.r2 != agent->getID());
-            SharedLoopClosureQueue[m.p1].push_back(m);
-        }
-        else{
-            assert(m.r2 == agent->getID());
-            SharedLoopClosureQueue[m.p2].push_back(m);
-        }
-    }
-
 
 private:
 
@@ -251,11 +189,6 @@ private:
     // ROS subscriber
     ros::Subscriber sharedPoseSubscriber;
     ros::Subscriber clusterAnchorSubscriber;
-
-    // Data structures for dynamic PGO
-    vector<RelativeSEMeasurement> OdometryQueue;
-    vector<vector<RelativeSEMeasurement>> PrivateLoopClosureQueue;
-    vector<vector<RelativeSEMeasurement>> SharedLoopClosureQueue;
 
 
 };

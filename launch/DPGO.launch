@@ -1,4 +1,5 @@
 <launch>
+  <arg name="stepsize"/>
 
   <param name="/dimension" type="int" value="3" />
   <param name="/relaxation_rank" type="int" value="5" />
@@ -10,18 +11,18 @@
 
   <param name="/optimization_rate" type="double" value="1e3" />
   <!-- Default solver is RTR. Uncomment below to use RGD with a constant stepsize -->
-  <param name="/rgd_stepsize" type="double" value="5e-4" />
+  <param name="/rgd_stepsize" type="double" value="$(arg stepsize)" />
   
   <param name="/num_robots" type="int" value="5" />
 
-  <arg name="folder" default="simulation500"/>
-  <param name="/dataset" type="str" value="$(find dpgo_ros)/data/$(arg folder)/$(arg folder).g2o" />
-  <param name="/Yopt" type="str" value="$(find dpgo_ros)/data/$(arg folder)/Yopt.txt" />
-  <param name="/Yinit" type="str" value="$(find dpgo_ros)/data/$(arg folder)/Yinit.txt" />
+  <arg name="dataset"/>
+  <param name="/dataset" type="str" value="$(find dpgo_ros)/data/$(arg dataset)/$(arg dataset).g2o" />
+  <param name="/Yopt" type="str" value="$(find dpgo_ros)/data/$(arg dataset)/Yopt.txt" />
+  <param name="/Yinit" type="str" value="$(find dpgo_ros)/data/$(arg dataset)/Yinit.txt" />
 
   <!-- Launch visualization in rviz -->
-  <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find dpgo_ros)/rviz/default.rviz">
-  </node>
+  <!-- <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find dpgo_ros)/rviz/default.rviz"> -->
+  <!-- </node> -->
 
 
   <!-- Launch indivial PGO agents. Number must match /num_robots -->
