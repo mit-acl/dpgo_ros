@@ -9,9 +9,9 @@
   <param name="/pose_update_topic" type="str" value="/pose_update" />
   <param name="/pose_update_publish_rate" type="double" value="10" />
 
-  <param name="/optimization_rate" type="double" value="1e3" />
+  <param name="/optimization_rate" type="double" value="0.5" />
   <!-- Default solver is RTR. Uncomment below to use RGD with a constant stepsize -->
-  <param name="/rgd_stepsize" type="double" value="$(arg stepsize)" />
+  <!-- <param name="/rgd_stepsize" type="double" value="$(arg stepsize)" /> -->
   
   <param name="/num_robots" type="int" value="5" />
 
@@ -21,8 +21,8 @@
   <param name="/Yinit" type="str" value="$(find dpgo_ros)/data/$(arg dataset)/Yinit.txt" />
 
   <!-- Launch visualization in rviz -->
-  <!-- <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find dpgo_ros)/rviz/default.rviz"> -->
-  <!-- </node> -->
+  <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find dpgo_ros)/rviz/default.rviz">
+  </node>
 
 
   <!-- Launch indivial PGO agents. Number must match /num_robots -->
