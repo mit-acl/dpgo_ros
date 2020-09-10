@@ -37,8 +37,8 @@ public:
 	/** Helper function to reset the internal solution
         In deployment, probably should not use this, except optionally at initialization
      */
-	void setY(const Matrix& Yin){
-		agent->setY(Yin);
+	void setX(const Matrix& Xin){
+		agent->setX(Xin);
 	}
 
 
@@ -100,7 +100,7 @@ public:
     /**
     Publish the current solution before rounding
     */
-    void YPublishCallback(const ros::TimerEvent&);
+    void XPublishCallback(const ros::TimerEvent&);
 
 
     /**
@@ -160,8 +160,8 @@ public:
 	Set up solution publisher (for debugging)
     */
     void registerSolutionCallback(const string& topic){
-    	YPublisher = nh.advertise<LiftedPoseArray>(topic, 1);
-		YPublishTimer = nh.createTimer(ros::Duration(1), &PGOAgentNode::YPublishCallback, this);
+    	XPublisher = nh.advertise<LiftedPoseArray>(topic, 1);
+		XPublishTimer = nh.createTimer(ros::Duration(1), &PGOAgentNode::XPublishCallback, this);
     }
 
 
@@ -189,12 +189,12 @@ private:
     ros::Timer trajectoryPublishTimer;
     ros::Timer sharedPosePublishTimer;
     ros::Timer clusterAnchorPublishTimer;
-    ros::Timer YPublishTimer;
+    ros::Timer XPublishTimer;
     ros::Timer poseInsertionTimer;
 
     // ROS publisher
     ros::Publisher trajectoryPublisher;
-    ros::Publisher YPublisher;
+    ros::Publisher XPublisher;
     ros::Publisher sharedPosePublisher;
     ros::Publisher clusterAnchorPublisher;
 

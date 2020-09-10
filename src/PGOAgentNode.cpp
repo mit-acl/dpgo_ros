@@ -99,10 +99,10 @@ void PGOAgentNode::sharedPosePublishCallback(const ros::TimerEvent&){
 
 	for(auto it = sharedPoses.begin(); it != sharedPoses.end(); ++it){
 		PoseID nID = it->first;
-		Matrix Y = it->second;
+		Matrix X = it->second;
 		size_t robot_id = get<0>(nID);
 		size_t pose_id = get<1>(nID);
-		LiftedPose poseMsg = constructLiftedPoseMsg(d, r, cluster, robot_id, pose_id, Y);
+		LiftedPose poseMsg = constructLiftedPoseMsg(d, r, cluster, robot_id, pose_id, X);
 		arrayMsg.poses.push_back(poseMsg);
 	}
 
@@ -127,9 +127,9 @@ void PGOAgentNode::sharedPoseSubscribeCallback(const dpgo_ros::LiftedPoseArrayCo
 		if(neighborID == mID) continue;
 
 		// Copy pose data from pose message to Eigen Matrix (row-major)
-		Matrix Y = deserializeMatrix(r,d+1,poseMsg.pose);
+		Matrix X = deserializeMatrix(r,d+1,poseMsg.pose);
 
-		agent->updateNeighborPose(clusterID, neighborID, neighborPoseID, Y);
+		agent->updateNeighborPose(clusterID, neighborID, neighborPoseID, X);
 	}
 }
 
@@ -149,7 +149,7 @@ void PGOAgentNode::clusterAnchorPublishCallback(const ros::TimerEvent&){
 		
 		// always use the first pose as anchor
 		size_t pose_id = 0;
-		msg.pose = constructLiftedPoseMsg(d, r, cluster, mID, pose_id, agent->getYComponent(pose_id));
+		msg.pose = constructLiftedPoseMsg(d, r, cluster, mID, pose_id, agent->getXComponent(pose_id));
 
 		clusterAnchorPublisher.publish(msg);
 	}
@@ -166,13 +166,13 @@ void PGOAgentNode::clusterAnchorSubscribeCallback(const dpgo_ros::LiftedPoseStam
 	LiftedPose poseMsg = msg->pose;
 
 	// Copy pose data from pose message to Eigen Matrix (row-major)
-	Matrix Y = deserializeMatrix(r,d+1,poseMsg.pose);
+	Matrix X = deserializeMatrix(r,d+1,poseMsg.pose);
 
-	agent->setGlobalAnchor(Y);
+	agent->setGlobalAnchor(X);
 }
 
 
-void PGOAgentNode::YPublishCallback(const ros::TimerEvent&){
+void PGOAgentNode::XPublishCallback(const ros::TimerEvent&){
 
 	ros::Time timestamp = ros::Time::now();
 	unsigned n = agent->num_poses();
@@ -180,18 +180,18 @@ void PGOAgentNode::YPublishCallback(const ros::TimerEvent&){
 	unsigned d = agent->dimension();
 	unsigned cluster = agent->getCluster();
 	unsigned mID = agent->getID();
-	Matrix Y = agent->getY();
+	Matrix X = agent->getX();
 
 	LiftedPoseArray arrayMsg; 
 	arrayMsg.header.stamp = timestamp;
 
 	for(unsigned i = 0; i < n; ++i){
-		Matrix Yi = Y.block(0,i*(d+1),r,d+1);
-		LiftedPose poseMsg = constructLiftedPoseMsg(d, r, cluster, mID, i, Yi);
+		Matrix Xi = X.block(0,i*(d+1),r,d+1);
+		LiftedPose poseMsg = constructLiftedPoseMsg(d, r, cluster, mID, i, Xi);
 		arrayMsg.poses.push_back(poseMsg);
 	}
 
-	YPublisher.publish(arrayMsg);
+	XPublisher.publish(arrayMsg);
 
 }
 

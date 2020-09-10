@@ -17,8 +17,8 @@
 
   <arg name="dataset"/>
   <param name="/dataset" type="str" value="$(find dpgo_ros)/data/$(arg dataset)/$(arg dataset).g2o" />
-  <param name="/Yopt" type="str" value="$(find dpgo_ros)/data/$(arg dataset)/Yopt.txt" />
-  <param name="/Yinit" type="str" value="$(find dpgo_ros)/data/$(arg dataset)/Yinit.txt" />
+  <param name="/Xopt" type="str" value="$(find dpgo_ros)/data/$(arg dataset)/Xopt.txt" />
+  <param name="/Xinit" type="str" value="$(find dpgo_ros)/data/$(arg dataset)/Xinit.txt" />
 
   <!-- Launch visualization in rviz -->
   <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find dpgo_ros)/rviz/default.rviz">

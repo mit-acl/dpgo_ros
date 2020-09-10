@@ -66,20 +66,20 @@ namespace DPGO_ROS{
 		}
 
 
-		Y = Matrix::Zero(r, (d+1) * N);
+		X = Matrix::Zero(r, (d+1) * N);
 		SparseMatrix Q = constructConnectionLaplacianSE(dataset);
 		SparseMatrix G(r, (d+1) * N);
 		G.setZero();
 		problem = new QuadraticProblem(N, d, r, Q, G);
 
 
-		nh.getParam("/Yopt", filename);
-		Yopt = read_matrix_from_file(filename);
+		nh.getParam("/Xopt", filename);
+		Xopt = read_matrix_from_file(filename);
 
 
 		string solution_topic;
 		nh.getParam("/solution_topic", solution_topic);
-		YSubscriber = nh.subscribe(solution_topic, 1, &PGOMonitorNode::YSubscribeCallback, this);
+		XSubscriber = nh.subscribe(solution_topic, 1, &PGOMonitorNode::XSubscribeCallback, this);
 
 	}
 
@@ -87,7 +87,7 @@ namespace DPGO_ROS{
 	PGOMonitorNode::~PGOMonitorNode(){ delete problem; }
 
 
-	void PGOMonitorNode::YSubscribeCallback(const dpgo_ros::LiftedPoseArrayConstPtr& msg){
+	void PGOMonitorNode::XSubscribeCallback(const dpgo_ros::LiftedPoseArrayConstPtr& msg){
 		unsigned r = problem->relaxation_rank();
 		unsigned d = problem->dimension();
 		unsigned robot = msg->poses[0].robot_id;
@@ -100,7 +100,7 @@ namespace DPGO_ROS{
 			PoseID localID = make_pair(poseMsg.robot_id, poseMsg.pose_id);
 			unsigned index = PoseMap[localID];
 
-			Y.block(0,index*(d+1),r,d+1) = deserializeMatrix(r,d+1,poseMsg.pose);
+			X.block(0,index*(d+1),r,d+1) = deserializeMatrix(r,d+1,poseMsg.pose);
 		}
 
 
@@ -115,8 +115,8 @@ namespace DPGO_ROS{
 		}
 
 		double t = ros::Time::now().toSec() - startTime.toSec();
-		optimalityGap.push_back(problem->f(Y) - problem->f(Yopt));
-		gradnorm.push_back(problem->gradNorm(Y));
+		optimalityGap.push_back(problem->f(X) - problem->f(Xopt));
+		gradnorm.push_back(problem->gradNorm(X));
 		elapsedTime.push_back(t);
 
 		auto minOptGapIt = std::min_element(optimalityGap.begin(), optimalityGap.end());
@@ -153,10 +153,10 @@ namespace DPGO_ROS{
 		//     std::cout << endl;
 		// }
 
-		std::string filename = "/home/yulun/Desktop/Ysol.csv";
+		std::string filename = "/home/yulun/Desktop/Xsol.csv";
 		std::ofstream file2(filename.c_str());
 		if (file2.is_open()){
-			file2 << Y;
+			file2 << X;
 		    file2.close();
 		}
 

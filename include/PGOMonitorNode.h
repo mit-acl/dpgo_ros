@@ -27,7 +27,7 @@ public:
 
 	~PGOMonitorNode();
 
-	void YSubscribeCallback(const dpgo_ros::LiftedPoseArrayConstPtr& msg);
+	void XSubscribeCallback(const dpgo_ros::LiftedPoseArrayConstPtr& msg);
 
 	void shutdown();
 
@@ -37,7 +37,7 @@ private:
 	ros::NodeHandle nh;
 
 	// ROS subscriber
-	ros::Subscriber YSubscriber;
+	ros::Subscriber XSubscriber;
 
 	// Shutdown timer
 	ros::Timer timer;
@@ -49,10 +49,10 @@ private:
 	map<PoseID, unsigned> PoseMap;
 
 	// Current solution
-	Matrix Y;
+	Matrix X;
 
 	// Optimal solution (loaded from MATLAB)
-	Matrix Yopt;
+	Matrix Xopt;
 
 	// Store history of optimality gap
 	vector<double> optimalityGap;
