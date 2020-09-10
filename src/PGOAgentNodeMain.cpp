@@ -190,6 +190,7 @@ int main(int argc, char **argv) {
 	node.registerAnchorCallback(anchor_topic);
 	node.registerSolutionCallback(solution_topic);
 	node.registerTrajectoryCallback();
+	node.registerServices();
 
 
 	/** 

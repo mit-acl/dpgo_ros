@@ -1,0 +1,6 @@
+# Request consists of the unique robot ID and IDs of queried poses
+uint32 robot_id
+uint32[] pose_ids
+---
+# Response is an array of queried poses
+dpgo_ros/LiftedPoseArray poses

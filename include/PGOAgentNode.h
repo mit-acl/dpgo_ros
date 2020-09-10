@@ -15,6 +15,7 @@
 #include <dpgo_ros/LiftedPose.h>
 #include <dpgo_ros/LiftedPoseStamped.h>
 #include <dpgo_ros/LiftedPoseArray.h>
+#include <dpgo_ros/QueryPublicPoses.h>
 
 using namespace std;
 using namespace DPGO;
@@ -164,6 +165,17 @@ public:
     }
 
 
+    /**
+    Callback for QueryPublicPoses service
+    */
+    bool queryPublicPosesCallback(dpgo_ros::QueryPublicPoses::Request& request, dpgo_ros::QueryPublicPoses::Response& response);
+
+
+    /**
+    Register services upon initialization
+    */
+    void registerServices();
+
 
 private:
 
@@ -189,6 +201,9 @@ private:
     // ROS subscriber
     ros::Subscriber sharedPoseSubscriber;
     ros::Subscriber clusterAnchorSubscriber;
+
+    // ROS service server
+    ros::ServiceServer queryPublicPosesServer;
 
 
 };

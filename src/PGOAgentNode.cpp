@@ -196,4 +196,14 @@ void PGOAgentNode::YPublishCallback(const ros::TimerEvent&){
 }
 
 
+bool PGOAgentNode::queryPublicPosesCallback(dpgo_ros::QueryPublicPoses::Request& request, dpgo_ros::QueryPublicPoses::Response& response){
+	// TODO 
+	return true;
+}
+
+
+void PGOAgentNode::registerServices(){
+	queryPublicPosesServer = nh.advertiseService("query_public_poses", &PGOAgentNode::queryPublicPosesCallback, this);
+}
+
 }
