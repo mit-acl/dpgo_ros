@@ -93,7 +93,6 @@ int main(int argc, char **argv) {
 	double stepsize = -1.0;
 	ROPTALG algorithm = ROPTALG::RTR;
 	bool verbose = false;
-	bool online = false;
 
 	nh.getParam("/dimension", d);
 	nh.getParam("/relaxation_rank", r);
@@ -123,7 +122,7 @@ int main(int argc, char **argv) {
 
 	cout << "Initializing PGO Agent: ID = " << ID << ", dimension = " << d << ", relaxation_rank = " << r << ", optimization_rate = " << rate <<  endl;
 	
-	PGOAgentParameters options(d,r,algorithm,verbose,online);
+	PGOAgentParameters options(d,r,algorithm,verbose);
 	
 	DPGO_ROS::PGOAgentNode node(nh, ID, options);
 
@@ -165,13 +164,6 @@ int main(int argc, char **argv) {
         	node.addSharedLoopClosure(m);
         }
     }
-
-    nh.getParam("/Xinit", filename);
-    Matrix Xinit = read_matrix_from_file(filename);
-    unsigned startIdx = ID * num_poses_per_robot;
-    unsigned endIdx = (ID+1) * num_poses_per_robot; // non-inclusive
-    if (ID ==  num_robots - 1) endIdx = N;
-    node.setX(Xinit.block(0, startIdx*(d+1), r, (endIdx-startIdx)*(d+1)));
 
 
     /** 

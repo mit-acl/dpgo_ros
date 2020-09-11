@@ -2,7 +2,7 @@
   <arg name="stepsize"/>
 
   <param name="/dimension" type="int" value="3" />
-  <param name="/relaxation_rank" type="int" value="5" />
+  <param name="/relaxation_rank" type="int" value="3" />
 
   <param name="/anchor_topic" type="str" value="/anchor_update" />
   <param name="/solution_topic" type="str" value="/solution" />
@@ -15,7 +15,7 @@
   
   <param name="/num_robots" type="int" value="5" />
 
-  <arg name="dataset"/>
+  <arg name="dataset" default="simulation500"/>
   <param name="/dataset" type="str" value="$(find dpgo_ros)/data/$(arg dataset)/$(arg dataset).g2o" />
   <param name="/Xopt" type="str" value="$(find dpgo_ros)/data/$(arg dataset)/Xopt.txt" />
   <param name="/Xinit" type="str" value="$(find dpgo_ros)/data/$(arg dataset)/Xinit.txt" />
