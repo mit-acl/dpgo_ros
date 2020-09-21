@@ -18,9 +18,6 @@ using namespace DPGO;
 
 namespace dpgo_ros {
 
-/**
-Serialize a Matrix object into a vector of Float64 messages, in row-major format
-*/
 std::vector<double> serializeMatrix(const size_t rows, const size_t cols,
                                     const Matrix& Mat) {
   assert((size_t)Mat.rows() == rows);
@@ -38,10 +35,6 @@ std::vector<double> serializeMatrix(const size_t rows, const size_t cols,
   return v;
 }
 
-/**
-Deserialize a vector of Float64 messages into a Matrix object, using row-major
-format
-*/
 Matrix deserializeMatrix(const size_t rows, const size_t cols,
                          const std::vector<double>& v) {
   assert(v.size() == rows * cols);
@@ -56,9 +49,6 @@ Matrix deserializeMatrix(const size_t rows, const size_t cols,
   return Mat;
 }
 
-/**
- * Write a matrix to ROS message
- */
 MatrixMsg MatrixToMsg(const Matrix& Mat) {
   MatrixMsg msg;
   msg.rows = Mat.rows();
@@ -67,11 +57,25 @@ MatrixMsg MatrixToMsg(const Matrix& Mat) {
   return msg;
 }
 
-/**
- * Read a matrix from ROS message
- */
 Matrix MatrixFromMsg(const MatrixMsg& msg) {
   return deserializeMatrix(msg.rows, msg.cols, msg.values);
+}
+
+LiftedPose constructLiftedPoseMsg(const size_t dimension,
+                                  const size_t relaxation_rank,
+                                  const size_t cluster_id,
+                                  const size_t robot_id, 
+                                  const size_t pose_id,
+                                  const Matrix pose) 
+{
+  assert(pose.rows() == relaxation_rank);
+  assert(pose.cols() == dimension);
+  LiftedPose msg;
+  msg.cluster_id = cluster_id;
+  msg.robot_id = robot_id;
+  msg.pose_id = pose_id;
+  msg.pose = MatrixToMsg(pose);
+  return msg;
 }
 
 }  // namespace dpgo_ros

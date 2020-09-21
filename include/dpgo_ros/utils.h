@@ -9,8 +9,8 @@
 
 #include <DPGO/DPGO_types.h>
 #include <dpgo_ros/MatrixMsg.h>
-// #include <dpgo_ros/LiftedPoseArray.h>
-// #include <dpgo_ros/RelativeMeasurementStamped.h>
+#include <dpgo_ros/LiftedPose.h>
+#include <dpgo_ros/LiftedPoseArray.h>
 #include <tf/tf.h>
 
 #include <cassert>
@@ -43,14 +43,15 @@ MatrixMsg MatrixToMsg(const Matrix& Mat);
  */
 Matrix MatrixFromMsg(const MatrixMsg& msg);
 
-// /**
-// Helper function to construct a lifted pose message from inputs
-// */
-// LiftedPose constructLiftedPoseMsg(const size_t dimension,
-//                                   const size_t relaxation_rank,
-//                                   const size_t cluster_id,
-//                                   const size_t robot_id, const size_t pose_id,
-//                                   const Matrix pose);
+/**
+Helper function to construct a lifted pose message from inputs
+*/
+LiftedPose constructLiftedPoseMsg(const size_t dimension,
+                                  const size_t relaxation_rank,
+                                  const size_t cluster_id,
+                                  const size_t robot_id, 
+                                  const size_t pose_id,
+                                  const Matrix pose);
 
 // /**
 // Helper function to construct a relative measurement message from inputs
