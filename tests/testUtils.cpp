@@ -52,7 +52,7 @@ TEST(UtilsTest, PoseGraphEdge) {
        -0.8127219, -0.3784111, -0.4430441;
 
   DPGO::Matrix t(3,1);
-  t << 1.0, 2.0, 3.0;
+  t << -1.5, 2.1, 3.9;
 
   DPGO::RelativeSEMeasurement m(r1, r2, p1, p2, R, t, kappa, tau);
   pose_graph_tools::PoseGraphEdge msg = RelativeMeasurementToMsg(m);
