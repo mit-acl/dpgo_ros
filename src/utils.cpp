@@ -7,13 +7,13 @@
 
 #include <DPGO/DPGO_types.h>
 #include <DPGO/DPGO_utils.h>
-#include <DPGO/RelativeSEMeasurement.h>
 #include <dpgo_ros/utils.h>
 #include <tf/tf.h>
 
 #include <map>
 
 using namespace DPGO;
+using pose_graph_tools::PoseGraphEdge;
 
 namespace dpgo_ros {
 
@@ -73,6 +73,60 @@ LiftedPose constructLiftedPoseMsg(const size_t dimension,
   msg.pose_id = pose_id;
   msg.pose = MatrixToMsg(pose);
   return msg;
+}
+
+
+PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement& m)
+{
+  PoseGraphEdge msg;
+  msg.robot_from = m.r1;
+  msg.robot_to   = m.r2;
+  msg.key_from   = m.p1;
+  msg.key_to     = m.p2;
+  
+  // convert rotation to ROS message
+  tf::Matrix3x3 rotation(m.R(0,0), m.R(0,1), m.R(0,2), 
+                         m.R(1,0), m.R(1,1), m.R(1,2),
+                         m.R(2,0), m.R(2,1), m.R(2,2));
+  tf::Quaternion quat;
+  rotation.getRotation(quat);
+  tf::quaternionTFToMsg(quat, msg.pose.orientation);
+
+  // convert translation to ROS message
+  tf::Vector3 translation(m.t(0), m.t(1), m.t(2));
+  tf::pointTFToMsg(translation, msg.pose.position);
+
+  return msg;
+
+}
+
+RelativeSEMeasurement RelativeMeasurementFromMsg(const PoseGraphEdge& msg)
+{
+  size_t r1 = msg.robot_from;
+  size_t r2 = msg.robot_to;
+  size_t p1 = msg.key_from;
+  size_t p2 = msg.key_to;
+  
+  // read rotation
+  tf::Quaternion quat;
+  tf::quaternionMsgToTF(msg.pose.orientation, quat);
+  tf::Matrix3x3 rotation(quat);
+  Matrix R(3,3);
+  R << rotation[0][0], rotation[0][1], rotation[0][2],
+       rotation[1][0], rotation[1][1], rotation[1][2],
+       rotation[2][0], rotation[2][1], rotation[2][2];
+
+  // read translation
+  tf::Vector3 translation;
+  tf::pointMsgToTF(msg.pose.position, translation);
+  Matrix t(3,1);
+  t << translation.x(), translation.y(), translation.z();
+
+  // use hardcoded weight
+  double kappa = 1.0;
+  double tau = 1.0;
+
+  return RelativeSEMeasurement(r1, r2, p1, p2, R, t, kappa, tau);
 }
 
 }  // namespace dpgo_ros
