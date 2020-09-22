@@ -12,6 +12,7 @@
 #include <dpgo_ros/LiftedPoseArray.h>
 #include <dpgo_ros/QueryLiftingMatrix.h>
 #include <dpgo_ros/QueryPoses.h>
+#include <pose_graph_tools/PoseGraph.h>
 #include <nav_msgs/Path.h>
 #include <ros/console.h>
 #include <ros/ros.h>
@@ -35,6 +36,11 @@ class PGOAgentROS : public PGOAgent {
  private:
   // ROS node handle
   ros::NodeHandle nh;
+
+  void poseGraphCallback(const pose_graph_tools::PoseGraphConstPtr& msg);
+
+  // ROS subscriber
+  ros::Subscriber poseGraphSubscriber;
 
   // ROS service server
   ros::ServiceServer queryLiftingMatrixServer;

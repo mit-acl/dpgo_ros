@@ -18,6 +18,11 @@ namespace dpgo_ros {
 PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
                          const PGOAgentParameters& params)
     : PGOAgent(ID, params), nh(nh_) {
+  // ROS subscriber
+  poseGraphSubscriber =
+      nh.subscribe("pose_graph", 10, &PGOAgentROS::poseGraphCallback, this);
+
+  // ROS service
   queryLiftingMatrixServer = nh.advertiseService(
       "query_lifting_matrix", &PGOAgentROS::queryLiftingMatrixCallback, this);
 
@@ -36,6 +41,42 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
 }
 
 PGOAgentROS::~PGOAgentROS() {}
+
+void PGOAgentROS::poseGraphCallback(
+    const pose_graph_tools::PoseGraphConstPtr& msg) {
+  ROS_INFO_STREAM("Agent " << getID() << " receives " << msg->edges.size()
+                           << " edges!");
+  vector<RelativeSEMeasurement> odometry;
+  vector<RelativeSEMeasurement> privateLoopClosures;
+  vector<RelativeSEMeasurement> sharedLoopClosures;
+  for (size_t i = 0; i < msg->edges.size(); ++i) {
+    pose_graph_tools::PoseGraphEdge edge = msg->edges[i];
+    RelativeSEMeasurement m = RelativeMeasurementFromMsg(edge);
+    if (m.r1 != getID() && m.r2 != getID()) {
+      ROS_ERROR_STREAM("Agent " << getID()
+                                << " receives irrelevant measurements!");
+    }
+    if (m.r1 == m.r2) {
+      if (m.p1 + 1 == m.p2) {
+        odometry.push_back(m);
+      } else {
+        privateLoopClosures.push_back(m);
+      }
+    } else {
+      sharedLoopClosures.push_back(m);
+    }
+  }
+  initialize(odometry, privateLoopClosures, sharedLoopClosures);
+
+  if (getID() == 0 && !isInitialized()) {
+    ROS_ERROR_STREAM("Agent 0 should be initialized!");
+  }
+  if (getID() != 0 && isInitialized()) {
+    ROS_ERROR_STREAM("Agent should not be initialized!");
+  }
+
+  ROS_INFO_STREAM("Agent " << getID() << " created local pose graph with " << num_poses() << " poses.");
+}
 
 bool PGOAgentROS::queryLiftingMatrixCallback(
     dpgo_ros::QueryLiftingMatrixRequest& request,

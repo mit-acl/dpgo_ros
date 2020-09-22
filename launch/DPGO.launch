@@ -5,10 +5,7 @@
   <param name="/relaxation_rank" type="int" value="3" />
   <param name="/num_robots" type="int" value="5" />
 
-  <!-- <arg name="dataset" default="simulation500"/>
-  <param name="/dataset" type="str" value="$(find dpgo_ros)/data/$(arg dataset)/$(arg dataset).g2o" />
-  <param name="/Xopt" type="str" value="$(find dpgo_ros)/data/$(arg dataset)/Xopt.txt" />
-  <param name="/Xinit" type="str" value="$(find dpgo_ros)/data/$(arg dataset)/Xinit.txt" /> -->
+  <param name="/dataset" type="str" value="/home/yulun/git/dpgo/code/data/smallGrid3D.g2o" />
 
   <!-- Launch visualization in rviz -->
   <!-- <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find dpgo_ros)/rviz/default.rviz">
@@ -40,5 +37,8 @@
     <arg name="agent_id" value="4" />
   </include>
 
+  <!-- Launch ROS node to publish pose graph -->
+  <node name="dataset_publisher" pkg="dpgo_ros" type="dpgo_ros_dataset_publisher_node" output="screen">
+  </node>
 
 </launch>

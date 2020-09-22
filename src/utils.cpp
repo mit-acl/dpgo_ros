@@ -78,6 +78,9 @@ LiftedPose constructLiftedPoseMsg(const size_t dimension,
 
 PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement& m)
 {
+  assert(m.R.rows() == 3 && m.R.cols() == 3);
+  assert(m.t.rows() == 3 && m.t.cols() == 1);
+  
   PoseGraphEdge msg;
   msg.robot_from = m.r1;
   msg.robot_to   = m.r2;
