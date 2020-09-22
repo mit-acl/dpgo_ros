@@ -5,7 +5,7 @@
   <param name="/relaxation_rank" type="int" value="3" />
   <param name="/num_robots" type="int" value="5" />
 
-  <param name="/dataset" type="str" value="/home/yulun/git/dpgo/code/data/smallGrid3D.g2o" />
+  <param name="/dataset" type="str" value="$(find dpgo_ros)/data/smallGrid3D.g2o" />
 
   <!-- Launch visualization in rviz -->
   <!-- <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find dpgo_ros)/rviz/default.rviz">
