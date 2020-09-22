@@ -8,9 +8,9 @@
 #pragma once
 
 #include <DPGO/DPGO_types.h>
-#include <dpgo_ros/MatrixMsg.h>
 #include <dpgo_ros/LiftedPose.h>
 #include <dpgo_ros/LiftedPoseArray.h>
+#include <dpgo_ros/MatrixMsg.h>
 #include <tf/tf.h>
 
 #include <cassert>
@@ -49,16 +49,7 @@ Helper function to construct a lifted pose message from inputs
 LiftedPose constructLiftedPoseMsg(const size_t dimension,
                                   const size_t relaxation_rank,
                                   const size_t cluster_id,
-                                  const size_t robot_id, 
-                                  const size_t pose_id,
+                                  const size_t robot_id, const size_t pose_id,
                                   const Matrix pose);
-
-// /**
-// Helper function to construct a relative measurement message from inputs
-// */
-// RelativeMeasurementStamped constructRelativeMeasurementMsg(
-//     const size_t robot1, const size_t pose1, const size_t robot2,
-//     const size_t pose2, const tf::Quaternion rotation,
-//     const tf::Vector3 translation, const double kappa, const double tau);
 
 }  // namespace dpgo_ros

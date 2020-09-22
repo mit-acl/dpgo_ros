@@ -31,7 +31,8 @@ TEST(UtilsTest, LiftedPose) {
   size_t robot_id = 1;
   size_t pose_id = 2;
 
-  LiftedPose msg = constructLiftedPoseMsg(3,3,cluster_id,robot_id,pose_id,Mat);
+  LiftedPose msg =
+      constructLiftedPoseMsg(3, 3, cluster_id, robot_id, pose_id, Mat);
   ASSERT_EQ(msg.cluster_id, cluster_id);
   ASSERT_EQ(msg.robot_id, robot_id);
   ASSERT_EQ(msg.pose_id, pose_id);

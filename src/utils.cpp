@@ -14,7 +14,6 @@
 #include <map>
 
 using namespace DPGO;
-// using dpgo_ros::LiftedPoseArray;
 
 namespace dpgo_ros {
 
@@ -64,12 +63,10 @@ Matrix MatrixFromMsg(const MatrixMsg& msg) {
 LiftedPose constructLiftedPoseMsg(const size_t dimension,
                                   const size_t relaxation_rank,
                                   const size_t cluster_id,
-                                  const size_t robot_id, 
-                                  const size_t pose_id,
-                                  const Matrix pose) 
-{
-  assert(pose.rows() == relaxation_rank);
-  assert(pose.cols() == dimension);
+                                  const size_t robot_id, const size_t pose_id,
+                                  const Matrix pose) {
+  assert(pose.rows() == (int) relaxation_rank);
+  assert(pose.cols() == (int) dimension);
   LiftedPose msg;
   msg.cluster_id = cluster_id;
   msg.robot_id = robot_id;
