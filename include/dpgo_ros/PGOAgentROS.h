@@ -34,6 +34,9 @@ class PGOAgentROS : public PGOAgent {
   // Apply local update
   void update();
 
+  // Request latest public poses from a neighboring agent
+  bool requestPublicPosesFromAgent(const unsigned& neighborID);
+
   // ROS callbacks
   void commandCallback(const CommandConstPtr& msg);
   void poseGraphCallback(const pose_graph_tools::PoseGraphConstPtr& msg);

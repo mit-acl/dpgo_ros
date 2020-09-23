@@ -55,6 +55,18 @@ void PGOAgentROS::update() {
   ROS_INFO_STREAM("Agent " << getID() << " udpates!");
 
   // Query neighbors for their public poses
+  std::set<unsigned> neighborAgents = getNeighbors();
+  for (unsigned neighborID : neighborAgents) {
+    requestPublicPosesFromAgent(neighborID);
+  }
+
+  // Optimize!
+  ROPTResult OptResult = optimize();
+  if (!OptResult.success) {
+    ROS_WARN("Skipped optimization!");
+  } else {
+    ROS_INFO_STREAM("Objective decrease: " << OptResult.fInit - OptResult.fOpt);
+  }
 
   // Randomly select a neighbor to update next
   ros::Duration(1.0).sleep();
@@ -66,6 +78,37 @@ void PGOAgentROS::update() {
   msg.command = Command::UPDATE;
   msg.executing_robot = neighborID;
   commandPublisher.publish(msg);
+}
+
+bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned& neighborID) {
+  std::vector<unsigned> poseIndices = getNeighborPublicPoses(neighborID);
+
+  // Call ROS service
+  QueryPoses srv;
+  srv.request.robot_id = neighborID;
+  for (size_t i = 0; i < poseIndices.size(); ++i) {
+    srv.request.pose_ids.push_back(poseIndices[i]);
+  }
+  std::string service_name =
+      "/dpgo_agent_" + std::to_string(neighborID) + "/query_poses";
+  if (!ros::service::call(service_name, srv)) {
+    ROS_ERROR_STREAM("Failed to request public pose from agent " << neighborID);
+    return false;
+  }
+  if (srv.response.poses.size() != srv.request.pose_ids.size()) {
+    ROS_ERROR(
+        "Number of replied poses does not match number of requested pose!");
+    return false;
+  }
+
+  for (size_t i = 0; i < srv.response.poses.size(); ++i) {
+    LiftedPose poseNbr = srv.response.poses[i];
+    Matrix Xnbr = MatrixFromMsg(poseNbr.pose);
+    updateNeighborPose(poseNbr.cluster_id, poseNbr.robot_id, poseNbr.pose_id,
+                       Xnbr);
+  }
+
+  return true;
 }
 
 void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
@@ -121,6 +164,7 @@ void PGOAgentROS::poseGraphCallback(
 
   // First robot initiates update sequence
   if (getID() == 0) {
+    ros::Duration(3).sleep();
     update();
   }
 }

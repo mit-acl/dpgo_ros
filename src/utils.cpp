@@ -66,7 +66,7 @@ LiftedPose constructLiftedPoseMsg(const size_t dimension,
                                   const size_t robot_id, const size_t pose_id,
                                   const Matrix pose) {
   assert(pose.rows() == (int) relaxation_rank);
-  assert(pose.cols() == (int) dimension);
+  assert(pose.cols() == (int) dimension + 1);
   LiftedPose msg;
   msg.cluster_id = cluster_id;
   msg.robot_id = robot_id;
