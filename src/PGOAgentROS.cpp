@@ -19,12 +19,18 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
                          const PGOAgentParameters& params)
     : PGOAgent(ID, params), nh(nh_) {
   // ROS subscriber
+  commandSubscriber =
+      nh.subscribe("/dpgo_command", 100, &PGOAgentROS::commandCallback, this);
+
   poseGraphSubscriber =
       nh.subscribe("pose_graph", 10, &PGOAgentROS::poseGraphCallback, this);
 
   // ROS service
   queryLiftingMatrixServer = nh.advertiseService(
       "query_lifting_matrix", &PGOAgentROS::queryLiftingMatrixCallback, this);
+
+  // ROS publisher
+  commandPublisher = nh.advertise<Command>("/dpgo_command", 100);
 
   // Query robot 0 for lifting matrix
   if (getID() != 0) {
@@ -41,6 +47,44 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
 }
 
 PGOAgentROS::~PGOAgentROS() {}
+
+void PGOAgentROS::update() {
+  ROS_INFO_STREAM("Agent " << getID() << " udpates!");
+
+  
+  // Randomly select a neighbor to update next
+  ros::Duration(0.01).sleep(); 
+  unsigned neighborID;
+  if (!getRandomNeighbor(neighborID)){
+    ROS_ERROR("This agent has no neighbor!");
+  }
+  Command msg;
+  msg.command = Command::UPDATE;
+  msg.executing_robot = neighborID;
+  commandPublisher.publish(msg);
+}
+
+void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
+  switch (msg->command) {
+    case Command::INITIALIZE:
+      ROS_ERROR("INITIALIZE not implemented!");
+      break;
+
+    case Command::TERMINATE:
+      ROS_ERROR("TERMINATE not implemented!");
+      break;
+
+    case Command::UPDATE:
+      if (msg->executing_robot == getID()) {
+        // My turn to update!
+        update();
+      }
+      break;
+
+    default:
+      ROS_ERROR("Invalid command!");
+  }
+}
 
 void PGOAgentROS::poseGraphCallback(
     const pose_graph_tools::PoseGraphConstPtr& msg) {
@@ -66,16 +110,15 @@ void PGOAgentROS::poseGraphCallback(
       sharedLoopClosures.push_back(m);
     }
   }
-  initialize(odometry, privateLoopClosures, sharedLoopClosures);
+  setPoseGraph(odometry, privateLoopClosures, sharedLoopClosures);
 
-  if (getID() == 0 && !isInitialized()) {
-    ROS_ERROR_STREAM("Agent 0 should be initialized!");
-  }
-  if (getID() != 0 && isInitialized()) {
-    ROS_ERROR_STREAM("Agent should not be initialized!");
-  }
+  ROS_INFO_STREAM("Agent " << getID() << " created local pose graph with "
+                           << num_poses() << " poses.");
 
-  ROS_INFO_STREAM("Agent " << getID() << " created local pose graph with " << num_poses() << " poses.");
+  // First robot initiates update sequence
+  if (getID() == 0){
+    update();
+  }
 }
 
 bool PGOAgentROS::queryLiftingMatrixCallback(
