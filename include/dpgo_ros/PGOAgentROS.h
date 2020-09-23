@@ -10,7 +10,6 @@
 
 #include <DPGO/PGOAgent.h>
 #include <dpgo_ros/Command.h>
-#include <dpgo_ros/LiftedPoseArray.h>
 #include <dpgo_ros/QueryLiftingMatrix.h>
 #include <dpgo_ros/QueryPoses.h>
 #include <pose_graph_tools/PoseGraph.h>
@@ -28,10 +27,6 @@ class PGOAgentROS : public PGOAgent {
 
   ~PGOAgentROS();
 
-  bool queryLiftingMatrixCallback(
-      dpgo_ros::QueryLiftingMatrixRequest& request,
-      dpgo_ros::QueryLiftingMatrixResponse& response);
-
  private:
   // ROS node handle
   ros::NodeHandle nh;
@@ -42,6 +37,10 @@ class PGOAgentROS : public PGOAgent {
   // ROS callbacks
   void commandCallback(const CommandConstPtr& msg);
   void poseGraphCallback(const pose_graph_tools::PoseGraphConstPtr& msg);
+  bool queryLiftingMatrixCallback(QueryLiftingMatrixRequest& request,
+                                  QueryLiftingMatrixResponse& response);
+  bool queryPosesCallback(QueryPosesRequest& request,
+                          QueryPosesResponse& response);
 
   // ROS publisher
   ros::Publisher commandPublisher;
@@ -52,6 +51,7 @@ class PGOAgentROS : public PGOAgent {
 
   // ROS service server
   ros::ServiceServer queryLiftingMatrixServer;
+  ros::ServiceServer queryPoseServer;
 };
 
 }  // namespace dpgo_ros

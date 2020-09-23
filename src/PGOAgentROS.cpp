@@ -29,6 +29,9 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
   queryLiftingMatrixServer = nh.advertiseService(
       "query_lifting_matrix", &PGOAgentROS::queryLiftingMatrixCallback, this);
 
+  queryPoseServer = nh.advertiseService("query_poses",
+                                        &PGOAgentROS::queryPosesCallback, this);
+
   // ROS publisher
   commandPublisher = nh.advertise<Command>("/dpgo_command", 100);
 
@@ -51,11 +54,12 @@ PGOAgentROS::~PGOAgentROS() {}
 void PGOAgentROS::update() {
   ROS_INFO_STREAM("Agent " << getID() << " udpates!");
 
-  
+  // Query neighbors for their public poses
+
   // Randomly select a neighbor to update next
-  ros::Duration(0.01).sleep(); 
+  ros::Duration(1.0).sleep();
   unsigned neighborID;
-  if (!getRandomNeighbor(neighborID)){
+  if (!getRandomNeighbor(neighborID)) {
     ROS_ERROR("This agent has no neighbor!");
   }
   Command msg;
@@ -116,14 +120,13 @@ void PGOAgentROS::poseGraphCallback(
                            << num_poses() << " poses.");
 
   // First robot initiates update sequence
-  if (getID() == 0){
+  if (getID() == 0) {
     update();
   }
 }
 
 bool PGOAgentROS::queryLiftingMatrixCallback(
-    dpgo_ros::QueryLiftingMatrixRequest& request,
-    dpgo_ros::QueryLiftingMatrixResponse& response) {
+    QueryLiftingMatrixRequest& request, QueryLiftingMatrixResponse& response) {
   if (getID() != 0) {
     ROS_ERROR_STREAM("Agent "
                      << getID()
@@ -136,6 +139,28 @@ bool PGOAgentROS::queryLiftingMatrixCallback(
   }
   Matrix YLift = getLiftingMatrix();
   response.matrix = MatrixToMsg(YLift);
+  return true;
+}
+
+bool PGOAgentROS::queryPosesCallback(QueryPosesRequest& request,
+                                     QueryPosesResponse& response) {
+  if (request.robot_id != getID()) {
+    ROS_ERROR("Pose query addressed to wrong agent!");
+    return false;
+  }
+
+  for (size_t i = 0; i < request.pose_ids.size(); ++i) {
+    unsigned poseIndex = request.pose_ids[i];
+    Matrix Xi;
+    if (!getXComponent(poseIndex, Xi)) {
+      ROS_ERROR("Requested pose index does not exist!");
+      return false;
+    }
+    LiftedPose pose = constructLiftedPoseMsg(
+        dimension(), relaxation_rank(), getCluster(), getID(), poseIndex, Xi);
+    response.poses.push_back(pose);
+  }
+
   return true;
 }
 
