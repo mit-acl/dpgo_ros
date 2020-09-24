@@ -5,12 +5,7 @@
   <param name="/relaxation_rank" type="int" value="3" />
   <param name="/num_robots" type="int" value="5" />
 
-  <param name="/dataset" type="str" value="$(find dpgo_ros)/data/smallGrid3D.g2o" />
-
-  <!-- Launch visualization in rviz -->
-  <!-- <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find dpgo_ros)/rviz/default.rviz">
-  </node> -->
-
+  <param name="/dataset" type="str" value="$(find dpgo_ros)/data/sphere2500.g2o" />
 
   <!-- Launch indivial PGO agents. Number must match /num_robots -->
   <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
@@ -39,6 +34,10 @@
 
   <!-- Launch ROS node to publish pose graph -->
   <node name="dataset_publisher" pkg="dpgo_ros" type="dpgo_ros_dataset_publisher_node" output="screen">
+  </node>
+
+  <!-- Launch visualization in rviz -->
+  <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find dpgo_ros)/rviz/default.rviz">
   </node>
 
 </launch>
