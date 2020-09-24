@@ -12,6 +12,9 @@
 #include <dpgo_ros/LiftedPose.h>
 #include <dpgo_ros/LiftedPoseArray.h>
 #include <dpgo_ros/MatrixMsg.h>
+#include <geometry_msgs/PoseArray.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <nav_msgs/Path.h>
 #include <pose_graph_tools/PoseGraphEdge.h>
 #include <tf/tf.h>
 
@@ -64,5 +67,18 @@ PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement& m);
 Read a relative measurement from ROS message
 */
 RelativeSEMeasurement RelativeMeasurementFromMsg(const PoseGraphEdge& msg);
+
+/**
+Convert an aggregate matrix T \in (SO(d) \times Rd)^n to a ROS PoseArray message
+*/
+geometry_msgs::PoseArray TrajectoryToPoseArray(const unsigned d,
+                                               const unsigned n,
+                                               const Matrix& T);
+
+/**
+Convert an aggregate matrix T \in (SO(d) \times Rd)^n to a ROS Path message
+*/
+nav_msgs::Path TrajectoryToPath(const unsigned d, const unsigned n,
+                                const Matrix& T);
 
 }  // namespace dpgo_ros

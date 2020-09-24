@@ -65,8 +65,8 @@ LiftedPose constructLiftedPoseMsg(const size_t dimension,
                                   const size_t cluster_id,
                                   const size_t robot_id, const size_t pose_id,
                                   const Matrix pose) {
-  assert(pose.rows() == (int) relaxation_rank);
-  assert(pose.cols() == (int) dimension + 1);
+  assert(pose.rows() == (int)relaxation_rank);
+  assert(pose.cols() == (int)dimension + 1);
   LiftedPose msg;
   msg.cluster_id = cluster_id;
   msg.robot_id = robot_id;
@@ -75,22 +75,19 @@ LiftedPose constructLiftedPoseMsg(const size_t dimension,
   return msg;
 }
 
-
-PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement& m)
-{
+PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement& m) {
   assert(m.R.rows() == 3 && m.R.cols() == 3);
   assert(m.t.rows() == 3 && m.t.cols() == 1);
-  
+
   PoseGraphEdge msg;
   msg.robot_from = m.r1;
-  msg.robot_to   = m.r2;
-  msg.key_from   = m.p1;
-  msg.key_to     = m.p2;
-  
+  msg.robot_to = m.r2;
+  msg.key_from = m.p1;
+  msg.key_to = m.p2;
+
   // convert rotation to ROS message
-  tf::Matrix3x3 rotation(m.R(0,0), m.R(0,1), m.R(0,2), 
-                         m.R(1,0), m.R(1,1), m.R(1,2),
-                         m.R(2,0), m.R(2,1), m.R(2,2));
+  tf::Matrix3x3 rotation(m.R(0, 0), m.R(0, 1), m.R(0, 2), m.R(1, 0), m.R(1, 1),
+                         m.R(1, 2), m.R(2, 0), m.R(2, 1), m.R(2, 2));
   tf::Quaternion quat;
   rotation.getRotation(quat);
   tf::quaternionTFToMsg(quat, msg.pose.orientation);
@@ -100,29 +97,27 @@ PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement& m)
   tf::pointTFToMsg(translation, msg.pose.position);
 
   return msg;
-
 }
 
-RelativeSEMeasurement RelativeMeasurementFromMsg(const PoseGraphEdge& msg)
-{
+RelativeSEMeasurement RelativeMeasurementFromMsg(const PoseGraphEdge& msg) {
   size_t r1 = msg.robot_from;
   size_t r2 = msg.robot_to;
   size_t p1 = msg.key_from;
   size_t p2 = msg.key_to;
-  
+
   // read rotation
   tf::Quaternion quat;
   tf::quaternionMsgToTF(msg.pose.orientation, quat);
   tf::Matrix3x3 rotation(quat);
-  Matrix R(3,3);
-  R << rotation[0][0], rotation[0][1], rotation[0][2],
-       rotation[1][0], rotation[1][1], rotation[1][2],
-       rotation[2][0], rotation[2][1], rotation[2][2];
+  Matrix R(3, 3);
+  R << rotation[0][0], rotation[0][1], rotation[0][2], rotation[1][0],
+      rotation[1][1], rotation[1][2], rotation[2][0], rotation[2][1],
+      rotation[2][2];
 
   // read translation
   tf::Vector3 translation;
   tf::pointMsgToTF(msg.pose.position, translation);
-  Matrix t(3,1);
+  Matrix t(3, 1);
   t << translation.x(), translation.y(), translation.z();
 
   // use hardcoded weight
@@ -130,6 +125,70 @@ RelativeSEMeasurement RelativeMeasurementFromMsg(const PoseGraphEdge& msg)
   double tau = 1.0;
 
   return RelativeSEMeasurement(r1, r2, p1, p2, R, t, kappa, tau);
+}
+
+geometry_msgs::PoseArray TrajectoryToPoseArray(const unsigned d,
+                                               const unsigned n,
+                                               const Matrix& T) {
+  assert(d == 3);
+  assert(T.rows() == d);
+  assert(T.cols() == (d + 1) * n);
+  geometry_msgs::PoseArray msg;
+  msg.header.frame_id = "/world";
+  msg.header.stamp = ros::Time::now();
+  for (size_t i = 0; i < n; ++i) {
+    geometry_msgs::Pose pose;
+    Matrix Ri = T.block(0, i * (d + 1), d, d);
+    Matrix ti = T.block(0, i * (d + 1) + d, d, 1);
+
+    // convert rotation to ROS message
+    tf::Matrix3x3 rotation(Ri(0, 0), Ri(0, 1), Ri(0, 2), Ri(1, 0), Ri(1, 1),
+                           Ri(1, 2), Ri(2, 0), Ri(2, 1), Ri(2, 2));
+    tf::Quaternion quat;
+    rotation.getRotation(quat);
+    tf::quaternionTFToMsg(quat, pose.orientation);
+
+    // convert translation to ROS message
+    tf::Vector3 translation(ti(0), ti(1), ti(2));
+    tf::pointTFToMsg(translation, pose.position);
+
+    msg.poses.push_back(pose);
+  }
+  return msg;
+}
+
+nav_msgs::Path TrajectoryToPath(const unsigned d, const unsigned n,
+                                const Matrix& T) {
+  assert(d == 3);
+  assert(T.rows() == d);
+  assert(T.cols() == (d + 1) * n);
+  nav_msgs::Path msg;
+  msg.header.frame_id = "/world";
+  msg.header.stamp = ros::Time::now();
+  for (size_t i = 0; i < n; ++i) {
+    geometry_msgs::Pose pose;
+    Matrix Ri = T.block(0, i * (d + 1), d, d);
+    Matrix ti = T.block(0, i * (d + 1) + d, d, 1);
+
+    // convert rotation to ROS message
+    tf::Matrix3x3 rotation(Ri(0, 0), Ri(0, 1), Ri(0, 2), Ri(1, 0), Ri(1, 1),
+                           Ri(1, 2), Ri(2, 0), Ri(2, 1), Ri(2, 2));
+    tf::Quaternion quat;
+    rotation.getRotation(quat);
+    tf::quaternionTFToMsg(quat, pose.orientation);
+
+    // convert translation to ROS message
+    tf::Vector3 translation(ti(0), ti(1), ti(2));
+    tf::pointTFToMsg(translation, pose.position);
+
+    geometry_msgs::PoseStamped poseStamped;
+    poseStamped.header.frame_id = "/world";
+    poseStamped.header.stamp = ros::Time::now();
+    poseStamped.pose = pose;
+
+    msg.poses.push_back(poseStamped);
+  }
+  return msg;
 }
 
 }  // namespace dpgo_ros

@@ -37,6 +37,9 @@ class PGOAgentROS : public PGOAgent {
   // Request latest public poses from a neighboring agent
   bool requestPublicPosesFromAgent(const unsigned& neighborID);
 
+  // Publish trajectory
+  bool publishTrajectory();
+
   // ROS callbacks
   void commandCallback(const CommandConstPtr& msg);
   void poseGraphCallback(const pose_graph_tools::PoseGraphConstPtr& msg);
@@ -47,6 +50,8 @@ class PGOAgentROS : public PGOAgent {
 
   // ROS publisher
   ros::Publisher commandPublisher;
+  ros::Publisher poseArrayPublisher;
+  ros::Publisher pathPublisher;
 
   // ROS subscriber
   ros::Subscriber commandSubscriber;
