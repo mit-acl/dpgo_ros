@@ -12,6 +12,7 @@
 #include <dpgo_ros/Command.h>
 #include <dpgo_ros/QueryLiftingMatrix.h>
 #include <dpgo_ros/QueryPoses.h>
+#include <dpgo_ros/Status.h>
 #include <pose_graph_tools/PoseGraph.h>
 #include <ros/console.h>
 #include <ros/ros.h>
@@ -31,16 +32,38 @@ class PGOAgentROS : public PGOAgent {
   // ROS node handle
   ros::NodeHandle nh;
 
+  // Current instance number
+  unsigned instance_number;
+
+  // Current iteration number
+  unsigned iteration_number;
+
+  // Latest relative changes of all robots
+  std::vector<double> relativeChanges;
+
+  // Termination condition
+  double RelativeChangeTolerance;
+
+  // Latest optimization result
+  ROPTResult OptResult;
+
   // Apply local update
   void update();
 
   // Request latest public poses from a neighboring agent
   bool requestPublicPosesFromAgent(const unsigned& neighborID);
 
+  // Publish status
+  void publishStatus();
+
+  // Publish command
+  void publishCommand();
+
   // Publish trajectory
   bool publishTrajectory();
 
   // ROS callbacks
+  void statusCallback(const StatusConstPtr& msg);
   void commandCallback(const CommandConstPtr& msg);
   void poseGraphCallback(const pose_graph_tools::PoseGraphConstPtr& msg);
   bool queryLiftingMatrixCallback(QueryLiftingMatrixRequest& request,
@@ -49,11 +72,13 @@ class PGOAgentROS : public PGOAgent {
                           QueryPosesResponse& response);
 
   // ROS publisher
+  ros::Publisher statusPublisher;
   ros::Publisher commandPublisher;
   ros::Publisher poseArrayPublisher;
   ros::Publisher pathPublisher;
 
   // ROS subscriber
+  ros::Subscriber statusSubscriber;
   ros::Subscriber commandSubscriber;
   ros::Subscriber poseGraphSubscriber;
 

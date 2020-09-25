@@ -19,8 +19,21 @@ namespace dpgo_ros {
 
 PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
                          const PGOAgentParameters& params)
-    : PGOAgent(ID, params), nh(nh_) {
+    : PGOAgent(ID, params), nh(nh_), instance_number(0), iteration_number(0) {
+  if (!nh.getParam("/relative_change_tolerance", RelativeChangeTolerance)) {
+    ROS_ERROR("Failed to get relative change tolerance!");
+    ros::shutdown();
+  }
+
+  int num_robots;
+  if (!nh.getParam("/num_robots", num_robots))
+    ROS_ERROR("Failed to query number of robots");
+  relativeChanges.resize(num_robots, 1e3);
+
   // ROS subscriber
+  statusSubscriber =
+      nh.subscribe("/dpgo_status", 100, &PGOAgentROS::statusCallback, this);
+
   commandSubscriber =
       nh.subscribe("/dpgo_command", 100, &PGOAgentROS::commandCallback, this);
 
@@ -35,6 +48,7 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
                                         &PGOAgentROS::queryPosesCallback, this);
 
   // ROS publisher
+  statusPublisher = nh.advertise<Status>("/dpgo_status", 100);
   commandPublisher = nh.advertise<Command>("/dpgo_command", 100);
   poseArrayPublisher = nh.advertise<geometry_msgs::PoseArray>("trajectory", 1);
   pathPublisher = nh.advertise<nav_msgs::Path>("path", 1);
@@ -72,11 +86,11 @@ void PGOAgentROS::update() {
   }
 
   // Optimize!
-  ROPTResult OptResult = optimize();
+  OptResult = optimize();
   if (!OptResult.success) {
     ROS_WARN("Skipped optimization!");
   } else {
-    ROS_INFO_STREAM("Objective decrease: " << OptResult.fInit - OptResult.fOpt);
+    relativeChanges[getID()] = OptResult.relativeChange;
   }
 
   // Publish trajectory
@@ -84,16 +98,12 @@ void PGOAgentROS::update() {
     ROS_ERROR("Failed to publish trajectory in global frame!");
   }
 
-  // Randomly select a neighbor to update next
+  // Publish status
+  publishStatus();
+
+  // Publish next command
   ros::Duration(0.05).sleep();
-  unsigned neighborID;
-  if (!getRandomNeighbor(neighborID)) {
-    ROS_ERROR("This agent has no neighbor!");
-  }
-  Command msg;
-  msg.command = Command::UPDATE;
-  msg.executing_robot = neighborID;
-  commandPublisher.publish(msg);
+  publishCommand();
 }
 
 bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned& neighborID) {
@@ -137,6 +147,42 @@ bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned& neighborID) {
   return true;
 }
 
+void PGOAgentROS::publishCommand() {
+  // Check termination condition
+  bool should_terminate = true;
+  for (size_t i = 0; i < relativeChanges.size(); ++i) {
+    if (relativeChanges[i] > RelativeChangeTolerance) {
+      should_terminate = false;
+      break;
+    }
+  }
+  // Publish!
+  Command msg;
+  if (should_terminate) {
+    msg.command = Command::TERMINATE;
+  } else {
+    // Randomly select a neighbor to update next
+    unsigned neighborID;
+    if (!getRandomNeighbor(neighborID)) {
+      ROS_ERROR("Failed to get random neighbor!");
+    }
+    msg.command = Command::UPDATE;
+    msg.executing_robot = neighborID;
+  }
+  commandPublisher.publish(msg);
+}
+
+void PGOAgentROS::publishStatus() {
+  Status msg;
+  msg.robot_id = getID();
+  msg.instance_number = instance_number;
+  msg.iteration_number = iteration_number;
+  msg.optimization_success = OptResult.success;
+  msg.relative_change = OptResult.relativeChange;
+  msg.objective_decrease = OptResult.fInit - OptResult.fOpt;
+  statusPublisher.publish(msg);
+}
+
 bool PGOAgentROS::publishTrajectory() {
   Matrix globalAnchor;
   if (getID() == 0) {
@@ -173,6 +219,19 @@ bool PGOAgentROS::publishTrajectory() {
   return true;
 }
 
+void PGOAgentROS::statusCallback(const StatusConstPtr& msg) {
+  // Check that robots are in agreement of current iteration number
+  if (msg->instance_number != instance_number) {
+    ROS_ERROR("Instance number does not match!");
+  }
+  if (msg->iteration_number != iteration_number) {
+    ROS_ERROR("Iteration number does not match!");
+  }
+  if (msg->optimization_success) {
+    relativeChanges[msg->robot_id] = msg->relative_change;
+  }
+}
+
 void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
   switch (msg->command) {
     case Command::INITIALIZE:
@@ -180,10 +239,12 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
       break;
 
     case Command::TERMINATE:
-      ROS_ERROR("TERMINATE not implemented!");
+      ROS_INFO_STREAM("Agent " << getID() << " terminating...");
+      ros::shutdown();
       break;
 
     case Command::UPDATE:
+      iteration_number++;  // increment iteration counter
       if (msg->executing_robot == getID()) {
         // My turn to update!
         update();
@@ -227,7 +288,10 @@ void PGOAgentROS::poseGraphCallback(
   // First robot initiates update sequence
   if (getID() == 0) {
     ros::Duration(3).sleep();
-    update();
+    Command msg;
+    msg.command = Command::UPDATE;
+    msg.executing_robot = 0;
+    commandPublisher.publish(msg);
   }
 }
 

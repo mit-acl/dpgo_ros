@@ -4,6 +4,7 @@
   <param name="/dimension" type="int" value="3" />
   <param name="/relaxation_rank" type="int" value="3" />
   <param name="/num_robots" type="int" value="5" />
+  <param name="/relative_change_tolerance" type="double" value="1e-4" />
 
   <param name="/dataset" type="str" value="$(find dpgo_ros)/data/sphere2500.g2o" />
 
