@@ -53,7 +53,7 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
 
   // Query robot 0 for lifting matrix
   if (getID() != 0) {
-    std::string service_name = "/dpgo_agent_0/query_lifting_matrix";
+    std::string service_name = "/kimera0/dpgo_ros_node/query_lifting_matrix";
     QueryLiftingMatrix query;
     query.request.robot_id = 0;
     if (!ros::service::waitForService(service_name, ros::Duration(5.0))) {
@@ -126,7 +126,7 @@ bool PGOAgentROS::requestPoseGraph() {
   pose_graph_tools::PoseGraphQuery query;
   query.request.robot_id = getID();
   std::string service_name =
-      "/dpgo_agent_" + std::to_string(getID()) + "/query_pose_graph";
+      "/kimera" + std::to_string(getID()) + "/request_pose_graph";
   if (!ros::service::waitForService(service_name, ros::Duration(5.0))) {
     ROS_ERROR_STREAM("ROS service " << service_name << " does not exist!");
     return false;
@@ -177,7 +177,7 @@ bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned& neighborID) {
     srv.request.pose_ids.push_back(poseIndices[i]);
   }
   std::string service_name =
-      "/dpgo_agent_" + std::to_string(neighborID) + "/query_poses";
+      "/kimera" + std::to_string(neighborID) + "/dpgo_ros_node/query_poses";
 
   if (!ros::service::waitForService(service_name, ros::Duration(5.0))) {
     ROS_ERROR_STREAM("ROS service " << service_name << " does not exist!");
@@ -253,7 +253,7 @@ bool PGOAgentROS::publishTrajectory() {
     QueryPoses srv;
     srv.request.robot_id = 0;
     srv.request.pose_ids.push_back(0);
-    std::string service_name = "/dpgo_agent_0/query_poses";
+    std::string service_name = "/kimera0/dpgo_ros_node/query_poses";
     if (!ros::service::waitForService(service_name, ros::Duration(5.0))) {
       ROS_ERROR_STREAM("ROS service " << service_name << " does not exist!");
       return false;
