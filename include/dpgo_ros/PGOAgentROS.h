@@ -47,8 +47,14 @@ class PGOAgentROS : public PGOAgent {
   // Latest optimization result
   ROPTResult OptResult;
 
+  // Reset the pose graph. This function overrides the function from the base class.
+  void reset();
+
   // Apply local update
   void update();
+
+  // Request latest local pose graph
+  bool requestPoseGraph();
 
   // Request latest public poses from a neighboring agent
   bool requestPublicPosesFromAgent(const unsigned& neighborID);
@@ -65,7 +71,6 @@ class PGOAgentROS : public PGOAgent {
   // ROS callbacks
   void statusCallback(const StatusConstPtr& msg);
   void commandCallback(const CommandConstPtr& msg);
-  void poseGraphCallback(const pose_graph_tools::PoseGraphConstPtr& msg);
   bool queryLiftingMatrixCallback(QueryLiftingMatrixRequest& request,
                                   QueryLiftingMatrixResponse& response);
   bool queryPosesCallback(QueryPosesRequest& request,
@@ -80,7 +85,6 @@ class PGOAgentROS : public PGOAgent {
   // ROS subscriber
   ros::Subscriber statusSubscriber;
   ros::Subscriber commandSubscriber;
-  ros::Subscriber poseGraphSubscriber;
 
   // ROS service server
   ros::ServiceServer queryLiftingMatrixServer;
