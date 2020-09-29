@@ -24,6 +24,6 @@ To run a demo:
 # source workspace
 source ~/catkin_ws/devel/setup.bash
 
-# run demo of asynchronous DPGO
+# run demo on example g2o dataset
 roslaunch dpgo_ros DPGO.launch
 ```
