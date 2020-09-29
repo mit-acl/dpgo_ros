@@ -11,7 +11,7 @@ This package assumes that [DPGO](https://gitlab.com/mit-acl/dpgo/dpgo) has been 
 Clone this repository:
 ```
 cd ~/catkin_ws/src
-git clone git@bitbucket.org:yuluntian/dpgo_ros.git
+git clone git@gitlab.com:mit-acl/dpgo/dpgo_ros.git
 ``` 
 
 Build with catkin:
