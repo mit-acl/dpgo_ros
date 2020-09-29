@@ -126,7 +126,7 @@ bool PGOAgentROS::requestPoseGraph() {
   pose_graph_tools::PoseGraphQuery query;
   query.request.robot_id = getID();
   std::string service_name =
-      "/kimera" + std::to_string(getID()) + "/request_pose_graph";
+      "/kimera" + std::to_string(getID()) + "/distributed_pcm/request_pose_graph";
   if (!ros::service::waitForService(service_name, ros::Duration(5.0))) {
     ROS_ERROR_STREAM("ROS service " << service_name << " does not exist!");
     return false;

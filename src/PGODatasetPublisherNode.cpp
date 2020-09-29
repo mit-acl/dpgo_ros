@@ -116,7 +116,7 @@ class DatasetPublisher {
     }
 
     for (size_t id = 0; id < (unsigned)num_robots; ++id) {
-      string service_name = "/kimera" + std::to_string(id) + "/request_pose_graph";
+      string service_name = "/kimera" + std::to_string(id) + "/distributed_pcm/request_pose_graph";
       ros::ServiceServer server = nh.advertiseService(
           service_name, &DatasetPublisher::queryPoseGraphCallback, this);
       poseGraphServers.push_back(server);
