@@ -28,7 +28,10 @@ int main(int argc, char **argv) {
   }
 
   int num_robots = 0;
-  nh.getParam("/num_robots", num_robots);
+  if (!nh.getParam("/num_robots", num_robots)) {
+    ROS_ERROR("Failed to get number of robots!");
+    return -1;
+  }
   if (num_robots <= 0) {
     ROS_ERROR_STREAM("Number of robots must be positive!");
     return -1;
@@ -43,17 +46,24 @@ int main(int argc, char **argv) {
   ROPTALG algorithm = ROPTALG::RTR;
   bool verbose = false;
 
-  nh.getParam("/dimension", d);
-  nh.getParam("/relaxation_rank", r);
-  if (d < 0) {
-    ROS_ERROR_STREAM("Negative dimension!");
+  if (!nh.getParam("/dimension", d)) {
+    ROS_ERROR("Failed to get dimension!");
+    return -1;
+  }
+  if (!nh.getParam("/relaxation_rank", r)) {
+    ROS_ERROR("Failed to get relaxation rank!");
+    return -1;
+  }
+  if (d != 3) {
+    ROS_ERROR_STREAM("Dimension must be 3!");
     return -1;
   }
   if (r < d) {
     ROS_ERROR_STREAM("Relaxation rank cannot be smaller than dimension!");
     return -1;
   }
-  ROS_INFO_STREAM("Initializing PGO Agent: ID = " << ID);
+  ROS_INFO_STREAM("Creating PGO Agent " << ID << " (d = " << d << ", "
+                                            << " r = " << r << ")");
 
   PGOAgentParameters options(d, r, algorithm, verbose);
 

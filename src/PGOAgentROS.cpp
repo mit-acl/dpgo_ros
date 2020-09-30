@@ -70,7 +70,7 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
 
   // First agent sends out the initialization signal
   if (getID() == 0) {
-    ros::Duration(3.0).sleep();
+    ros::Duration(60).sleep();
     Command msg;
     msg.command = Command::INITIALIZE;
     commandPublisher.publish(msg);
@@ -106,13 +106,12 @@ void PGOAgentROS::update() {
     ROS_WARN("Skipped optimization!");
   } else {
     relativeChanges[getID()] = OptResult.relativeChange;
+    // Publish trajectory
+    if (!publishTrajectory()) {
+      ROS_ERROR("Failed to publish trajectory in global frame!");
+    }
   }
-
-  // Publish trajectory
-  if (!publishTrajectory()) {
-    ROS_ERROR("Failed to publish trajectory in global frame!");
-  }
-
+  
   // Publish status
   publishStatus();
 
@@ -125,8 +124,8 @@ bool PGOAgentROS::requestPoseGraph() {
   // Query local pose graph
   pose_graph_tools::PoseGraphQuery query;
   query.request.robot_id = getID();
-  std::string service_name =
-      "/kimera" + std::to_string(getID()) + "/distributed_pcm/request_pose_graph";
+  std::string service_name = "/kimera" + std::to_string(getID()) +
+                             "/distributed_pcm/request_pose_graph";
   if (!ros::service::waitForService(service_name, ros::Duration(5.0))) {
     ROS_ERROR_STREAM("ROS service " << service_name << " does not exist!");
     return false;
@@ -296,7 +295,7 @@ void PGOAgentROS::statusCallback(const StatusConstPtr& msg) {
 void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
   switch (msg->command) {
     case Command::INITIALIZE:
-      ROS_INFO_STREAM("Agent " << getID() << " initiating...");
+      ROS_INFO_STREAM("Agent " << getID() << " initializing...");
       requestPoseGraph();
       // First robot initiates update sequence
       if (getID() == 0) {
@@ -309,7 +308,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
       break;
 
     case Command::TERMINATE:
-      ROS_INFO_STREAM("Agent " << getID() << " reset.");
+      ROS_INFO_STREAM("Agent " << getID() << " terminating...");
       reset();
       // First robot initiates next optimization round
       if (getID() == 0) {
