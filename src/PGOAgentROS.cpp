@@ -26,6 +26,18 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
     ros::shutdown();
   }
 
+  int MaxIterationNumberInt;
+  if (!nh.getParam("/max_iteration_number", MaxIterationNumberInt)) {
+    ROS_ERROR("Failed to get maximum iteration number!");
+    ros::shutdown();
+  }
+  if (MaxIterationNumberInt <= 0) {
+    ROS_ERROR("Maximum iteration number must be positive!");
+    ros::shutdown();
+  }
+  MaxIterationNumber = (unsigned) MaxIterationNumberInt;
+
+
   int num_robots;
   if (!nh.getParam("/num_robots", num_robots))
     ROS_ERROR("Failed to query number of robots");
@@ -70,7 +82,7 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
 
   // First agent sends out the initialization signal
   if (getID() == 0) {
-    ros::Duration(60).sleep();
+    ros::Duration(10).sleep();
     Command msg;
     msg.command = Command::INITIALIZE;
     commandPublisher.publish(msg);
@@ -111,7 +123,7 @@ void PGOAgentROS::update() {
       ROS_ERROR("Failed to publish trajectory in global frame!");
     }
   }
-  
+
   // Publish status
   publishStatus();
 
@@ -137,6 +149,10 @@ bool PGOAgentROS::requestPoseGraph() {
 
   // Set pose graph
   pose_graph_tools::PoseGraph pose_graph = query.response.pose_graph;
+  if (pose_graph.edges.empty()) {
+    ROS_WARN("Received empty pose graph.");
+    return false;
+  }
   vector<RelativeSEMeasurement> odometry;
   vector<RelativeSEMeasurement> privateLoopClosures;
   vector<RelativeSEMeasurement> sharedLoopClosures;
@@ -208,7 +224,17 @@ bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned& neighborID) {
 }
 
 void PGOAgentROS::publishCommand() {
-  // Check termination condition
+  Command msg;
+
+  // Terminate if reached maximum iterations
+  if (iteration_number > MaxIterationNumber) {
+    ROS_WARN("Reached maximum number of iterations.");
+    msg.command = Command::TERMINATE;
+    commandPublisher.publish(msg);
+    return;
+  }
+
+  // Terminate if reached relative change condition
   bool should_terminate = true;
   for (size_t i = 0; i < relativeChanges.size(); ++i) {
     if (relativeChanges[i] > RelativeChangeTolerance) {
@@ -216,16 +242,18 @@ void PGOAgentROS::publishCommand() {
       break;
     }
   }
-  // Publish!
-  Command msg;
   if (should_terminate) {
     msg.command = Command::TERMINATE;
+    commandPublisher.publish(msg);
+    return;
+  }
+
+  // Randomly select a neighbor to update next
+  unsigned neighborID;
+  if (!getRandomNeighbor(neighborID)) {
+    ROS_ERROR("Failed to get random neighbor!");
+    msg.command = Command::TERMINATE;
   } else {
-    // Randomly select a neighbor to update next
-    unsigned neighborID;
-    if (!getRandomNeighbor(neighborID)) {
-      ROS_ERROR("Failed to get random neighbor!");
-    }
     msg.command = Command::UPDATE;
     msg.executing_robot = neighborID;
   }
@@ -296,7 +324,9 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
   switch (msg->command) {
     case Command::INITIALIZE:
       ROS_INFO_STREAM("Agent " << getID() << " initializing...");
-      requestPoseGraph();
+      while (!requestPoseGraph()) {
+        ros::Duration(10).sleep();
+      }
       // First robot initiates update sequence
       if (getID() == 0) {
         ros::Duration(3).sleep();

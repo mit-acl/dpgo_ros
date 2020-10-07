@@ -44,6 +44,8 @@ class PGOAgentROS : public PGOAgent {
   // Termination condition
   double RelativeChangeTolerance;
 
+  unsigned MaxIterationNumber;
+
   // Latest optimization result
   ROPTResult OptResult;
 
