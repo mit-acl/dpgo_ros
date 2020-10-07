@@ -251,7 +251,7 @@ void PGOAgentROS::publishCommand() {
   // Randomly select a neighbor to update next
   unsigned neighborID;
   if (!getRandomNeighbor(neighborID)) {
-    ROS_ERROR("Failed to get random neighbor!");
+    ROS_ERROR("Failed to select next robot. Global pose graph is not connected.");
     msg.command = Command::TERMINATE;
   } else {
     msg.command = Command::UPDATE;
