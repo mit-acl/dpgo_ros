@@ -35,8 +35,7 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
     ROS_ERROR("Maximum iteration number must be positive!");
     ros::shutdown();
   }
-  MaxIterationNumber = (unsigned) MaxIterationNumberInt;
-
+  MaxIterationNumber = (unsigned)MaxIterationNumberInt;
 
   int num_robots;
   if (!nh.getParam("/num_robots", num_robots))
@@ -251,7 +250,8 @@ void PGOAgentROS::publishCommand() {
   // Randomly select a neighbor to update next
   unsigned neighborID;
   if (!getRandomNeighbor(neighborID)) {
-    ROS_ERROR("Failed to select next robot. Global pose graph is not connected.");
+    ROS_ERROR(
+        "Failed to select next robot. Global pose graph is not connected.");
     msg.command = Command::TERMINATE;
   } else {
     msg.command = Command::UPDATE;
@@ -303,6 +303,12 @@ bool PGOAgentROS::publishTrajectory() {
   // Publish as path
   nav_msgs::Path path = TrajectoryToPath(dimension(), num_poses(), T);
   pathPublisher.publish(path);
+
+  // Save to log directory
+  std::string logOutputPath;
+  if (ros::param::get("~log_output_path", logOutputPath)) {
+    savePoseArrayToFile(pose_array, logOutputPath + "dpgo_trajectory.csv");
+  }
 
   return true;
 }

@@ -191,4 +191,30 @@ nav_msgs::Path TrajectoryToPath(const unsigned d, const unsigned n,
   return msg;
 }
 
+bool savePoseArrayToFile(const geometry_msgs::PoseArray& msg,
+                         const std::string& filename) {
+  std::ofstream file;
+  file.open(filename);
+  if (!file.is_open()) {
+    ROS_ERROR_STREAM("Error opening log file: " << filename);
+    return false;
+  }
+
+  file << "pose_index,qx,qy,qz,qw,tx,ty,tz\n";
+  for (size_t i = 0; i < msg.poses.size(); ++i) {
+    geometry_msgs::Point position = msg.poses[i].position;
+    geometry_msgs::Quaternion orientation = msg.poses[i].orientation;
+    file << i << ",";
+    file << orientation.x << ",";
+    file << orientation.y << ",";
+    file << orientation.z << ",";
+    file << orientation.w << ",";
+    file << position.x << ",";
+    file << position.y << ",";
+    file << position.z << "\n";
+  }
+
+  return true;
+}
+
 }  // namespace dpgo_ros

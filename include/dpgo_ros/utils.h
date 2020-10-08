@@ -19,6 +19,7 @@
 #include <tf/tf.h>
 
 #include <cassert>
+#include <fstream>
 #include <vector>
 
 using namespace DPGO;
@@ -80,5 +81,11 @@ Convert an aggregate matrix T \in (SO(d) \times Rd)^n to a ROS Path message
 */
 nav_msgs::Path TrajectoryToPath(const unsigned d, const unsigned n,
                                 const Matrix& T);
+
+/**
+Save a ROS pose array message to CSV file
+*/
+bool savePoseArrayToFile(const geometry_msgs::PoseArray& msg,
+                         const std::string& filename);
 
 }  // namespace dpgo_ros
