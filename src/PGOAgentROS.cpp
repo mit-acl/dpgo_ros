@@ -49,6 +49,9 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
   commandSubscriber =
       nh.subscribe("/dpgo_command", 100, &PGOAgentROS::commandCallback, this);
 
+  anchorSubscriber =
+      nh.subscribe("/dpgo_anchor", 100, &PGOAgentROS::anchorCallback, this);
+
   // ROS service
   queryLiftingMatrixServer = nh.advertiseService(
       "query_lifting_matrix", &PGOAgentROS::queryLiftingMatrixCallback, this);
@@ -57,6 +60,7 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
                                         &PGOAgentROS::queryPosesCallback, this);
 
   // ROS publisher
+  anchorPublisher = nh.advertise<LiftedPose>("/dpgo_anchor", 100);
   statusPublisher = nh.advertise<Status>("/dpgo_status", 100);
   commandPublisher = nh.advertise<Command>("/dpgo_command", 100);
   poseArrayPublisher = nh.advertise<geometry_msgs::PoseArray>("trajectory", 1);
@@ -100,7 +104,7 @@ void PGOAgentROS::reset() {
 }
 
 void PGOAgentROS::update() {
-  ROS_INFO_STREAM("Agent " << getID() << " udpating...");
+  ROS_INFO_STREAM("Agent " << getID() << " updating...");
 
   // Query neighbors for their public poses
   std::set<unsigned> neighborAgents = getNeighbors();
@@ -117,11 +121,10 @@ void PGOAgentROS::update() {
     ROS_WARN("Skipped optimization!");
   } else {
     relativeChanges[getID()] = OptResult.relativeChange;
-    // Publish trajectory
-    if (!publishTrajectory()) {
-      ROS_ERROR("Failed to publish trajectory in global frame!");
-    }
   }
+
+  // Update anchor (needed when rounding in global frame)
+  if (getID() == 0) publishAnchor();
 
   // Publish status
   publishStatus();
@@ -222,6 +225,14 @@ bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned& neighborID) {
   return true;
 }
 
+void PGOAgentROS::publishAnchor() {
+  Matrix T0;
+  getXComponent(0, T0);
+  LiftedPose msg = constructLiftedPoseMsg(dimension(), relaxation_rank(),
+                                          getCluster(), getID(), 0, T0);
+  anchorPublisher.publish(msg);
+}
+
 void PGOAgentROS::publishCommand() {
   Command msg;
 
@@ -272,28 +283,17 @@ void PGOAgentROS::publishStatus() {
 }
 
 bool PGOAgentROS::publishTrajectory() {
-  Matrix globalAnchor;
-  if (getID() == 0) {
-    getXComponent(0, globalAnchor);
-  } else {
-    // Request global anchor from robot 0
-    QueryPoses srv;
-    srv.request.robot_id = 0;
-    srv.request.pose_ids.push_back(0);
-    std::string service_name = "/kimera0/dpgo_ros_node/query_poses";
-    if (!ros::service::waitForService(service_name, ros::Duration(5.0))) {
-      ROS_ERROR_STREAM("ROS service " << service_name << " does not exist!");
-      return false;
-    }
-    if (!ros::service::call(service_name, srv)) {
-      ROS_ERROR_STREAM("Failed to call ROS service " << service_name);
-      return false;
-    }
-
-    globalAnchor = MatrixFromMsg(srv.response.poses[0].pose);
+  if (globalAnchor.rows() != relaxation_rank() ||
+      globalAnchor.cols() != dimension() + 1) {
+    ROS_ERROR("Anchor has wrong dimension!");
+    return false;
   }
 
-  Matrix T = getTrajectoryInGlobalFrame(globalAnchor);
+  Matrix T;
+  if (!getTrajectoryInGlobalFrame(globalAnchor, T)) {
+    ROS_ERROR("Failed to compute trajectory in global frame!");
+    return false;
+  }
 
   // Publish as pose array
   geometry_msgs::PoseArray pose_array =
@@ -311,6 +311,14 @@ bool PGOAgentROS::publishTrajectory() {
   }
 
   return true;
+}
+
+void PGOAgentROS::anchorCallback(const LiftedPoseConstPtr& msg) {
+  if (msg->robot_id != 0 || msg->pose_id != 0) {
+    ROS_ERROR("Received wrong pose as anchor!");
+    ros::shutdown();
+  }
+  globalAnchor = MatrixFromMsg(msg->pose);
 }
 
 void PGOAgentROS::statusCallback(const StatusConstPtr& msg) {
@@ -345,6 +353,8 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
 
     case Command::TERMINATE:
       ROS_INFO_STREAM("Agent " << getID() << " terminating...");
+      if (!publishTrajectory())
+        ROS_ERROR("Failed to publish trajectory in global frame! ");
       reset();
       // First robot initiates next optimization round
       if (getID() == 0) {

@@ -67,10 +67,15 @@ class PGOAgentROS : public PGOAgent {
   // Publish command
   void publishCommand();
 
+  // Publish anchor
+  void publishAnchor();
+
   // Publish trajectory
+  Matrix globalAnchor;
   bool publishTrajectory();
 
   // ROS callbacks
+  void anchorCallback(const LiftedPoseConstPtr& msg);
   void statusCallback(const StatusConstPtr& msg);
   void commandCallback(const CommandConstPtr& msg);
   bool queryLiftingMatrixCallback(QueryLiftingMatrixRequest& request,
@@ -79,6 +84,7 @@ class PGOAgentROS : public PGOAgent {
                           QueryPosesResponse& response);
 
   // ROS publisher
+  ros::Publisher anchorPublisher;
   ros::Publisher statusPublisher;
   ros::Publisher commandPublisher;
   ros::Publisher poseArrayPublisher;
@@ -87,6 +93,7 @@ class PGOAgentROS : public PGOAgent {
   // ROS subscriber
   ros::Subscriber statusSubscriber;
   ros::Subscriber commandSubscriber;
+  ros::Subscriber anchorSubscriber;
 
   // ROS service server
   ros::ServiceServer queryLiftingMatrixServer;
