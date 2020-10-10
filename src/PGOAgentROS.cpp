@@ -10,6 +10,7 @@
 #include <geometry_msgs/PoseArray.h>
 #include <nav_msgs/Path.h>
 #include <pose_graph_tools/PoseGraphQuery.h>
+#include <pose_graph_tools/utils.h>
 #include <tf/tf.h>
 
 #include <map>
@@ -154,6 +155,14 @@ bool PGOAgentROS::requestPoseGraph() {
   if (pose_graph.edges.empty()) {
     ROS_WARN("Received empty pose graph.");
     return false;
+  }
+  // Save pose graph to log folder
+  std::string logOutputPath;
+  if (ros::param::get("~log_output_path", logOutputPath)) {
+    if (!pose_graph_tools::savePoseGraphMsgToFile(
+            pose_graph, logOutputPath + "dpgo_pose_graph.csv")) {
+      ROS_ERROR("Failed to save pose graph!");
+    }
   }
   vector<RelativeSEMeasurement> odometry;
   vector<RelativeSEMeasurement> privateLoopClosures;
@@ -337,7 +346,8 @@ void PGOAgentROS::statusCallback(const StatusConstPtr& msg) {
 void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
   switch (msg->command) {
     case Command::INITIALIZE:
-      ROS_INFO_STREAM("Agent " << getID() << " initializing...");
+      ROS_INFO_STREAM("Agent " << getID() << " initiates round "
+                               << instance_number << "...");
       while (!requestPoseGraph()) {
         ros::Duration(10).sleep();
       }
