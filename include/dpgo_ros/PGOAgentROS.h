@@ -87,6 +87,7 @@ class PGOAgentROS : public PGOAgent {
   // Publish trajectory
   Matrix globalAnchor;
   bool publishTrajectory();
+  bool logTrajectory(const std::string filename);
 
   // ROS callbacks
   void anchorCallback(const LiftedPoseConstPtr& msg);

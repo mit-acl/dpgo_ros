@@ -322,11 +322,28 @@ bool PGOAgentROS::publishTrajectory() {
   nav_msgs::Path path = TrajectoryToPath(dimension(), num_poses(), T);
   pathPublisher.publish(path);
 
-  // Save to log directory
-  std::string logOutputPath;
-  if (ros::param::get("~log_output_path", logOutputPath)) {
-    savePoseArrayToFile(pose_array, logOutputPath + "dpgo_trajectory.csv");
+  return true;
+}
+
+bool PGOAgentROS::logTrajectory(const std::string filename) {
+  if (globalAnchor.rows() != relaxation_rank() ||
+      globalAnchor.cols() != dimension() + 1) {
+    ROS_WARN("Did not receive anchor to compute trajectory in global frame.");
+    return false;
   }
+
+  Matrix T;
+  if (!getTrajectoryInGlobalFrame(globalAnchor, T)) {
+    ROS_WARN("Failed to compute trajectory in global frame!");
+    return false;
+  }
+
+  // Convert trajectory to a pose array
+  geometry_msgs::PoseArray pose_array =
+      TrajectoryToPoseArray(dimension(), num_poses(), T);
+
+  // Save to specified place
+  savePoseArrayToFile(pose_array, filename);
 
   return true;
 }
@@ -369,17 +386,26 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
       }
       break;
 
-    case Command::TERMINATE:
+    case Command::TERMINATE: {
       ROS_INFO_STREAM("Agent " << getID() << " terminating...");
-      if (!publishTrajectory())
-        ROS_WARN("Failed to publish trajectory in global frame! ");
+      // Publish optimized trajectory
+      publishTrajectory();
+      // Optionally, log trajectory  to file
+      std::string logOutputPath;
+      if (ros::param::get("~log_output_path", logOutputPath)) {
+        std::string filename = logOutputPath + "dpgo_optimized_" +
+                               std::to_string(instance_number) + ".csv";
+        logTrajectory(filename);
+      }
+      // Reset!
       reset();
       // First robot initiates next optimization round
       if (getID() == 0) {
-        ros::Duration(3).sleep();
+        ros::Duration(5).sleep();
         publishInitializeCommand();
       }
       break;
+    }
 
     case Command::UPDATE:
       iteration_number++;  // increment iteration counter
