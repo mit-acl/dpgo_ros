@@ -38,18 +38,23 @@ class PGOAgentROS : public PGOAgent {
   // Current iteration number
   unsigned iteration_number;
 
+  // Received pose graph
+  bool has_pose_graph;
+
   // Latest relative changes of all robots
   std::vector<double> relativeChanges;
 
   // Termination condition
   double RelativeChangeTolerance;
 
+  // Maximum number of iterations
   unsigned MaxIterationNumber;
 
   // Latest optimization result
   ROPTResult OptResult;
 
-  // Reset the pose graph. This function overrides the function from the base class.
+  // Reset the pose graph. This function overrides the function from the base
+  // class.
   void reset();
 
   // Apply local update
@@ -61,11 +66,20 @@ class PGOAgentROS : public PGOAgent {
   // Request latest public poses from a neighboring agent
   bool requestPublicPosesFromAgent(const unsigned& neighborID);
 
+  // Check DPGO termination conditions
+  bool shouldTerminate();
+
   // Publish status
   void publishStatus();
 
-  // Publish command
-  void publishCommand();
+  // Publish initialize command
+  void publishInitializeCommand();
+
+  // Publish update command
+  void publishUpdateCommand();
+
+  // Publish termination command
+  void publishTerminateCommand();
 
   // Publish anchor
   void publishAnchor();

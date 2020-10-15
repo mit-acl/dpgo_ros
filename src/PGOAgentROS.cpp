@@ -21,7 +21,11 @@ namespace dpgo_ros {
 
 PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
                          const PGOAgentParameters& params)
-    : PGOAgent(ID, params), nh(nh_), instance_number(0), iteration_number(0) {
+    : PGOAgent(ID, params),
+      nh(nh_),
+      instance_number(0),
+      iteration_number(0),
+      has_pose_graph(false) {
   if (!nh.getParam("/relative_change_tolerance", RelativeChangeTolerance)) {
     ROS_ERROR("Failed to get relative change tolerance!");
     ros::shutdown();
@@ -87,9 +91,7 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
   // First agent sends out the initialization signal
   if (getID() == 0) {
     ros::Duration(10).sleep();
-    Command msg;
-    msg.command = Command::INITIALIZE;
-    commandPublisher.publish(msg);
+    publishInitializeCommand();
   }
 }
 
@@ -99,6 +101,7 @@ void PGOAgentROS::reset() {
   PGOAgent::reset();
   instance_number++;
   iteration_number = 0;
+  has_pose_graph = false;
   for (size_t i = 0; i < relativeChanges.size(); ++i) {
     relativeChanges[i] = 1e3;
   }
@@ -123,16 +126,6 @@ void PGOAgentROS::update() {
   } else {
     relativeChanges[getID()] = OptResult.relativeChange;
   }
-
-  // Update anchor (needed when rounding in global frame)
-  if (getID() == 0) publishAnchor();
-
-  // Publish status
-  publishStatus();
-
-  // Publish next command
-  ros::Duration(0.01).sleep();
-  publishCommand();
 }
 
 bool PGOAgentROS::requestPoseGraph() {
@@ -234,6 +227,28 @@ bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned& neighborID) {
   return true;
 }
 
+bool PGOAgentROS::shouldTerminate() {
+  // terminate if the calling agent does not have pose graph
+  if (!has_pose_graph) {
+    return true;
+  }
+
+  // terminate if reached maximum iterations
+  if (iteration_number > MaxIterationNumber) {
+    ROS_WARN("DPGO reached maximum iterations.");
+    return true;
+  }
+
+  // terminate if all agents satisfy relative change condition
+  for (size_t i = 0; i < relativeChanges.size(); ++i) {
+    if (relativeChanges[i] > RelativeChangeTolerance) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 void PGOAgentROS::publishAnchor() {
   Matrix T0;
   getXComponent(0, T0);
@@ -242,41 +257,35 @@ void PGOAgentROS::publishAnchor() {
   anchorPublisher.publish(msg);
 }
 
-void PGOAgentROS::publishCommand() {
+void PGOAgentROS::publishUpdateCommand() {
   Command msg;
-
-  // Terminate if reached maximum iterations
-  if (iteration_number > MaxIterationNumber) {
-    ROS_WARN("Reached maximum number of iterations.");
-    msg.command = Command::TERMINATE;
-    commandPublisher.publish(msg);
-    return;
-  }
-
-  // Terminate if reached relative change condition
-  bool should_terminate = true;
-  for (size_t i = 0; i < relativeChanges.size(); ++i) {
-    if (relativeChanges[i] > RelativeChangeTolerance) {
-      should_terminate = false;
-      break;
-    }
-  }
-  if (should_terminate) {
-    msg.command = Command::TERMINATE;
-    commandPublisher.publish(msg);
-    return;
-  }
 
   // Randomly select a neighbor to update next
   unsigned neighborID;
   if (!getRandomNeighbor(neighborID)) {
-    ROS_ERROR(
-        "Failed to select next robot. Global pose graph is not connected.");
-    msg.command = Command::TERMINATE;
-  } else {
-    msg.command = Command::UPDATE;
-    msg.executing_robot = neighborID;
+    ROS_WARN(
+        "Global pose graph is not connected. Sending TERMINATE command "
+        "instead.");
+    publishTerminateCommand();
+    return;
   }
+  msg.command = Command::UPDATE;
+  msg.executing_robot = neighborID;
+  commandPublisher.publish(msg);
+}
+
+void PGOAgentROS::publishTerminateCommand() {
+  Command msg;
+  msg.command = Command::TERMINATE;
+  commandPublisher.publish(msg);
+}
+
+void PGOAgentROS::publishInitializeCommand() {
+  if (getID() != 0) {
+    ROS_ERROR("Only robot 0 should send INITIALIZE command! ");
+  }
+  Command msg;
+  msg.command = Command::INITIALIZE;
   commandPublisher.publish(msg);
 }
 
@@ -294,13 +303,13 @@ void PGOAgentROS::publishStatus() {
 bool PGOAgentROS::publishTrajectory() {
   if (globalAnchor.rows() != relaxation_rank() ||
       globalAnchor.cols() != dimension() + 1) {
-    ROS_ERROR("Anchor has wrong dimension!");
+    ROS_WARN("Did not receive anchor to compute trajectory in global frame.");
     return false;
   }
 
   Matrix T;
   if (!getTrajectoryInGlobalFrame(globalAnchor, T)) {
-    ROS_ERROR("Failed to compute trajectory in global frame!");
+    ROS_WARN("Failed to compute trajectory in global frame!");
     return false;
   }
 
@@ -348,12 +357,11 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
     case Command::INITIALIZE:
       ROS_INFO_STREAM("Agent " << getID() << " initiates round "
                                << instance_number << "...");
-      while (!requestPoseGraph()) {
-        ros::Duration(10).sleep();
-      }
+      // Request latest pose graph
+      has_pose_graph = requestPoseGraph();
       // First robot initiates update sequence
       if (getID() == 0) {
-        ros::Duration(3).sleep();
+        ros::Duration(1).sleep();
         Command msg;
         msg.command = Command::UPDATE;
         msg.executing_robot = 0;
@@ -364,22 +372,35 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
     case Command::TERMINATE:
       ROS_INFO_STREAM("Agent " << getID() << " terminating...");
       if (!publishTrajectory())
-        ROS_ERROR("Failed to publish trajectory in global frame! ");
+        ROS_WARN("Failed to publish trajectory in global frame! ");
       reset();
       // First robot initiates next optimization round
       if (getID() == 0) {
         ros::Duration(3).sleep();
-        Command msg;
-        msg.command = Command::INITIALIZE;
-        commandPublisher.publish(msg);
+        publishInitializeCommand();
       }
       break;
 
     case Command::UPDATE:
       iteration_number++;  // increment iteration counter
       if (msg->executing_robot == getID()) {
-        // My turn to update!
+        // Check termination condition
+        if (shouldTerminate()) {
+          publishTerminateCommand();
+          return;
+        }
+
+        // Update my estimate
         update();
+
+        // The first robot should also publishes its anchor
+        if (getID() == 0) publishAnchor();
+
+        // Publish status
+        publishStatus();
+
+        // Notify next robot to update
+        publishUpdateCommand();
       }
       break;
 
