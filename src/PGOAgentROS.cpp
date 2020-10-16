@@ -25,7 +25,8 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
       nh(nh_),
       instance_number(0),
       iteration_number(0),
-      has_pose_graph(false) {
+      has_pose_graph(false),
+      saved_initialization(false) {
   if (!nh.getParam("/relative_change_tolerance", RelativeChangeTolerance)) {
     ROS_ERROR("Failed to get relative change tolerance!");
     ros::shutdown();
@@ -102,6 +103,7 @@ void PGOAgentROS::reset() {
   instance_number++;
   iteration_number = 0;
   has_pose_graph = false;
+  saved_initialization = false;
   for (size_t i = 0; i < relativeChanges.size(); ++i) {
     relativeChanges[i] = 1e3;
   }
@@ -117,6 +119,20 @@ void PGOAgentROS::update() {
       ROS_WARN_STREAM("Public poses from neighbor " << neighborID
                                                     << " are not available.");
     }
+  }
+
+  // Save initialization
+  if (!saved_initialization && getState() == PGOAgentState::INITIALIZED) {
+    std::string logOutputPath;
+    if (ros::param::get("~log_output_path", logOutputPath)) {
+      std::string filename = logOutputPath + "dpgo_initial_" +
+                             std::to_string(instance_number) + ".csv";
+      bool success = logTrajectory(filename);
+      if (!success) {
+        ROS_ERROR("Failed to save initial trajectory!");
+      }
+    }
+    saved_initialization = true;
   }
 
   // Optimize!
@@ -378,6 +394,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
       has_pose_graph = requestPoseGraph();
       // First robot initiates update sequence
       if (getID() == 0) {
+        if (has_pose_graph) publishAnchor();
         ros::Duration(1).sleep();
         Command msg;
         msg.command = Command::UPDATE;
@@ -395,7 +412,10 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
       if (ros::param::get("~log_output_path", logOutputPath)) {
         std::string filename = logOutputPath + "dpgo_optimized_" +
                                std::to_string(instance_number) + ".csv";
-        logTrajectory(filename);
+        bool success = logTrajectory(filename);
+        if (!success) {
+          ROS_ERROR("Failed to log optimized trajectory!");
+        }
       }
       // Reset!
       reset();

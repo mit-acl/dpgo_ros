@@ -41,6 +41,9 @@ class PGOAgentROS : public PGOAgent {
   // Received pose graph
   bool has_pose_graph;
 
+  // Debug: should save initialization to file
+  bool saved_initialization;
+
   // Latest relative changes of all robots
   std::vector<double> relativeChanges;
 
