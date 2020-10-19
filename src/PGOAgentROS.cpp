@@ -195,9 +195,11 @@ bool PGOAgentROS::requestPoseGraph() {
   }
   setPoseGraph(odometry, privateLoopClosures, sharedLoopClosures);
 
-  ROS_INFO_STREAM("Agent " << getID() << " receives local pose graph with "
-                           << pose_graph.edges.size() << " edges"
-                           << " and " << num_poses() << " poses.");
+  ROS_INFO_STREAM(
+      "Agent " << getID() << " receives local pose graph with "
+               << odometry.size() << " odometry edges and "
+               << privateLoopClosures.size() << " private loop closures and "
+               << sharedLoopClosures.size() << " shared loop closures.");
 
   return true;
 }
@@ -279,14 +281,13 @@ void PGOAgentROS::publishUpdateCommand() {
   // Randomly select a neighbor to update next
   unsigned neighborID;
   if (!getRandomNeighbor(neighborID)) {
-    ROS_WARN(
-        "Global pose graph is not connected. Sending TERMINATE command "
-        "instead.");
-    publishTerminateCommand();
-    return;
+    ROS_WARN("Global pose graph is not connected. ");
+    msg.executing_robot = getID();
+  }
+  else{
+    msg.executing_robot = neighborID;
   }
   msg.command = Command::UPDATE;
-  msg.executing_robot = neighborID;
   commandPublisher.publish(msg);
 }
 
@@ -421,7 +422,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
       reset();
       // First robot initiates next optimization round
       if (getID() == 0) {
-        ros::Duration(5).sleep();
+        ros::Duration(30).sleep();
         publishInitializeCommand();
       }
       break;
