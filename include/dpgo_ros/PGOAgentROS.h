@@ -44,11 +44,12 @@ class PGOAgentROS : public PGOAgent {
   // Saved initialization to file
   bool saved_initialization;
 
-  // Total bytes of public poses transmitted
-  size_t bytes_transmitted;
+  // Total bytes of public poses received
+  size_t bytes_received;
 
-  // Total runtime in seconds
-  double optimization_runtime_sec;
+  // Flag to log data 
+  bool logOutput;
+  std::string logOutputDirectory;
 
   // Latest relative changes of all robots
   std::vector<double> relativeChanges;
@@ -100,10 +101,11 @@ class PGOAgentROS : public PGOAgent {
   bool publishTrajectory();
 
   // Log current trajectory to file
-  bool logTrajectory(const std::string filename);
+  bool logTrajectory(const std::string& filename);
 
   // Log statistics to file
-  bool logStatistics(const std::string filename);
+  bool createLogFile(const std::string& filename);
+  bool logIteration(const std::string& filename);
 
   // ROS callbacks
   void anchorCallback(const LiftedPoseConstPtr& msg);
