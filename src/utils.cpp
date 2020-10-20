@@ -75,6 +75,17 @@ LiftedPose constructLiftedPoseMsg(const size_t dimension,
   return msg;
 }
 
+size_t computeLiftedPosePayloadBytes(const LiftedPose& msg) {
+  size_t bytes = 0;
+  bytes += sizeof(msg.cluster_id);
+  bytes += sizeof(msg.robot_id);
+  bytes += sizeof(msg.pose_id);
+  bytes += sizeof(msg.pose.rows);
+  bytes += sizeof(msg.pose.cols);
+  bytes += sizeof(msg.pose.values[0]) * msg.pose.values.size();
+  return bytes;
+}
+
 PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement& m) {
   assert(m.R.rows() == 3 && m.R.cols() == 3);
   assert(m.t.rows() == 3 && m.t.cols() == 1);

@@ -41,8 +41,14 @@ class PGOAgentROS : public PGOAgent {
   // Received pose graph
   bool has_pose_graph;
 
-  // Debug: should save initialization to file
+  // Saved initialization to file
   bool saved_initialization;
+
+  // Total bytes of public poses transmitted
+  size_t bytes_transmitted;
+
+  // Total runtime in seconds
+  double optimization_runtime_sec;
 
   // Latest relative changes of all robots
   std::vector<double> relativeChanges;
@@ -55,6 +61,9 @@ class PGOAgentROS : public PGOAgent {
 
   // Latest optimization result
   ROPTResult OptResult;
+
+  // Anchor needed for rounding
+  Matrix globalAnchor;
 
   // Reset the pose graph. This function overrides the function from the base
   // class.
@@ -88,9 +97,13 @@ class PGOAgentROS : public PGOAgent {
   void publishAnchor();
 
   // Publish trajectory
-  Matrix globalAnchor;
   bool publishTrajectory();
+
+  // Log current trajectory to file
   bool logTrajectory(const std::string filename);
+
+  // Log statistics to file
+  bool logStatistics(const std::string filename);
 
   // ROS callbacks
   void anchorCallback(const LiftedPoseConstPtr& msg);

@@ -60,6 +60,11 @@ LiftedPose constructLiftedPoseMsg(const size_t dimension,
                                   const Matrix pose);
 
 /**
+Compute the total payload size contained in a lifted pose message
+*/
+size_t computeLiftedPosePayloadBytes(const LiftedPose& msg);
+
+/**
 Write a relative measurement to ROS message
 */
 PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement& m);
