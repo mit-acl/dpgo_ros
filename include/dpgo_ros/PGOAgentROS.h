@@ -39,13 +39,16 @@ class PGOAgentROS : public PGOAgent {
   unsigned iteration_number;
 
   // Received pose graph
-  bool has_pose_graph;
+  bool hasPoseGraph;
 
   // Saved initialization to file
-  bool saved_initialization;
+  bool savedInitialization;
 
   // Total bytes of public poses received
-  size_t bytes_received;
+  size_t totalBytesReceived;
+
+  // Elapsed time for the latest update
+  double iterationElapsedMs;
 
   // Flag to log data 
   bool logOutput;

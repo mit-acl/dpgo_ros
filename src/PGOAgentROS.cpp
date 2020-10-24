@@ -25,9 +25,9 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
       nh(nh_),
       instance_number(0),
       iteration_number(0),
-      has_pose_graph(false),
-      saved_initialization(false),
-      bytes_received(0) {
+      hasPoseGraph(false),
+      savedInitialization(false),
+      totalBytesReceived(0) {
   logOutput = ros::param::get("~log_output_path", logOutputDirectory);
 
   if (!nh.getParam("/relative_change_tolerance", RelativeChangeTolerance)) {
@@ -105,9 +105,9 @@ void PGOAgentROS::reset() {
   PGOAgent::reset();
   instance_number++;
   iteration_number = 0;
-  has_pose_graph = false;
-  saved_initialization = false;
-  bytes_received = 0;
+  hasPoseGraph = false;
+  savedInitialization = false;
+  totalBytesReceived = 0;
   for (size_t i = 0; i < relativeChanges.size(); ++i) {
     relativeChanges[i] = 1e3;
   }
@@ -115,6 +115,7 @@ void PGOAgentROS::reset() {
 
 void PGOAgentROS::update() {
   ROS_INFO_STREAM("Agent " << getID() << " updating...");
+  auto startTime = std::chrono::high_resolution_clock::now();
 
   // Query neighbors for their public poses
   std::set<unsigned> neighborAgents = getNeighbors();
@@ -126,12 +127,12 @@ void PGOAgentROS::update() {
   }
 
   // Save initial trajectory
-  if (!saved_initialization && getState() == PGOAgentState::INITIALIZED) {
+  if (!savedInitialization && getState() == PGOAgentState::INITIALIZED) {
     if (logOutput) {
       logTrajectory(logOutputDirectory + "dpgo_initial_" +
                     std::to_string(instance_number) + ".csv");
     }
-    saved_initialization = true;
+    savedInitialization = true;
   }
 
   // Optimize!
@@ -141,6 +142,11 @@ void PGOAgentROS::update() {
   } else {
     relativeChanges[getID()] = OptResult.relativeChange;
   }
+
+  // Record overall elapsed time
+  auto counter = std::chrono::high_resolution_clock::now() - startTime;
+  iterationElapsedMs =
+      std::chrono::duration_cast<std::chrono::milliseconds>(counter).count();
 
   // Log iteration information
   if (logOutput) {
@@ -243,7 +249,7 @@ bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned& neighborID) {
     Matrix Xnbr = MatrixFromMsg(poseNbr.pose);
     updateNeighborPose(poseNbr.cluster_id, poseNbr.robot_id, poseNbr.pose_id,
                        Xnbr);
-    bytes_received += computeLiftedPosePayloadBytes(poseNbr);
+    totalBytesReceived += computeLiftedPosePayloadBytes(poseNbr);
   }
 
   return true;
@@ -251,7 +257,7 @@ bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned& neighborID) {
 
 bool PGOAgentROS::shouldTerminate() {
   // terminate if the calling agent does not have pose graph
-  if (!has_pose_graph) {
+  if (!hasPoseGraph) {
     return true;
   }
 
@@ -391,11 +397,13 @@ bool PGOAgentROS::logIteration(const std::string& filename) {
   }
 
   // Instance number, global iteration number, Number of poses, total bytes
-  // received, optimization time (sec), function decrease, relative change
+  // received, overall iteration time (sec), optimization only time (sec), 
+  // function decrease, relative change
   file << instance_number << ",";
   file << iteration_number << ",";
   file << num_poses() << ",";
-  file << bytes_received << ",";
+  file << totalBytesReceived << ",";
+  file << iterationElapsedMs / 1e3 << ",";
   file << OptResult.elapsedMs / 1e3 << ",";
   file << OptResult.fOpt - OptResult.fInit << ",";
   file << OptResult.relativeChange << "\n";
@@ -430,7 +438,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
       ROS_INFO_STREAM("Agent " << getID() << " initiates round "
                                << instance_number << "...");
       // Request latest pose graph
-      has_pose_graph = requestPoseGraph();
+      hasPoseGraph = requestPoseGraph();
       // Create log file for new round
       if (logOutput) {
         createLogFile(logOutputDirectory + "dpgo_log_" +
@@ -438,7 +446,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
       }
       // First robot initiates update sequence
       if (getID() == 0) {
-        if (has_pose_graph) publishAnchor();
+        if (hasPoseGraph) publishAnchor();
         ros::Duration(1).sleep();
         Command msg;
         msg.command = Command::UPDATE;
