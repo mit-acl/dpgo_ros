@@ -14,6 +14,7 @@
 #include <tf/tf.h>
 
 #include <map>
+#include <random>
 
 using namespace DPGO;
 
@@ -118,7 +119,7 @@ void PGOAgentROS::update() {
   auto startTime = std::chrono::high_resolution_clock::now();
 
   // Query neighbors for their public poses
-  std::set<unsigned> neighborAgents = getNeighbors();
+  std::vector<unsigned> neighborAgents = getNeighbors();
   for (unsigned neighborID : neighborAgents) {
     if (!requestPublicPosesFromAgent(neighborID)) {
       ROS_WARN_STREAM("Public poses from neighbor " << neighborID
@@ -288,14 +289,25 @@ void PGOAgentROS::publishAnchor() {
 void PGOAgentROS::publishUpdateCommand() {
   Command msg;
 
-  // Randomly select a neighbor to update next
-  unsigned neighborID;
-  if (!getRandomNeighbor(neighborID)) {
-    ROS_WARN("Global pose graph is not connected. ");
+  std::vector<unsigned> neighbors = getNeighbors();
+
+  if (neighbors.empty()) {
+    ROS_WARN_STREAM("Agent " << getID() << " does not have any neighbor.");
     msg.executing_robot = getID();
   } else {
-    msg.executing_robot = neighborID;
+    std::vector<double> neighborWeights(neighbors.size());
+    for (size_t j = 0; j < neighbors.size(); ++j) {
+      unsigned nID = neighbors[j];
+      neighborWeights[j] = relativeChanges[nID];
+    }
+    std::discrete_distribution<int> distribution(neighborWeights.begin(),
+                                                 neighborWeights.end());
+    std::cout << std::endl;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    msg.executing_robot = neighbors[distribution(gen)];
   }
+
   msg.command = Command::UPDATE;
   commandPublisher.publish(msg);
 }
@@ -397,7 +409,7 @@ bool PGOAgentROS::logIteration(const std::string& filename) {
   }
 
   // Instance number, global iteration number, Number of poses, total bytes
-  // received, overall iteration time (sec), optimization only time (sec), 
+  // received, overall iteration time (sec), optimization only time (sec),
   // function decrease, relative change
   file << instance_number << ",";
   file << iteration_number << ",";
