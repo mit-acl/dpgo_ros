@@ -4,7 +4,8 @@
   <param name="/relaxation_rank" type="int" value="5" />
   <param name="/num_robots" type="int" value="5" />
   <param name="/relative_change_tolerance" type="double" value="1e-3" />
-  <param name="/max_iteration_number" type="int" value="100" />
+  <param name="/function_decrease_tolerance" type="double" value="5e-2" />
+  <param name="/max_iteration_number" type="int" value="1000" />
 
   <param name="/dataset" type="str" value="$(find dpgo_ros)/data/sphere2500.g2o" />
 

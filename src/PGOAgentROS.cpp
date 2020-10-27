@@ -31,8 +31,9 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
       totalBytesReceived(0) {
   logOutput = ros::param::get("~log_output_path", logOutputDirectory);
 
-  if (!nh.getParam("/relative_change_tolerance", RelativeChangeTolerance)) {
-    ROS_ERROR("Failed to get relative change tolerance!");
+  if (!nh.getParam("/relative_change_tolerance", RelativeChangeTolerance) ||
+      !nh.getParam("/function_decrease_tolerance", FuncDecreaseTolerance)) {
+    ROS_ERROR("Failed to get stopping conditions!");
     ros::shutdown();
   }
 
@@ -51,6 +52,7 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
   if (!nh.getParam("/num_robots", num_robots))
     ROS_ERROR("Failed to query number of robots");
   relativeChanges.resize(num_robots, 1e3);
+  funcDecreases.resize(num_robots, 1e3);
 
   // ROS subscriber
   statusSubscriber =
@@ -109,9 +111,8 @@ void PGOAgentROS::reset() {
   hasPoseGraph = false;
   savedInitialization = false;
   totalBytesReceived = 0;
-  for (size_t i = 0; i < relativeChanges.size(); ++i) {
-    relativeChanges[i] = 1e3;
-  }
+  relativeChanges.assign(relativeChanges.size(), 1e3);
+  funcDecreases.assign(funcDecreases.size(), 1e3);
 }
 
 void PGOAgentROS::update() {
@@ -142,6 +143,7 @@ void PGOAgentROS::update() {
     ROS_WARN("Skipped optimization!");
   } else {
     relativeChanges[getID()] = OptResult.relativeChange;
+    funcDecreases[getID()] = OptResult.fInit - OptResult.fOpt;
   }
 
   // Record overall elapsed time
@@ -177,12 +179,6 @@ bool PGOAgentROS::requestPoseGraph() {
     ROS_WARN("Received empty pose graph.");
     return false;
   }
-  // Save pose graph
-  if (logOutput) {
-    pose_graph_tools::savePoseGraphMsgToFile(
-        pose_graph, logOutputDirectory + "dpgo_pose_graph_" +
-                        std::to_string(instance_number) + ".csv");
-  }
   vector<RelativeSEMeasurement> odometry;
   vector<RelativeSEMeasurement> privateLoopClosures;
   vector<RelativeSEMeasurement> sharedLoopClosures;
@@ -204,6 +200,18 @@ bool PGOAgentROS::requestPoseGraph() {
     }
   }
   setPoseGraph(odometry, privateLoopClosures, sharedLoopClosures);
+
+  // Save pose graph
+  if (logOutput) {
+    std::vector<RelativeSEMeasurement> measurements = odometry;
+    measurements.insert(measurements.end(), privateLoopClosures.begin(),
+                        privateLoopClosures.end());
+    measurements.insert(measurements.end(), sharedLoopClosures.begin(),
+                        sharedLoopClosures.end());
+    saveRelativeMeasurementsToFile(
+        measurements, logOutputDirectory + "dpgo_pose_graph_" +
+                          std::to_string(instance_number) + ".csv");
+  }
 
   ROS_INFO_STREAM(
       "Agent " << getID() << " receives local pose graph with "
@@ -257,10 +265,6 @@ bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned& neighborID) {
 }
 
 bool PGOAgentROS::shouldTerminate() {
-  // terminate if the calling agent does not have pose graph
-  if (!hasPoseGraph) {
-    return true;
-  }
 
   // terminate if reached maximum iterations
   if (iteration_number > MaxIterationNumber) {
@@ -269,13 +273,33 @@ bool PGOAgentROS::shouldTerminate() {
   }
 
   // terminate if all agents satisfy relative change condition
+  bool relative_change_reached = true;
   for (size_t i = 0; i < relativeChanges.size(); ++i) {
     if (relativeChanges[i] > RelativeChangeTolerance) {
-      return false;
+      relative_change_reached = false; 
+      break;
     }
   }
+  if (relative_change_reached) {
+    ROS_INFO("Reached relative change stopping condition");
+    return true;
+  }
 
-  return true;
+  // terminate if all agents satisfy function decrease condition
+  bool func_decrease_reached = true;
+  for (size_t i = 0; i < funcDecreases.size(); ++i) {
+    if (funcDecreases[i] > FuncDecreaseTolerance) {
+      func_decrease_reached = false; 
+      break;
+    }
+  }
+  if (func_decrease_reached) {
+    ROS_INFO("Reached function decrease stopping condition.");
+    return true;
+  }
+
+
+  return false;
 }
 
 void PGOAgentROS::publishAnchor() {
@@ -298,7 +322,7 @@ void PGOAgentROS::publishUpdateCommand() {
     std::vector<double> neighborWeights(neighbors.size());
     for (size_t j = 0; j < neighbors.size(); ++j) {
       unsigned nID = neighbors[j];
-      neighborWeights[j] = relativeChanges[nID];
+      neighborWeights[j] = funcDecreases[nID];
     }
     std::discrete_distribution<int> distribution(neighborWeights.begin(),
                                                  neighborWeights.end());
@@ -441,6 +465,7 @@ void PGOAgentROS::statusCallback(const StatusConstPtr& msg) {
   }
   if (msg->optimization_success) {
     relativeChanges[msg->robot_id] = msg->relative_change;
+    funcDecreases[msg->robot_id] = msg->objective_decrease;
   }
 }
 
@@ -489,10 +514,9 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
     case Command::UPDATE:
       iteration_number++;  // increment iteration counter
       if (msg->executing_robot == getID()) {
-        // Check termination condition
-        if (shouldTerminate()) {
+        if (!hasPoseGraph) {
           publishTerminateCommand();
-          return;
+          break;
         }
 
         // Update my estimate
@@ -504,8 +528,14 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
         // Publish status
         publishStatus();
 
-        // Notify next robot to update
-        publishUpdateCommand();
+        // Check termination condition
+        if (shouldTerminate()) {
+          publishTerminateCommand();
+        } else {
+          // Notify next robot to update
+          ros::Duration(0.01).sleep();
+          publishUpdateCommand();
+        }
       }
       break;
 

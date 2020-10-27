@@ -56,9 +56,11 @@ class PGOAgentROS : public PGOAgent {
 
   // Latest relative changes of all robots
   std::vector<double> relativeChanges;
+  std::vector<double> funcDecreases;
 
   // Termination condition
   double RelativeChangeTolerance;
+  double FuncDecreaseTolerance;
 
   // Maximum number of iterations
   unsigned MaxIterationNumber;

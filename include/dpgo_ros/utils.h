@@ -93,4 +93,11 @@ Save a ROS pose array message to CSV file
 bool savePoseArrayToFile(const geometry_msgs::PoseArray& msg,
                          const std::string& filename);
 
+/**
+Save relative measurements to file
+*/
+bool saveRelativeMeasurementsToFile(
+    const std::vector<RelativeSEMeasurement>& measurements,
+    const std::string filename);
+
 }  // namespace dpgo_ros

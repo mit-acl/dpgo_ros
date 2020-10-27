@@ -132,8 +132,8 @@ RelativeSEMeasurement RelativeMeasurementFromMsg(const PoseGraphEdge& msg) {
   t << translation.x(), translation.y(), translation.z();
 
   // use hardcoded weight
-  double kappa = 1.0;
-  double tau = 1.0;
+  double kappa = 1500.0;
+  double tau = 100.0;
 
   return RelativeSEMeasurement(r1, r2, p1, p2, R, t, kappa, tau);
 }
@@ -224,6 +224,50 @@ bool savePoseArrayToFile(const geometry_msgs::PoseArray& msg,
     file << position.y << ",";
     file << position.z << "\n";
   }
+
+  file.close();
+
+  return true;
+}
+
+bool saveRelativeMeasurementsToFile(
+    const std::vector<RelativeSEMeasurement>& measurements,
+    const std::string filename) {
+  std::ofstream file;
+  file.open(filename);
+  if (!file.is_open()) {
+    ROS_ERROR_STREAM("Error opening file: " << filename);
+    return false;
+  }
+
+  // Header line
+  file << "robot_src,pose_src,robot_dst,pose_dst,qx,qy,qz,qw,tx,ty,tz,kappa,"
+          "tau\n";
+
+  for (size_t i = 0; i < measurements.size(); ++ i) {
+    RelativeSEMeasurement m = measurements[i];
+    tf::Matrix3x3 rotation(m.R(0, 0), m.R(0, 1), m.R(0, 2), 
+                           m.R(1, 0), m.R(1, 1), m.R(1, 2), 
+                           m.R(2, 0), m.R(2, 1), m.R(2, 2));
+    tf::Quaternion quat;
+    rotation.getRotation(quat);
+
+    file << m.r1 << ",";
+    file << m.p1 << ",";
+    file << m.r2 << ",";
+    file << m.p2 << ",";
+    file << quat.x() << ",";
+    file << quat.y() << ",";
+    file << quat.z() << ",";
+    file << quat.w() << ",";
+    file << m.t(0) << ",";
+    file << m.t(1) << ",";
+    file << m.t(2) << ",";
+    file << m.kappa << ",";
+    file << m.tau << "\n";
+  }
+
+  file.close();
 
   return true;
 }

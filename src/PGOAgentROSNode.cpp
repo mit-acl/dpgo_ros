@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
   int d = -1;
   int r = -1;
   ROPTALG algorithm = ROPTALG::RTR;
-  bool verbose = false;
+  bool verbose = true;
 
   if (!nh.getParam("/dimension", d)) {
     ROS_ERROR("Failed to get dimension!");
