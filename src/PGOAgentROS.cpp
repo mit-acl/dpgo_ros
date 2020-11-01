@@ -28,6 +28,7 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
       iteration_number(0),
       hasPoseGraph(false),
       savedInitialization(false),
+      savedEarlyStopped(false),
       totalBytesReceived(0) {
   logOutput = ros::param::get("~log_output_path", logOutputDirectory);
 
@@ -47,6 +48,13 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
     ros::shutdown();
   }
   MaxIterationNumber = (unsigned)MaxIterationNumberInt;
+
+  int EarlyStopIterationInt;
+  if (nh.getParam("/early_stop_iteration", EarlyStopIterationInt)) {
+    EarlyStopIteration = EarlyStopIterationInt;
+  } else{
+    EarlyStopIteration = 50;
+  }
 
   int num_robots;
   if (!nh.getParam("/num_robots", num_robots))
@@ -94,7 +102,6 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
     Matrix YLift = MatrixFromMsg(query.response.matrix);
     setLiftingMatrix(YLift);
   }
-
   // First agent sends out the initialization signal
   if (getID() == 0) {
     ros::Duration(10).sleep();
@@ -110,6 +117,7 @@ void PGOAgentROS::reset() {
   iteration_number = 0;
   hasPoseGraph = false;
   savedInitialization = false;
+  savedEarlyStopped = false;
   totalBytesReceived = 0;
   relativeChanges.assign(relativeChanges.size(), 1e3);
   funcDecreases.assign(funcDecreases.size(), 1e3);
@@ -253,8 +261,10 @@ bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned& neighborID) {
     return false;
   }
 
-  for (size_t i = 0; i < srv.response.poses.size(); ++i) {
-    LiftedPose poseNbr = srv.response.poses[i];
+  // Iterate in reverse order
+  std::vector<LiftedPose>::reverse_iterator rit = srv.response.poses.rbegin();
+  for (; rit != srv.response.poses.rend(); ++rit) {
+    LiftedPose poseNbr = *rit;
     Matrix Xnbr = MatrixFromMsg(poseNbr.pose);
     updateNeighborPose(poseNbr.cluster_id, poseNbr.robot_id, poseNbr.pose_id,
                        Xnbr);
@@ -265,7 +275,6 @@ bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned& neighborID) {
 }
 
 bool PGOAgentROS::shouldTerminate() {
-
   // terminate if reached maximum iterations
   if (iteration_number > MaxIterationNumber) {
     ROS_WARN("DPGO reached maximum iterations.");
@@ -276,7 +285,7 @@ bool PGOAgentROS::shouldTerminate() {
   bool relative_change_reached = true;
   for (size_t i = 0; i < relativeChanges.size(); ++i) {
     if (relativeChanges[i] > RelativeChangeTolerance) {
-      relative_change_reached = false; 
+      relative_change_reached = false;
       break;
     }
   }
@@ -289,7 +298,7 @@ bool PGOAgentROS::shouldTerminate() {
   bool func_decrease_reached = true;
   for (size_t i = 0; i < funcDecreases.size(); ++i) {
     if (funcDecreases[i] > FuncDecreaseTolerance) {
-      func_decrease_reached = false; 
+      func_decrease_reached = false;
       break;
     }
   }
@@ -297,7 +306,6 @@ bool PGOAgentROS::shouldTerminate() {
     ROS_INFO("Reached function decrease stopping condition.");
     return true;
   }
-
 
   return false;
 }
@@ -418,8 +426,12 @@ bool PGOAgentROS::createLogFile(const std::string& filename) {
     return false;
   }
 
+  // Instance number, global iteration number, Number of poses, total bytes
+  // received, overall iteration time (sec), optimization only time (sec),
+  // function decrease, relative change
   file << "instance, iteration, num_poses, total_bytes_received, "
-          "optimization_time_sec, func_decrease, relative_change \n";
+          "iteration_time_sec, optimization_time_sec, func_decrease, "
+          "relative_change \n";
   file.close();
   return true;
 }
@@ -513,6 +525,17 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
 
     case Command::UPDATE:
       iteration_number++;  // increment iteration counter
+
+      // Save early stopped version
+      if (!savedEarlyStopped && getState() == PGOAgentState::INITIALIZED &&
+          iteration_number > EarlyStopIteration) {
+        if (logOutput) {
+          logTrajectory(logOutputDirectory + "dpgo_early_stop_" +
+                        std::to_string(instance_number) + ".csv");
+        }
+        savedEarlyStopped = true;
+      }
+
       if (msg->executing_robot == getID()) {
         if (!hasPoseGraph) {
           publishTerminateCommand();

@@ -44,6 +44,8 @@ class PGOAgentROS : public PGOAgent {
   // Saved initialization to file
   bool savedInitialization;
 
+  bool savedEarlyStopped;
+
   // Total bytes of public poses received
   size_t totalBytesReceived;
 
@@ -64,6 +66,8 @@ class PGOAgentROS : public PGOAgent {
 
   // Maximum number of iterations
   unsigned MaxIterationNumber;
+  
+  unsigned EarlyStopIteration;
 
   // Latest optimization result
   ROPTResult OptResult;
