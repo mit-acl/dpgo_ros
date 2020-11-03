@@ -21,7 +21,7 @@ using namespace DPGO;
 namespace dpgo_ros {
 
 PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
-                         const PGOAgentParameters& params)
+                         const PGOAgentParameters &params)
     : PGOAgent(ID, params),
       nh(nh_),
       instance_number(0),
@@ -47,12 +47,12 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
     ROS_ERROR("Maximum iteration number must be positive!");
     ros::shutdown();
   }
-  MaxIterationNumber = (unsigned)MaxIterationNumberInt;
+  MaxIterationNumber = (unsigned) MaxIterationNumberInt;
 
   int EarlyStopIterationInt;
   if (nh.getParam("/early_stop_iteration", EarlyStopIterationInt)) {
     EarlyStopIteration = EarlyStopIterationInt;
-  } else{
+  } else {
     EarlyStopIteration = 50;
   }
 
@@ -109,7 +109,7 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
   }
 }
 
-PGOAgentROS::~PGOAgentROS() {}
+PGOAgentROS::~PGOAgentROS() = default;
 
 void PGOAgentROS::reset() {
   PGOAgent::reset();
@@ -140,7 +140,7 @@ void PGOAgentROS::update() {
   if (!savedInitialization && getState() == PGOAgentState::INITIALIZED) {
     if (logOutput) {
       logTrajectory(logOutputDirectory + "dpgo_initial_" +
-                    std::to_string(instance_number) + ".csv");
+          std::to_string(instance_number) + ".csv");
     }
     savedInitialization = true;
   }
@@ -162,7 +162,7 @@ void PGOAgentROS::update() {
   // Log iteration information
   if (logOutput) {
     logIteration(logOutputDirectory + "dpgo_log_" +
-                 std::to_string(instance_number) + ".csv");
+        std::to_string(instance_number) + ".csv");
   }
 }
 
@@ -171,7 +171,7 @@ bool PGOAgentROS::requestPoseGraph() {
   pose_graph_tools::PoseGraphQuery query;
   query.request.robot_id = getID();
   std::string service_name = "/kimera" + std::to_string(getID()) +
-                             "/distributed_pcm/request_pose_graph";
+      "/distributed_pcm/request_pose_graph";
   if (!ros::service::waitForService(service_name, ros::Duration(5.0))) {
     ROS_ERROR_STREAM("ROS service " << service_name << " does not exist!");
     return false;
@@ -218,7 +218,7 @@ bool PGOAgentROS::requestPoseGraph() {
                         sharedLoopClosures.end());
     saveRelativeMeasurementsToFile(
         measurements, logOutputDirectory + "dpgo_pose_graph_" +
-                          std::to_string(instance_number) + ".csv");
+            std::to_string(instance_number) + ".csv");
   }
 
   ROS_INFO_STREAM(
@@ -230,7 +230,7 @@ bool PGOAgentROS::requestPoseGraph() {
   return true;
 }
 
-bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned& neighborID) {
+bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned &neighborID) {
   std::vector<unsigned> poseIndices = getNeighborPublicPoses(neighborID);
 
   // Call ROS service
@@ -371,14 +371,8 @@ void PGOAgentROS::publishStatus() {
 }
 
 bool PGOAgentROS::publishTrajectory() {
-  if (globalAnchor.rows() != relaxation_rank() ||
-      globalAnchor.cols() != dimension() + 1) {
-    ROS_WARN("Did not receive anchor to compute trajectory in global frame.");
-    return false;
-  }
-
   Matrix T;
-  if (!getTrajectoryInGlobalFrame(globalAnchor, T)) {
+  if (!getTrajectoryInGlobalFrame(T)) {
     ROS_WARN("Failed to compute trajectory in global frame!");
     return false;
   }
@@ -395,15 +389,9 @@ bool PGOAgentROS::publishTrajectory() {
   return true;
 }
 
-bool PGOAgentROS::logTrajectory(const std::string& filename) {
-  if (globalAnchor.rows() != relaxation_rank() ||
-      globalAnchor.cols() != dimension() + 1) {
-    ROS_WARN("Did not receive anchor to compute trajectory in global frame.");
-    return false;
-  }
-
+bool PGOAgentROS::logTrajectory(const std::string &filename) {
   Matrix T;
-  if (!getTrajectoryInGlobalFrame(globalAnchor, T)) {
+  if (!getTrajectoryInGlobalFrame(T)) {
     ROS_WARN("Failed to compute trajectory in global frame!");
     return false;
   }
@@ -418,7 +406,7 @@ bool PGOAgentROS::logTrajectory(const std::string& filename) {
   return true;
 }
 
-bool PGOAgentROS::createLogFile(const std::string& filename) {
+bool PGOAgentROS::createLogFile(const std::string &filename) {
   std::ofstream file;
   file.open(filename);
   if (!file.is_open()) {
@@ -436,7 +424,7 @@ bool PGOAgentROS::createLogFile(const std::string& filename) {
   return true;
 }
 
-bool PGOAgentROS::logIteration(const std::string& filename) {
+bool PGOAgentROS::logIteration(const std::string &filename) {
   std::ofstream file;
   file.open(filename, std::ios_base::app);
   if (!file.is_open()) {
@@ -459,15 +447,15 @@ bool PGOAgentROS::logIteration(const std::string& filename) {
   return true;
 }
 
-void PGOAgentROS::anchorCallback(const LiftedPoseConstPtr& msg) {
+void PGOAgentROS::anchorCallback(const LiftedPoseConstPtr &msg) {
   if (msg->robot_id != 0 || msg->pose_id != 0) {
     ROS_ERROR("Received wrong pose as anchor!");
     ros::shutdown();
   }
-  globalAnchor = MatrixFromMsg(msg->pose);
+  setGlobalAnchor(MatrixFromMsg(msg->pose));
 }
 
-void PGOAgentROS::statusCallback(const StatusConstPtr& msg) {
+void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
   // Check that robots are in agreement of current iteration number
   if (msg->instance_number != instance_number) {
     ROS_ERROR("Instance number does not match!");
@@ -481,9 +469,9 @@ void PGOAgentROS::statusCallback(const StatusConstPtr& msg) {
   }
 }
 
-void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
+void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
   switch (msg->command) {
-    case Command::INITIALIZE:
+    case Command::INITIALIZE: {
       ROS_INFO_STREAM("Agent " << getID() << " initiates round "
                                << instance_number << "...");
       // Request latest pose graph
@@ -491,7 +479,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
       // Create log file for new round
       if (logOutput) {
         createLogFile(logOutputDirectory + "dpgo_log_" +
-                      std::to_string(instance_number) + ".csv");
+            std::to_string(instance_number) + ".csv");
       }
       // First robot initiates update sequence
       if (getID() == 0) {
@@ -503,6 +491,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
         commandPublisher.publish(msg);
       }
       break;
+    }
 
     case Command::TERMINATE: {
       ROS_INFO_STREAM("Agent " << getID() << " received terminate command. ");
@@ -511,7 +500,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
       // Log optimized trajectory
       if (logOutput) {
         logTrajectory(logOutputDirectory + "dpgo_optimized_" +
-                      std::to_string(instance_number) + ".csv");
+            std::to_string(instance_number) + ".csv");
       }
       // Reset!
       reset();
@@ -523,7 +512,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
       break;
     }
 
-    case Command::UPDATE:
+    case Command::UPDATE: {
       iteration_number++;  // increment iteration counter
 
       // Save early stopped version
@@ -531,7 +520,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
           iteration_number > EarlyStopIteration) {
         if (logOutput) {
           logTrajectory(logOutputDirectory + "dpgo_early_stop_" +
-                        std::to_string(instance_number) + ".csv");
+              std::to_string(instance_number) + ".csv");
         }
         savedEarlyStopped = true;
       }
@@ -561,31 +550,35 @@ void PGOAgentROS::commandCallback(const CommandConstPtr& msg) {
         }
       }
       break;
+    }
 
-    default:
-      ROS_ERROR("Invalid command!");
+    default:ROS_ERROR("Invalid command!");
   }
 }
 
 bool PGOAgentROS::queryLiftingMatrixCallback(
-    QueryLiftingMatrixRequest& request, QueryLiftingMatrixResponse& response) {
+    QueryLiftingMatrixRequest &request, QueryLiftingMatrixResponse &response) {
   if (getID() != 0) {
     ROS_ERROR_STREAM("Agent "
-                     << getID()
-                     << " should not receive request for lifting matrix!");
+                         << getID()
+                         << " should not receive request for lifting matrix!");
     return false;
   }
   if (request.robot_id != 0) {
     ROS_ERROR_STREAM("Requested robot ID is not zero! ");
     return false;
   }
-  Matrix YLift = getLiftingMatrix();
+  Matrix YLift;
+  if (!getLiftingMatrix(YLift)) {
+    ROS_ERROR("Queried lifting matrix is not available! ");
+    return false;
+  }
   response.matrix = MatrixToMsg(YLift);
   return true;
 }
 
-bool PGOAgentROS::queryPosesCallback(QueryPosesRequest& request,
-                                     QueryPosesResponse& response) {
+bool PGOAgentROS::queryPosesCallback(QueryPosesRequest &request,
+                                     QueryPosesResponse &response) {
   if (request.robot_id != getID()) {
     ROS_ERROR("Pose query addressed to wrong agent!");
     return false;

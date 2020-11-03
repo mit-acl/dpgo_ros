@@ -24,7 +24,7 @@ namespace dpgo_ros {
 class PGOAgentROS : public PGOAgent {
  public:
   PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
-              const PGOAgentParameters& params);
+              const PGOAgentParameters &params);
 
   ~PGOAgentROS();
 
@@ -44,6 +44,7 @@ class PGOAgentROS : public PGOAgent {
   // Saved initialization to file
   bool savedInitialization;
 
+  // Saved early stopped solution to file
   bool savedEarlyStopped;
 
   // Total bytes of public poses received
@@ -66,14 +67,11 @@ class PGOAgentROS : public PGOAgent {
 
   // Maximum number of iterations
   unsigned MaxIterationNumber;
-  
+
   unsigned EarlyStopIteration;
 
   // Latest optimization result
   ROPTResult OptResult;
-
-  // Anchor needed for rounding
-  Matrix globalAnchor;
 
   // Reset the pose graph. This function overrides the function from the base
   // class.
@@ -86,7 +84,7 @@ class PGOAgentROS : public PGOAgent {
   bool requestPoseGraph();
 
   // Request latest public poses from a neighboring agent
-  bool requestPublicPosesFromAgent(const unsigned& neighborID);
+  bool requestPublicPosesFromAgent(const unsigned &neighborID);
 
   // Check DPGO termination conditions
   bool shouldTerminate();
@@ -110,20 +108,20 @@ class PGOAgentROS : public PGOAgent {
   bool publishTrajectory();
 
   // Log current trajectory to file
-  bool logTrajectory(const std::string& filename);
+  bool logTrajectory(const std::string &filename);
 
   // Log statistics to file
-  bool createLogFile(const std::string& filename);
-  bool logIteration(const std::string& filename);
+  bool createLogFile(const std::string &filename);
+  bool logIteration(const std::string &filename);
 
   // ROS callbacks
-  void anchorCallback(const LiftedPoseConstPtr& msg);
-  void statusCallback(const StatusConstPtr& msg);
-  void commandCallback(const CommandConstPtr& msg);
-  bool queryLiftingMatrixCallback(QueryLiftingMatrixRequest& request,
-                                  QueryLiftingMatrixResponse& response);
-  bool queryPosesCallback(QueryPosesRequest& request,
-                          QueryPosesResponse& response);
+  void anchorCallback(const LiftedPoseConstPtr &msg);
+  void statusCallback(const StatusConstPtr &msg);
+  void commandCallback(const CommandConstPtr &msg);
+  bool queryLiftingMatrixCallback(QueryLiftingMatrixRequest &request,
+                                  QueryLiftingMatrixResponse &response);
+  bool queryPosesCallback(QueryPosesRequest &request,
+                          QueryPosesResponse &response);
 
   // ROS publisher
   ros::Publisher anchorPublisher;
