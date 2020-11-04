@@ -104,9 +104,6 @@ class PGOAgentROS : public PGOAgent {
   // Publish trajectory
   bool publishTrajectory();
 
-  // Log current trajectory to file
-  bool logTrajectory(const std::string &filename);
-
   // Log statistics to file
   bool createLogFile(const std::string &filename);
   bool logIteration(const std::string &filename);

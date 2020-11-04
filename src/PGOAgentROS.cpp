@@ -134,15 +134,6 @@ void PGOAgentROS::update() {
     }
   }
 
-  // Save initial trajectory
-  if (!savedInitialization && getState() == PGOAgentState::INITIALIZED) {
-    if (logOutput) {
-      logTrajectory(logOutputDirectory + "dpgo_initial_" +
-          std::to_string(instance_number) + ".csv");
-    }
-    savedInitialization = true;
-  }
-
   // Optimize!
   OptResult = optimize();
   if (!OptResult.success) {
@@ -159,8 +150,7 @@ void PGOAgentROS::update() {
 
   // Log iteration information
   if (logOutput) {
-    logIteration(logOutputDirectory + "dpgo_log_" +
-        std::to_string(instance_number) + ".csv");
+    logIteration(logOutputDirectory + "dpgo_log.csv");
   }
 }
 
@@ -206,18 +196,6 @@ bool PGOAgentROS::requestPoseGraph() {
     }
   }
   setPoseGraph(odometry, privateLoopClosures, sharedLoopClosures);
-
-  // Save pose graph
-  if (logOutput) {
-    std::vector<RelativeSEMeasurement> measurements = odometry;
-    measurements.insert(measurements.end(), privateLoopClosures.begin(),
-                        privateLoopClosures.end());
-    measurements.insert(measurements.end(), sharedLoopClosures.begin(),
-                        sharedLoopClosures.end());
-    saveRelativeMeasurementsToFile(
-        measurements, logOutputDirectory + "dpgo_pose_graph_" +
-            std::to_string(instance_number) + ".csv");
-  }
 
   ROS_INFO_STREAM(
       "Agent " << getID() << " receives local pose graph with "
@@ -386,23 +364,6 @@ bool PGOAgentROS::publishTrajectory() {
   return true;
 }
 
-bool PGOAgentROS::logTrajectory(const std::string &filename) {
-  Matrix T;
-  if (!getTrajectoryInGlobalFrame(T)) {
-    ROS_WARN("Failed to compute trajectory in global frame!");
-    return false;
-  }
-
-  // Convert trajectory to a pose array
-  geometry_msgs::PoseArray pose_array =
-      TrajectoryToPoseArray(dimension(), num_poses(), T);
-
-  // Save to specified place
-  savePoseArrayToFile(pose_array, filename);
-
-  return true;
-}
-
 bool PGOAgentROS::createLogFile(const std::string &filename) {
   std::ofstream file;
   file.open(filename);
@@ -475,8 +436,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       requestPoseGraph();
       // Create log file for new round
       if (logOutput) {
-        createLogFile(logOutputDirectory + "dpgo_log_" +
-            std::to_string(instance_number) + ".csv");
+        createLogFile(logOutputDirectory + "dpgo_log.csv");
       }
       // First robot initiates update sequence
       if (getID() == 0) {
@@ -494,11 +454,6 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       ROS_INFO_STREAM("Agent " << getID() << " received terminate command. ");
       // Publish optimized trajectory
       publishTrajectory();
-      // Log optimized trajectory
-      if (logOutput) {
-        logTrajectory(logOutputDirectory + "dpgo_optimized_" +
-            std::to_string(instance_number) + ".csv");
-      }
       // Reset!
       reset();
       // First robot initiates next optimization round
@@ -511,16 +466,6 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
 
     case Command::UPDATE: {
       iteration_number++;  // increment iteration counter
-
-      // Save early stopped version
-      if (!savedEarlyStopped && getState() == PGOAgentState::INITIALIZED &&
-          iteration_number > EarlyStopIteration) {
-        if (logOutput) {
-          logTrajectory(logOutputDirectory + "dpgo_early_stop_" +
-              std::to_string(instance_number) + ".csv");
-        }
-        savedEarlyStopped = true;
-      }
 
       if (msg->executing_robot == getID()) {
         if (getState() == PGOAgentState::WAIT_FOR_DATA) {

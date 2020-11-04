@@ -65,7 +65,10 @@ int main(int argc, char **argv) {
   ROS_INFO_STREAM("Creating PGO Agent " << ID << " (d = " << d << ", "
                                             << " r = " << r << ")");
 
-  PGOAgentParameters options(d, r, algorithm, verbose);
+  std::string logDir;
+  bool logOutput = ros::param::get("~log_output_path", logDir);
+
+  PGOAgentParameters options(d, r, algorithm, verbose, logOutput, logDir);
 
   dpgo_ros::PGOAgentROS agent(nh, ID, options);
 
