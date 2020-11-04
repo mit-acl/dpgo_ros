@@ -26,7 +26,6 @@ PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
       nh(nh_),
       instance_number(0),
       iteration_number(0),
-      hasPoseGraph(false),
       savedInitialization(false),
       savedEarlyStopped(false),
       totalBytesReceived(0) {
@@ -115,7 +114,6 @@ void PGOAgentROS::reset() {
   PGOAgent::reset();
   instance_number++;
   iteration_number = 0;
-  hasPoseGraph = false;
   savedInitialization = false;
   savedEarlyStopped = false;
   totalBytesReceived = 0;
@@ -373,7 +371,6 @@ void PGOAgentROS::publishStatus() {
 bool PGOAgentROS::publishTrajectory() {
   Matrix T;
   if (!getTrajectoryInGlobalFrame(T)) {
-    ROS_WARN("Failed to compute trajectory in global frame!");
     return false;
   }
 
@@ -475,7 +472,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       ROS_INFO_STREAM("Agent " << getID() << " initiates round "
                                << instance_number << "...");
       // Request latest pose graph
-      hasPoseGraph = requestPoseGraph();
+      requestPoseGraph();
       // Create log file for new round
       if (logOutput) {
         createLogFile(logOutputDirectory + "dpgo_log_" +
@@ -483,12 +480,12 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       }
       // First robot initiates update sequence
       if (getID() == 0) {
-        if (hasPoseGraph) publishAnchor();
+        if (getState() == PGOAgentState::INITIALIZED) publishAnchor();
         ros::Duration(1).sleep();
-        Command msg;
-        msg.command = Command::UPDATE;
-        msg.executing_robot = 0;
-        commandPublisher.publish(msg);
+        Command msg2;
+        msg2.command = Command::UPDATE;
+        msg2.executing_robot = 0;
+        commandPublisher.publish(msg2);
       }
       break;
     }
@@ -526,7 +523,8 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       }
 
       if (msg->executing_robot == getID()) {
-        if (!hasPoseGraph) {
+        if (getState() == PGOAgentState::WAIT_FOR_DATA) {
+          // Agent has not received pose graph
           publishTerminateCommand();
           break;
         }
@@ -539,6 +537,9 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
 
         // Publish status
         publishStatus();
+
+        // Publish trajectory in global frame
+        publishTrajectory();
 
         // Check termination condition
         if (shouldTerminate()) {

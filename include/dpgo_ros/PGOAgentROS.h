@@ -38,9 +38,6 @@ class PGOAgentROS : public PGOAgent {
   // Current iteration number
   unsigned iteration_number;
 
-  // Received pose graph
-  bool hasPoseGraph;
-
   // Saved initialization to file
   bool savedInitialization;
 
