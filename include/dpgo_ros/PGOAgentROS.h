@@ -32,34 +32,11 @@ class PGOAgentROS : public PGOAgent {
   // ROS node handle
   ros::NodeHandle nh;
 
-  // Saved initialization to file
-  bool savedInitialization;
-
-  // Saved early stopped solution to file
-  bool savedEarlyStopped;
-
   // Total bytes of public poses received
   size_t totalBytesReceived;
 
   // Elapsed time for the latest update
   double iterationElapsedMs;
-
-  // Flag to log data 
-  bool logOutput;
-  std::string logOutputDirectory;
-
-  // Latest relative changes of all robots
-  std::vector<double> relativeChanges;
-  std::vector<double> funcDecreases;
-
-  // Termination condition
-  double RelativeChangeTolerance;
-  double FuncDecreaseTolerance;
-
-  // Maximum number of iterations
-  unsigned MaxIterationNumber;
-
-  unsigned EarlyStopIteration;
 
   // Latest optimization result
   ROPTResult OptResult;
@@ -76,9 +53,6 @@ class PGOAgentROS : public PGOAgent {
 
   // Request latest public poses from a neighboring agent
   bool requestPublicPosesFromAgent(const unsigned &neighborID);
-
-  // Check DPGO termination conditions
-  bool shouldTerminate();
 
   // Publish status
   void publishStatus();

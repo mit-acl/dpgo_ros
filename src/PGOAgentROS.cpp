@@ -24,40 +24,7 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle& nh_, unsigned ID,
                          const PGOAgentParameters &params)
     : PGOAgent(ID, params),
       nh(nh_),
-      savedInitialization(false),
-      savedEarlyStopped(false),
       totalBytesReceived(0) {
-  logOutput = ros::param::get("~log_output_path", logOutputDirectory);
-
-  if (!nh.getParam("/relative_change_tolerance", RelativeChangeTolerance) ||
-      !nh.getParam("/function_decrease_tolerance", FuncDecreaseTolerance)) {
-    ROS_ERROR("Failed to get stopping conditions!");
-    ros::shutdown();
-  }
-
-  int MaxIterationNumberInt;
-  if (!nh.getParam("/max_iteration_number", MaxIterationNumberInt)) {
-    ROS_ERROR("Failed to get maximum iteration number!");
-    ros::shutdown();
-  }
-  if (MaxIterationNumberInt <= 0) {
-    ROS_ERROR("Maximum iteration number must be positive!");
-    ros::shutdown();
-  }
-  MaxIterationNumber = (unsigned) MaxIterationNumberInt;
-
-  int EarlyStopIterationInt;
-  if (nh.getParam("/early_stop_iteration", EarlyStopIterationInt)) {
-    EarlyStopIteration = EarlyStopIterationInt;
-  } else {
-    EarlyStopIteration = 50;
-  }
-
-  int num_robots;
-  if (!nh.getParam("/num_robots", num_robots))
-    ROS_ERROR("Failed to query number of robots");
-  relativeChanges.resize(num_robots, 1e3);
-  funcDecreases.resize(num_robots, 1e3);
 
   // ROS subscriber
   statusSubscriber =
@@ -110,11 +77,7 @@ PGOAgentROS::~PGOAgentROS() = default;
 
 void PGOAgentROS::reset() {
   PGOAgent::reset();
-  savedInitialization = false;
-  savedEarlyStopped = false;
   totalBytesReceived = 0;
-  relativeChanges.assign(relativeChanges.size(), 1e3);
-  funcDecreases.assign(funcDecreases.size(), 1e3);
 }
 
 void PGOAgentROS::update() {
@@ -145,8 +108,8 @@ void PGOAgentROS::update() {
       std::chrono::duration_cast<std::chrono::milliseconds>(counter).count();
 
   // Log iteration information
-  if (logOutput) {
-    logIteration(logOutputDirectory + "dpgo_log.csv");
+  if (mParams.logData) {
+    logIteration(mParams.logDirectory + "dpgo_log.csv");
   }
 }
 
@@ -243,42 +206,6 @@ bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned &neighborID) {
   }
 
   return true;
-}
-
-bool PGOAgentROS::shouldTerminate() {
-  // terminate if reached maximum iterations
-  if (instance_number() > MaxIterationNumber) {
-    ROS_WARN("DPGO reached maximum iterations.");
-    return true;
-  }
-
-  // terminate if all agents satisfy relative change condition
-  bool relative_change_reached = true;
-  for (size_t i = 0; i < relativeChanges.size(); ++i) {
-    if (relativeChanges[i] > RelativeChangeTolerance) {
-      relative_change_reached = false;
-      break;
-    }
-  }
-  if (relative_change_reached) {
-    ROS_INFO("Reached relative change stopping condition");
-    return true;
-  }
-
-  // terminate if all agents satisfy function decrease condition
-  bool func_decrease_reached = true;
-  for (size_t i = 0; i < funcDecreases.size(); ++i) {
-    if (funcDecreases[i] > FuncDecreaseTolerance) {
-      func_decrease_reached = false;
-      break;
-    }
-  }
-  if (func_decrease_reached) {
-    ROS_INFO("Reached function decrease stopping condition.");
-    return true;
-  }
-
-  return false;
 }
 
 void PGOAgentROS::publishAnchor() {
@@ -430,8 +357,8 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       // Request latest pose graph
       requestPoseGraph();
       // Create log file for new round
-      if (logOutput) {
-        createLogFile(logOutputDirectory + "dpgo_log.csv");
+      if (mParams.logData) {
+        createLogFile(mParams.logDirectory + "dpgo_log.csv");
       }
       // First robot initiates update sequence
       if (getID() == 0) {
