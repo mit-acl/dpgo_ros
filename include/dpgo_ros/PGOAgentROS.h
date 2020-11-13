@@ -23,7 +23,7 @@ namespace dpgo_ros {
 
 class PGOAgentROS : public PGOAgent {
  public:
-  PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
+  PGOAgentROS(const ros::NodeHandle& nh_, unsigned ID,
               const PGOAgentParameters &params);
 
   ~PGOAgentROS();
@@ -31,12 +31,6 @@ class PGOAgentROS : public PGOAgent {
  private:
   // ROS node handle
   ros::NodeHandle nh;
-
-  // Current instance number
-  unsigned instance_number;
-
-  // Current iteration number
-  unsigned iteration_number;
 
   // Saved initialization to file
   bool savedInitialization;
@@ -104,9 +98,10 @@ class PGOAgentROS : public PGOAgent {
   // Publish trajectory
   bool publishTrajectory();
 
-  // Log statistics to file
-  bool createLogFile(const std::string &filename);
-  bool logIteration(const std::string &filename);
+  // Log iteration
+  static bool createLogFile(const std::string &filename);
+
+  bool logIteration(const std::string &filename) const;
 
   // ROS callbacks
   void anchorCallback(const LiftedPoseConstPtr &msg);

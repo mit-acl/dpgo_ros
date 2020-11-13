@@ -20,12 +20,10 @@ using namespace DPGO;
 
 namespace dpgo_ros {
 
-PGOAgentROS::PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
+PGOAgentROS::PGOAgentROS(const ros::NodeHandle& nh_, unsigned ID,
                          const PGOAgentParameters &params)
     : PGOAgent(ID, params),
       nh(nh_),
-      instance_number(0),
-      iteration_number(0),
       savedInitialization(false),
       savedEarlyStopped(false),
       totalBytesReceived(0) {
@@ -112,8 +110,6 @@ PGOAgentROS::~PGOAgentROS() = default;
 
 void PGOAgentROS::reset() {
   PGOAgent::reset();
-  instance_number++;
-  iteration_number = 0;
   savedInitialization = false;
   savedEarlyStopped = false;
   totalBytesReceived = 0;
@@ -178,8 +174,7 @@ bool PGOAgentROS::requestPoseGraph() {
   vector<RelativeSEMeasurement> odometry;
   vector<RelativeSEMeasurement> privateLoopClosures;
   vector<RelativeSEMeasurement> sharedLoopClosures;
-  for (size_t i = 0; i < pose_graph.edges.size(); ++i) {
-    pose_graph_tools::PoseGraphEdge edge = pose_graph.edges[i];
+  for (const auto& edge : pose_graph.edges) {
     RelativeSEMeasurement m = RelativeMeasurementFromMsg(edge);
     if (m.r1 != getID() && m.r2 != getID()) {
       ROS_ERROR_STREAM("Agent " << getID()
@@ -212,8 +207,8 @@ bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned &neighborID) {
   // Call ROS service
   QueryPoses srv;
   srv.request.robot_id = neighborID;
-  for (size_t i = 0; i < poseIndices.size(); ++i) {
-    srv.request.pose_ids.push_back(poseIndices[i]);
+  for (unsigned int & poseIndex : poseIndices) {
+    srv.request.pose_ids.push_back(poseIndex);
   }
   std::string service_name =
       "/kimera" + std::to_string(neighborID) + "/dpgo_ros_node/query_poses";
@@ -238,7 +233,7 @@ bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned &neighborID) {
   }
 
   // Iterate in reverse order
-  std::vector<LiftedPose>::reverse_iterator rit = srv.response.poses.rbegin();
+  auto rit = srv.response.poses.rbegin();
   for (; rit != srv.response.poses.rend(); ++rit) {
     LiftedPose poseNbr = *rit;
     Matrix Xnbr = MatrixFromMsg(poseNbr.pose);
@@ -252,7 +247,7 @@ bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned &neighborID) {
 
 bool PGOAgentROS::shouldTerminate() {
   // terminate if reached maximum iterations
-  if (iteration_number > MaxIterationNumber) {
+  if (instance_number() > MaxIterationNumber) {
     ROS_WARN("DPGO reached maximum iterations.");
     return true;
   }
@@ -338,8 +333,8 @@ void PGOAgentROS::publishInitializeCommand() {
 void PGOAgentROS::publishStatus() {
   Status msg;
   msg.robot_id = getID();
-  msg.instance_number = instance_number;
-  msg.iteration_number = iteration_number;
+  msg.instance_number = instance_number();
+  msg.iteration_number = iteration_number();
   msg.optimization_success = OptResult.success;
   msg.relative_change = OptResult.relativeChange;
   msg.objective_decrease = OptResult.fInit - OptResult.fOpt;
@@ -382,7 +377,7 @@ bool PGOAgentROS::createLogFile(const std::string &filename) {
   return true;
 }
 
-bool PGOAgentROS::logIteration(const std::string &filename) {
+bool PGOAgentROS::logIteration(const std::string &filename) const{
   std::ofstream file;
   file.open(filename, std::ios_base::app);
   if (!file.is_open()) {
@@ -393,8 +388,8 @@ bool PGOAgentROS::logIteration(const std::string &filename) {
   // Instance number, global iteration number, Number of poses, total bytes
   // received, overall iteration time (sec), optimization only time (sec),
   // function decrease, relative change
-  file << instance_number << ",";
-  file << iteration_number << ",";
+  file << instance_number() << ",";
+  file << iteration_number() << ",";
   file << num_poses() << ",";
   file << totalBytesReceived << ",";
   file << iterationElapsedMs / 1e3 << ",";
@@ -415,10 +410,10 @@ void PGOAgentROS::anchorCallback(const LiftedPoseConstPtr &msg) {
 
 void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
   // Check that robots are in agreement of current iteration number
-  if (msg->instance_number != instance_number) {
+  if (msg->instance_number != instance_number()) {
     ROS_ERROR("Instance number does not match!");
   }
-  if (msg->iteration_number != iteration_number) {
+  if (msg->iteration_number != iteration_number()) {
     ROS_ERROR("Iteration number does not match!");
   }
   if (msg->optimization_success) {
@@ -431,7 +426,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
   switch (msg->command) {
     case Command::INITIALIZE: {
       ROS_INFO_STREAM("Agent " << getID() << " initiates round "
-                               << instance_number << "...");
+                               << instance_number() << "...");
       // Request latest pose graph
       requestPoseGraph();
       // Create log file for new round
@@ -465,7 +460,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     }
 
     case Command::UPDATE: {
-      iteration_number++;  // increment iteration counter
+      iterate();
 
       if (msg->executing_robot == getID()) {
         if (getState() == PGOAgentState::WAIT_FOR_DATA) {
