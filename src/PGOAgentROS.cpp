@@ -24,7 +24,7 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle& nh_, unsigned ID,
                          const PGOAgentParameters &params)
     : PGOAgent(ID, params),
       nh(nh_),
-      totalBytesReceived(0) {
+      totalBytesReceived(0), iterationElapsedMs(0) {
 
   // ROS subscriber
   statusSubscriber =
@@ -452,8 +452,7 @@ bool PGOAgentROS::queryPosesCallback(QueryPosesRequest &request,
     return false;
   }
 
-  for (size_t i = 0; i < request.pose_ids.size(); ++i) {
-    unsigned poseIndex = request.pose_ids[i];
+  for (unsigned int poseIndex : request.pose_ids) {
     Matrix Xi;
     if (!getXComponent(poseIndex, Xi)) {
       ROS_ERROR("Requested pose index does not exist!");
