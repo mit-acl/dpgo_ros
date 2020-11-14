@@ -20,6 +20,11 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "agent_node");
   ros::NodeHandle nh;
 
+  /**
+  ###########################################
+  Read unique ID of this agent
+  ###########################################
+  */
   int ID = -1;
   ros::param::get("~agent_id", ID);
   if (ID < 0) {
@@ -27,6 +32,13 @@ int main(int argc, char **argv) {
     return -1;
   }
 
+  /**
+  ###########################################
+  Load required options
+  ###########################################
+  */
+  int d = -1;
+  int r = -1;
   int num_robots = 0;
   if (!nh.getParam("/num_robots", num_robots)) {
     ROS_ERROR("Failed to get number of robots!");
@@ -40,12 +52,6 @@ int main(int argc, char **argv) {
     ROS_ERROR_STREAM("ID greater than number of robots!");
     return -1;
   }
-
-  int d = -1;
-  int r = -1;
-  ROPTALG algorithm = ROPTALG::RTR;
-  bool verbose = true;
-
   if (!nh.getParam("/dimension", d)) {
     ROS_ERROR("Failed to get dimension!");
     return -1;
@@ -62,14 +68,29 @@ int main(int argc, char **argv) {
     ROS_ERROR_STREAM("Relaxation rank cannot be smaller than dimension!");
     return -1;
   }
-  ROS_INFO_STREAM("Creating PGO Agent " << ID << " (d = " << d << ", "
-                                            << " r = " << r << ")");
 
-  PGOAgentParameters options(d, r, algorithm, verbose);
+  PGOAgentParameters params(d, r, num_robots);
 
-  dpgo_ros::PGOAgentROS agent(nh, ID, options);
+  /**
+  ###########################################
+  Load optional options
+  ###########################################
+  */
+  int maxiters;
+  if (nh.getParam("/max_iteration_number", maxiters))
+    params.maxNumIters = (unsigned) maxiters;
+  nh.getParam("/relative_change_tolerance", params.relChangeTol);
+  nh.getParam("/function_decrease_tolerance", params.funcDecreaseTol);
+  params.logData = ros::param::get("~log_output_path", params.logDirectory);
+  params.verbose = true;
 
+  /**
+  ###########################################
+  Initialize PGO agent
+  ###########################################
+  */
+  dpgo_ros::PGOAgentROS agent(nh, ID, params);
+  ROS_INFO_STREAM("Initialized PGO Agent " << ID << ".");
   ros::spin();
-
   return 0;
 }

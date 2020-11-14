@@ -23,8 +23,8 @@ namespace dpgo_ros {
 
 class PGOAgentROS : public PGOAgent {
  public:
-  PGOAgentROS(ros::NodeHandle nh_, unsigned ID,
-              const PGOAgentParameters& params);
+  PGOAgentROS(const ros::NodeHandle& nh_, unsigned ID,
+              const PGOAgentParameters &params);
 
   ~PGOAgentROS();
 
@@ -32,48 +32,14 @@ class PGOAgentROS : public PGOAgent {
   // ROS node handle
   ros::NodeHandle nh;
 
-  // Current instance number
-  unsigned instance_number;
-
-  // Current iteration number
-  unsigned iteration_number;
-
-  // Received pose graph
-  bool hasPoseGraph;
-
-  // Saved initialization to file
-  bool savedInitialization;
-
-  bool savedEarlyStopped;
-
   // Total bytes of public poses received
   size_t totalBytesReceived;
 
   // Elapsed time for the latest update
   double iterationElapsedMs;
 
-  // Flag to log data 
-  bool logOutput;
-  std::string logOutputDirectory;
-
-  // Latest relative changes of all robots
-  std::vector<double> relativeChanges;
-  std::vector<double> funcDecreases;
-
-  // Termination condition
-  double RelativeChangeTolerance;
-  double FuncDecreaseTolerance;
-
-  // Maximum number of iterations
-  unsigned MaxIterationNumber;
-  
-  unsigned EarlyStopIteration;
-
   // Latest optimization result
   ROPTResult OptResult;
-
-  // Anchor needed for rounding
-  Matrix globalAnchor;
 
   // Reset the pose graph. This function overrides the function from the base
   // class.
@@ -86,10 +52,7 @@ class PGOAgentROS : public PGOAgent {
   bool requestPoseGraph();
 
   // Request latest public poses from a neighboring agent
-  bool requestPublicPosesFromAgent(const unsigned& neighborID);
-
-  // Check DPGO termination conditions
-  bool shouldTerminate();
+  bool requestPublicPosesFromAgent(const unsigned &neighborID);
 
   // Publish status
   void publishStatus();
@@ -109,21 +72,19 @@ class PGOAgentROS : public PGOAgent {
   // Publish trajectory
   bool publishTrajectory();
 
-  // Log current trajectory to file
-  bool logTrajectory(const std::string& filename);
+  // Log iteration
+  static bool createLogFile(const std::string &filename);
 
-  // Log statistics to file
-  bool createLogFile(const std::string& filename);
-  bool logIteration(const std::string& filename);
+  bool logIteration(const std::string &filename) const;
 
   // ROS callbacks
-  void anchorCallback(const LiftedPoseConstPtr& msg);
-  void statusCallback(const StatusConstPtr& msg);
-  void commandCallback(const CommandConstPtr& msg);
-  bool queryLiftingMatrixCallback(QueryLiftingMatrixRequest& request,
-                                  QueryLiftingMatrixResponse& response);
-  bool queryPosesCallback(QueryPosesRequest& request,
-                          QueryPosesResponse& response);
+  void anchorCallback(const LiftedPoseConstPtr &msg);
+  void statusCallback(const StatusConstPtr &msg);
+  void commandCallback(const CommandConstPtr &msg);
+  bool queryLiftingMatrixCallback(QueryLiftingMatrixRequest &request,
+                                  QueryLiftingMatrixResponse &response);
+  bool queryPosesCallback(QueryPosesRequest &request,
+                          QueryPosesResponse &response);
 
   // ROS publisher
   ros::Publisher anchorPublisher;

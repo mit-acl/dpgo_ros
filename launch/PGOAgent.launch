@@ -6,6 +6,7 @@
   <!-- GDB: launch-prefix="gnome-terminal -x gdb -ex run \-\-args" -->
   <node ns="dpgo_ros_node" name="agent" pkg="dpgo_ros" type="dpgo_ros_node" output="screen">
     <param name="~agent_id" type="int" value="$(arg agent_id)" />
+    <param name="~log_output_path" type="str" value="$(find dpgo_ros)/logs/agent$(arg agent_id)/" />
   </node>
 
 
