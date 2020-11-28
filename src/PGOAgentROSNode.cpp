@@ -95,6 +95,10 @@ int main(int argc, char **argv) {
   */
   dpgo_ros::PGOAgentROS agent(nh, ID, params);
   ROS_INFO_STREAM("Initialized PGO Agent " << ID << ".");
-  ros::spin();
+  ros::Rate rate(100);
+  while(ros::ok()) {
+    ros::spinOnce();
+    rate.sleep();
+  }
   return 0;
 }
