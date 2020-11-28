@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
   int d = -1;
   int r = -1;
   int num_robots = 0;
-  if (!nh.getParam("/num_robots", num_robots)) {
+  if (!ros::param::get("~num_robots", num_robots)) {
     ROS_ERROR("Failed to get number of robots!");
     return -1;
   }
@@ -52,11 +52,11 @@ int main(int argc, char **argv) {
     ROS_ERROR_STREAM("ID greater than number of robots!");
     return -1;
   }
-  if (!nh.getParam("/dimension", d)) {
+  if (!ros::param::get("~dimension", d)) {
     ROS_ERROR("Failed to get dimension!");
     return -1;
   }
-  if (!nh.getParam("/relaxation_rank", r)) {
+  if (!ros::param::get("~relaxation_rank", r)) {
     ROS_ERROR("Failed to get relaxation rank!");
     return -1;
   }
@@ -76,13 +76,17 @@ int main(int argc, char **argv) {
   Load optional options
   ###########################################
   */
-  int maxiters;
-  if (nh.getParam("/max_iteration_number", maxiters))
-    params.maxNumIters = (unsigned) maxiters;
-  nh.getParam("/relative_change_tolerance", params.relChangeTol);
-  nh.getParam("/function_decrease_tolerance", params.funcDecreaseTol);
+  ros::param::get("~acceleration", params.acceleration);
+  int restart_interval_int;
+  if (ros::param::get("~restart_interval", restart_interval_int))
+    params.restartInterval = (unsigned) restart_interval_int;
+  int max_iters_int;
+  if (ros::param::get("~max_iteration_number", max_iters_int))
+    params.maxNumIters = (unsigned) max_iters_int;
+  ros::param::get("~relative_change_tolerance", params.relChangeTol);
+  ros::param::get("~function_decrease_tolerance", params.funcDecreaseTol);
+  ros::param::get("~verbose", params.verbose);
   params.logData = ros::param::get("~log_output_path", params.logDirectory);
-  params.verbose = true;
 
   /**
   ###########################################

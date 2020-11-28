@@ -20,7 +20,7 @@ using namespace DPGO;
 
 namespace dpgo_ros {
 
-PGOAgentROS::PGOAgentROS(const ros::NodeHandle& nh_, unsigned ID,
+PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
                          const PGOAgentParameters &params)
     : PGOAgent(ID, params),
       nh(nh_),
@@ -37,11 +37,10 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle& nh_, unsigned ID,
       nh.subscribe("/dpgo_anchor", 100, &PGOAgentROS::anchorCallback, this);
 
   // ROS service
-  queryLiftingMatrixServer = nh.advertiseService(
-      "query_lifting_matrix", &PGOAgentROS::queryLiftingMatrixCallback, this);
+  queryLiftingMatrixServer =
+      nh.advertiseService("query_lifting_matrix", &PGOAgentROS::queryLiftingMatrixCallback, this);
 
-  queryPoseServer = nh.advertiseService("query_poses",
-                                        &PGOAgentROS::queryPosesCallback, this);
+  queryPoseServer = nh.advertiseService("query_poses", &PGOAgentROS::queryPosesCallback, this);
 
   // ROS publisher
   anchorPublisher = nh.advertise<LiftedPose>("/dpgo_anchor", 100);
@@ -137,7 +136,7 @@ bool PGOAgentROS::requestPoseGraph() {
   vector<RelativeSEMeasurement> odometry;
   vector<RelativeSEMeasurement> privateLoopClosures;
   vector<RelativeSEMeasurement> sharedLoopClosures;
-  for (const auto& edge : pose_graph.edges) {
+  for (const auto &edge : pose_graph.edges) {
     RelativeSEMeasurement m = RelativeMeasurementFromMsg(edge);
     if (m.r1 != getID() && m.r2 != getID()) {
       ROS_ERROR_STREAM("Agent " << getID()
@@ -170,7 +169,7 @@ bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned &neighborID) {
   // Call ROS service
   QueryPoses srv;
   srv.request.robot_id = neighborID;
-  for (unsigned int & poseIndex : poseIndices) {
+  for (unsigned int &poseIndex : poseIndices) {
     srv.request.pose_ids.push_back(poseIndex);
   }
   std::string service_name =
@@ -210,7 +209,7 @@ bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned &neighborID) {
 
 void PGOAgentROS::publishAnchor() {
   Matrix T0;
-  getXComponent(0, T0);
+  getSharedPose(0, T0);
   LiftedPose msg = constructLiftedPoseMsg(dimension(), relaxation_rank(),
                                           getCluster(), getID(), 0, T0);
   anchorPublisher.publish(msg);
@@ -304,7 +303,7 @@ bool PGOAgentROS::createLogFile(const std::string &filename) {
   return true;
 }
 
-bool PGOAgentROS::logIteration(const std::string &filename) const{
+bool PGOAgentROS::logIteration(const std::string &filename) const {
   std::ofstream file;
   file.open(filename, std::ios_base::app);
   if (!file.is_open()) {
@@ -454,7 +453,7 @@ bool PGOAgentROS::queryPosesCallback(QueryPosesRequest &request,
 
   for (unsigned int poseIndex : request.pose_ids) {
     Matrix Xi;
-    if (!getXComponent(poseIndex, Xi)) {
+    if (!getSharedPose(poseIndex, Xi)) {
       ROS_ERROR("Requested pose index does not exist!");
       return false;
     }
