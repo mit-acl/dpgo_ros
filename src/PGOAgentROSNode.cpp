@@ -84,7 +84,6 @@ int main(int argc, char **argv) {
   if (ros::param::get("~max_iteration_number", max_iters_int))
     params.maxNumIters = (unsigned) max_iters_int;
   ros::param::get("~relative_change_tolerance", params.relChangeTol);
-  ros::param::get("~function_decrease_tolerance", params.funcDecreaseTol);
   ros::param::get("~verbose", params.verbose);
   params.logData = ros::param::get("~log_output_path", params.logDirectory);
 
@@ -98,6 +97,7 @@ int main(int argc, char **argv) {
   ros::Rate rate(100);
   while(ros::ok()) {
     ros::spinOnce();
+    agent.runOnce();
     rate.sleep();
   }
   return 0;
