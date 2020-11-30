@@ -5,7 +5,7 @@
   <arg name="num_robots" default="1" />
   <arg name="dimension" default="3" />
   <arg name="relaxation_rank" default="5"/>
-  <arg name="acceleration" default="false"/>
+  <arg name="acceleration" default="true"/>
   <arg name="restart_interval" default="50" />
   <arg name="verbose" default="true"/>
   <arg name="max_iteration_number" default="1000" />
