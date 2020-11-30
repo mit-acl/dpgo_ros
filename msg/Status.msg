@@ -3,4 +3,3 @@ uint16 iteration_number
 uint16 robot_id
 bool optimization_success
 float32 relative_change
-float32 objective_decrease

@@ -62,6 +62,7 @@ find_package(catkin REQUIRED COMPONENTS
    MatrixMsg.msg
    LiftedPose.msg
    LiftedPoseArray.msg
+   PublicPoses.msg
  )
 
 # Generate services in the 'srv' folder
