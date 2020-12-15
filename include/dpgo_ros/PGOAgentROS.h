@@ -41,9 +41,6 @@ class PGOAgentROS : public PGOAgent {
   // True if this agent is scheduled to perform optimization
   bool mOptimizationRequested;
 
-  // Number of initialization round performed
-  size_t initRound;
-
   // Total bytes of public poses received
   size_t totalBytesReceived;
 
@@ -64,8 +61,11 @@ class PGOAgentROS : public PGOAgent {
   // Publish status
   void publishStatus();
 
-  // Publish initialize command
+  // Publish command to request pose graph
   void publishRequestPoseGraphCommand();
+
+  // Publish initialize command
+  void publishInitializeCommand();
 
   // Publish update command
   void publishUpdateCommand();

@@ -4,6 +4,7 @@
  * Authors: Yulun Tian, et al. (see README for the full author list)
  * See LICENSE for the license information
  * -------------------------------------------------------------------------- */
+#include <DPGO/PGOAgent.h>
 #include <DPGO/RelativeSEMeasurement.h>
 #include <dpgo_ros/utils.h>
 #include <ros/ros.h>
@@ -64,6 +65,23 @@ TEST(UtilsTest, PoseGraphEdge) {
   ASSERT_EQ(mOut.p2, p2);
   ASSERT_LE((R-mOut.R).norm(), 1e-6);
   ASSERT_LE((t-mOut.t).norm(), 1e-6);
+}
+
+TEST(UtilsTest, StatusMsg) {
+  DPGO::PGOAgentStatus status(0, PGOAgentState::WAIT_FOR_DATA, 1, 1, true, 0.5);
+  Status msg = statusToMsg(status);
+  DPGO::PGOAgentStatus status2 = statusFromMsg(msg);
+
+  ASSERT_EQ(status.agentID, status2.agentID);
+  ASSERT_EQ(status.state, status2.state);
+  ASSERT_EQ(status.instanceNumber, status2.instanceNumber);
+  ASSERT_EQ(status.iterationNumber, status2.iterationNumber);
+  ASSERT_EQ(status.optimizationSuccess, status2.optimizationSuccess);
+  ASSERT_EQ(status.relativeChange, status2.relativeChange);
+
+  ASSERT_EQ(PGOAgentState::WAIT_FOR_DATA, Status::WAIT_FOR_DATA);
+  ASSERT_EQ(PGOAgentState::WAIT_FOR_INITIALIZATION, Status::WAIT_FOR_INITIALIZATION);
+  ASSERT_EQ(PGOAgentState::INITIALIZED, Status::INITIALIZED);
 }
 
 int main(int argc, char** argv) {

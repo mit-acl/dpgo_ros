@@ -96,6 +96,7 @@ PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement &m) {
   tf::Vector3 translation(m.t(0), m.t(1), m.t(2));
   tf::pointTFToMsg(translation, msg.pose.position);
 
+  // TODO: write covariance to message
   return msg;
 }
 
@@ -120,7 +121,8 @@ RelativeSEMeasurement RelativeMeasurementFromMsg(const PoseGraphEdge &msg) {
   Matrix t(3, 1);
   t << translation.x(), translation.y(), translation.z();
 
-  // use hardcoded weight
+  // TODO: read covariance from message
+  // (To enable this, make sure Kimera-Multi is publishing correct covariances!)
   double kappa = 1500.0;
   double tau = 100.0;
 
@@ -198,6 +200,27 @@ size_t computePublicPosesMsgSize(const PublicPoses &msg) {
   bytes += sizeof(msg.pose_ids[0]) * msg.pose_ids.size();
   bytes += sizeof(msg.poses[0]) * msg.poses.size();
   return bytes;
+}
+
+Status statusToMsg(const PGOAgentStatus &status) {
+  Status msg;
+  msg.robot_id = status.agentID;
+  msg.state = status.state;
+  msg.instance_number = status.instanceNumber;
+  msg.iteration_number = status.iterationNumber;
+  msg.optimization_success = status.optimizationSuccess;
+  msg.relative_change = status.relativeChange;
+  return msg;
+}
+
+PGOAgentStatus statusFromMsg(const Status &msg) {
+  PGOAgentStatus status(msg.robot_id,
+                        static_cast<PGOAgentState>(msg.state),
+                        msg.instance_number,
+                        msg.iteration_number,
+                        msg.optimization_success,
+                        msg.relative_change);
+  return status;
 }
 
 }  // namespace dpgo_ros

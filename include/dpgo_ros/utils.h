@@ -8,11 +8,13 @@
 #pragma once
 
 #include <DPGO/DPGO_types.h>
+#include <DPGO/PGOAgent.h>
 #include <DPGO/RelativeSEMeasurement.h>
 #include <dpgo_ros/LiftedPose.h>
 #include <dpgo_ros/LiftedPoseArray.h>
 #include <dpgo_ros/MatrixMsg.h>
 #include <dpgo_ros/PublicPoses.h>
+#include <dpgo_ros/Status.h>
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Path.h>
@@ -81,5 +83,9 @@ nav_msgs::Path TrajectoryToPath(unsigned d, unsigned n, const Matrix &T);
 Compute the number of bytes of a PublicPoses message.
 */
 size_t computePublicPosesMsgSize(const PublicPoses &msg);
+
+
+Status statusToMsg(const PGOAgentStatus &status);
+PGOAgentStatus statusFromMsg(const Status& msg);
 
 }  // namespace dpgo_ros
