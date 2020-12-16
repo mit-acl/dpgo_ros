@@ -41,6 +41,9 @@ class PGOAgentROS : public PGOAgent {
   // True if this agent is scheduled to perform optimization
   bool mOptimizationRequested;
 
+  // Number of initialization steps performed
+  size_t initCount;
+
   // Total bytes of public poses received
   size_t totalBytesReceived;
 

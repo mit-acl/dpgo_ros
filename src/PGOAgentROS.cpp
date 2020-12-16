@@ -25,7 +25,9 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
     : PGOAgent(ID, params),
       nh(nh_),
       mOptimizationRequested(false),
-      totalBytesReceived(0), iterationElapsedMs(0) {
+      initCount(0),
+      totalBytesReceived(0),
+      iterationElapsedMs(0) {
   mTeamIterRequired.assign(mParams.numRobots, 0);
   mTeamIterReceived.assign(mParams.numRobots, 0);
 
@@ -140,6 +142,7 @@ void PGOAgentROS::runOnce() {
 void PGOAgentROS::reset() {
   PGOAgent::reset();
   mOptimizationRequested = false;
+  initCount = 0;
   mTeamIterRequired.assign(mParams.numRobots, 0);
   mTeamIterReceived.assign(mParams.numRobots, 0);
   totalBytesReceived = 0;
@@ -234,6 +237,7 @@ void PGOAgentROS::publishTerminateCommand() {
   Command msg;
   msg.command = Command::TERMINATE;
   commandPublisher.publish(msg);
+  ROS_INFO("Published TERMINATE command.");
 }
 
 void PGOAgentROS::publishRequestPoseGraphCommand() {
@@ -243,6 +247,7 @@ void PGOAgentROS::publishRequestPoseGraphCommand() {
   Command msg;
   msg.command = Command::REQUESTPOSEGRAPH;
   commandPublisher.publish(msg);
+  ROS_INFO("Published REQUESTPOSEGRAPH command.");
 }
 
 void PGOAgentROS::publishInitializeCommand() {
@@ -252,6 +257,8 @@ void PGOAgentROS::publishInitializeCommand() {
   Command msg;
   msg.command = Command::INITIALIZE;
   commandPublisher.publish(msg);
+  initCount++;
+  ROS_INFO("Published INITIALIZE command.");
 }
 
 void PGOAgentROS::publishStatus() {
@@ -281,7 +288,7 @@ void PGOAgentROS::publishPublicPoses(bool aux) {
   PoseDict map;
   if (aux) {
     if (!getAuxSharedPoseDict(map)) {
-      if (mParams.verbose) ROS_WARN_STREAM("Agent " << getID() << " cannot publish public poses! ");
+      if (mParams.verbose) ROS_WARN_STREAM("Agent " << getID() << " cannot publish auxiliary public poses! ");
       return;
     }
   } else {
@@ -404,14 +411,19 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       publishStatus();
       if (getID() == 0) {
         ros::Duration(0.1).sleep();
+        if (initCount > 100) {
+          ROS_WARN("Exceeded maximum number of initialization steps. ");
+          publishTerminateCommand();
+          return;
+        }
         for (auto status : mTeamStatus) {
           if (status.state == PGOAgentState::WAIT_FOR_DATA) {
-            ROS_WARN_STREAM("Agent " << status.agentID << " has not received data. Terminate this round...");
+            ROS_WARN_STREAM("Agent " << status.agentID << " has not received data. ");
             publishTerminateCommand();
             return;
           }
           if (status.state != PGOAgentState::INITIALIZED) {
-            ROS_WARN_STREAM("Agent " << status.agentID << " not yet initialized.");
+            ROS_WARN_STREAM("Agent " << status.agentID << " has not initialized.");
             publishInitializeCommand();
             return;
           }
