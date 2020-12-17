@@ -17,10 +17,10 @@ using pose_graph_tools::PoseGraphEdge;
 
 namespace dpgo_ros {
 
-std::vector<double> serializeMatrix(const size_t rows, const size_t cols,
-                                    const Matrix& Mat) {
-  assert((size_t)Mat.rows() == rows);
-  assert((size_t)Mat.cols() == cols);
+std::vector<double> serializeMatrix(size_t rows, size_t cols,
+                                    const Matrix &Mat) {
+  assert((size_t) Mat.rows() == rows);
+  assert((size_t) Mat.cols() == cols);
 
   std::vector<double> v;
 
@@ -34,8 +34,8 @@ std::vector<double> serializeMatrix(const size_t rows, const size_t cols,
   return v;
 }
 
-Matrix deserializeMatrix(const size_t rows, const size_t cols,
-                         const std::vector<double>& v) {
+Matrix deserializeMatrix(size_t rows, size_t cols,
+                         const std::vector<double> &v) {
   assert(v.size() == rows * cols);
   Matrix Mat = Matrix::Zero(rows, cols);
   for (size_t row = 0; row < rows; ++row) {
@@ -48,7 +48,7 @@ Matrix deserializeMatrix(const size_t rows, const size_t cols,
   return Mat;
 }
 
-MatrixMsg MatrixToMsg(const Matrix& Mat) {
+MatrixMsg MatrixToMsg(const Matrix &Mat) {
   MatrixMsg msg;
   msg.rows = Mat.rows();
   msg.cols = Mat.cols();
@@ -56,17 +56,17 @@ MatrixMsg MatrixToMsg(const Matrix& Mat) {
   return msg;
 }
 
-Matrix MatrixFromMsg(const MatrixMsg& msg) {
+Matrix MatrixFromMsg(const MatrixMsg &msg) {
   return deserializeMatrix(msg.rows, msg.cols, msg.values);
 }
 
-LiftedPose constructLiftedPoseMsg(const size_t dimension,
-                                  const size_t relaxation_rank,
-                                  const size_t cluster_id,
-                                  const size_t robot_id, const size_t pose_id,
-                                  const Matrix pose) {
-  assert(pose.rows() == (int)relaxation_rank);
-  assert(pose.cols() == (int)dimension + 1);
+LiftedPose constructLiftedPoseMsg(size_t dimension,
+                                  size_t relaxation_rank,
+                                  size_t cluster_id,
+                                  size_t robot_id, size_t pose_id,
+                                  const Matrix &pose) {
+  assert(pose.rows() == (int) relaxation_rank);
+  assert(pose.cols() == (int) dimension + 1);
   LiftedPose msg;
   msg.cluster_id = cluster_id;
   msg.robot_id = robot_id;
@@ -75,18 +75,7 @@ LiftedPose constructLiftedPoseMsg(const size_t dimension,
   return msg;
 }
 
-size_t computeLiftedPosePayloadBytes(const LiftedPose& msg) {
-  size_t bytes = 0;
-  bytes += sizeof(msg.cluster_id);
-  bytes += sizeof(msg.robot_id);
-  bytes += sizeof(msg.pose_id);
-  bytes += sizeof(msg.pose.rows);
-  bytes += sizeof(msg.pose.cols);
-  bytes += sizeof(msg.pose.values[0]) * msg.pose.values.size();
-  return bytes;
-}
-
-PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement& m) {
+PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement &m) {
   assert(m.R.rows() == 3 && m.R.cols() == 3);
   assert(m.t.rows() == 3 && m.t.cols() == 1);
 
@@ -107,10 +96,11 @@ PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement& m) {
   tf::Vector3 translation(m.t(0), m.t(1), m.t(2));
   tf::pointTFToMsg(translation, msg.pose.position);
 
+  // TODO: write covariance to message
   return msg;
 }
 
-RelativeSEMeasurement RelativeMeasurementFromMsg(const PoseGraphEdge& msg) {
+RelativeSEMeasurement RelativeMeasurementFromMsg(const PoseGraphEdge &msg) {
   size_t r1 = msg.robot_from;
   size_t r2 = msg.robot_to;
   size_t p1 = msg.key_from;
@@ -131,16 +121,15 @@ RelativeSEMeasurement RelativeMeasurementFromMsg(const PoseGraphEdge& msg) {
   Matrix t(3, 1);
   t << translation.x(), translation.y(), translation.z();
 
-  // use hardcoded weight
+  // TODO: read covariance from message
+  // (To enable this, make sure Kimera-Multi is publishing correct covariances!)
   double kappa = 1500.0;
   double tau = 100.0;
 
   return RelativeSEMeasurement(r1, r2, p1, p2, R, t, kappa, tau);
 }
 
-geometry_msgs::PoseArray TrajectoryToPoseArray(const unsigned d,
-                                               const unsigned n,
-                                               const Matrix& T) {
+geometry_msgs::PoseArray TrajectoryToPoseArray(unsigned d, unsigned n, const Matrix &T) {
   assert(d == 3);
   assert(T.rows() == d);
   assert(T.cols() == (d + 1) * n);
@@ -168,8 +157,7 @@ geometry_msgs::PoseArray TrajectoryToPoseArray(const unsigned d,
   return msg;
 }
 
-nav_msgs::Path TrajectoryToPath(const unsigned d, const unsigned n,
-                                const Matrix& T) {
+nav_msgs::Path TrajectoryToPath(unsigned d, unsigned n, const Matrix &T) {
   assert(d == 3);
   assert(T.rows() == d);
   assert(T.cols() == (d + 1) * n);
@@ -202,74 +190,37 @@ nav_msgs::Path TrajectoryToPath(const unsigned d, const unsigned n,
   return msg;
 }
 
-bool savePoseArrayToFile(const geometry_msgs::PoseArray& msg,
-                         const std::string& filename) {
-  std::ofstream file;
-  file.open(filename);
-  if (!file.is_open()) {
-    ROS_ERROR_STREAM("Error opening log file: " << filename);
-    return false;
-  }
-
-  file << "pose_index,qx,qy,qz,qw,tx,ty,tz\n";
-  for (size_t i = 0; i < msg.poses.size(); ++i) {
-    geometry_msgs::Point position = msg.poses[i].position;
-    geometry_msgs::Quaternion orientation = msg.poses[i].orientation;
-    file << i << ",";
-    file << orientation.x << ",";
-    file << orientation.y << ",";
-    file << orientation.z << ",";
-    file << orientation.w << ",";
-    file << position.x << ",";
-    file << position.y << ",";
-    file << position.z << "\n";
-  }
-
-  file.close();
-
-  return true;
+size_t computePublicPosesMsgSize(const PublicPoses &msg) {
+  size_t bytes = 0;
+  bytes += sizeof(msg.robot_id);
+  bytes += sizeof(msg.cluster_id);
+  bytes += sizeof(msg.instance_number);
+  bytes += sizeof(msg.iteration_number);
+  bytes += sizeof(msg.is_auxiliary);
+  bytes += sizeof(msg.pose_ids[0]) * msg.pose_ids.size();
+  bytes += sizeof(msg.poses[0]) * msg.poses.size();
+  return bytes;
 }
 
-bool saveRelativeMeasurementsToFile(
-    const std::vector<RelativeSEMeasurement>& measurements,
-    const std::string filename) {
-  std::ofstream file;
-  file.open(filename);
-  if (!file.is_open()) {
-    ROS_ERROR_STREAM("Error opening file: " << filename);
-    return false;
-  }
+Status statusToMsg(const PGOAgentStatus &status) {
+  Status msg;
+  msg.robot_id = status.agentID;
+  msg.state = status.state;
+  msg.instance_number = status.instanceNumber;
+  msg.iteration_number = status.iterationNumber;
+  msg.optimization_success = status.optimizationSuccess;
+  msg.relative_change = status.relativeChange;
+  return msg;
+}
 
-  // Header line
-  file << "robot_src,pose_src,robot_dst,pose_dst,qx,qy,qz,qw,tx,ty,tz,kappa,"
-          "tau\n";
-
-  for (size_t i = 0; i < measurements.size(); ++ i) {
-    RelativeSEMeasurement m = measurements[i];
-    tf::Matrix3x3 rotation(m.R(0, 0), m.R(0, 1), m.R(0, 2), 
-                           m.R(1, 0), m.R(1, 1), m.R(1, 2), 
-                           m.R(2, 0), m.R(2, 1), m.R(2, 2));
-    tf::Quaternion quat;
-    rotation.getRotation(quat);
-
-    file << m.r1 << ",";
-    file << m.p1 << ",";
-    file << m.r2 << ",";
-    file << m.p2 << ",";
-    file << quat.x() << ",";
-    file << quat.y() << ",";
-    file << quat.z() << ",";
-    file << quat.w() << ",";
-    file << m.t(0) << ",";
-    file << m.t(1) << ",";
-    file << m.t(2) << ",";
-    file << m.kappa << ",";
-    file << m.tau << "\n";
-  }
-
-  file.close();
-
-  return true;
+PGOAgentStatus statusFromMsg(const Status &msg) {
+  PGOAgentStatus status(msg.robot_id,
+                        static_cast<PGOAgentState>(msg.state),
+                        msg.instance_number,
+                        msg.iteration_number,
+                        msg.optimization_success,
+                        msg.relative_change);
+  return status;
 }
 
 }  // namespace dpgo_ros

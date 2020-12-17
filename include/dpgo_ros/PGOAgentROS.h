@@ -10,6 +10,7 @@
 
 #include <DPGO/PGOAgent.h>
 #include <dpgo_ros/Command.h>
+#include <dpgo_ros/PublicPoses.h>
 #include <dpgo_ros/QueryLiftingMatrix.h>
 #include <dpgo_ros/QueryPoses.h>
 #include <dpgo_ros/Status.h>
@@ -26,11 +27,22 @@ class PGOAgentROS : public PGOAgent {
   PGOAgentROS(const ros::NodeHandle& nh_, unsigned ID,
               const PGOAgentParameters &params);
 
-  ~PGOAgentROS();
+  ~PGOAgentROS() = default;
+
+  /**
+   * @brief Function to be called at every ROS spin.
+   */
+  void runOnce();
 
  private:
   // ROS node handle
   ros::NodeHandle nh;
+
+  // True if this agent is scheduled to perform optimization
+  bool mOptimizationRequested;
+
+  // Number of initialization steps performed
+  size_t initCount;
 
   // Total bytes of public poses received
   size_t totalBytesReceived;
@@ -38,24 +50,22 @@ class PGOAgentROS : public PGOAgent {
   // Elapsed time for the latest update
   double iterationElapsedMs;
 
-  // Latest optimization result
-  ROPTResult OptResult;
+  // Data structures to enforce synchronization during iterations
+  std::vector<unsigned> mTeamIterReceived;
+  std::vector<unsigned> mTeamIterRequired;
 
   // Reset the pose graph. This function overrides the function from the base
   // class.
   void reset();
 
-  // Apply local update
-  void update();
-
   // Request latest local pose graph
   bool requestPoseGraph();
 
-  // Request latest public poses from a neighboring agent
-  bool requestPublicPosesFromAgent(const unsigned &neighborID);
-
   // Publish status
   void publishStatus();
+
+  // Publish command to request pose graph
+  void publishRequestPoseGraphCommand();
 
   // Publish initialize command
   void publishInitializeCommand();
@@ -72,6 +82,9 @@ class PGOAgentROS : public PGOAgent {
   // Publish trajectory
   bool publishTrajectory();
 
+  // Publish latest public poses
+  void publishPublicPoses(bool aux);
+
   // Log iteration
   static bool createLogFile(const std::string &filename);
 
@@ -81,15 +94,14 @@ class PGOAgentROS : public PGOAgent {
   void anchorCallback(const LiftedPoseConstPtr &msg);
   void statusCallback(const StatusConstPtr &msg);
   void commandCallback(const CommandConstPtr &msg);
-  bool queryLiftingMatrixCallback(QueryLiftingMatrixRequest &request,
-                                  QueryLiftingMatrixResponse &response);
-  bool queryPosesCallback(QueryPosesRequest &request,
-                          QueryPosesResponse &response);
+  void publicPosesCallback(const PublicPosesConstPtr &msg);
+  bool queryLiftingMatrixCallback(QueryLiftingMatrixRequest &request, QueryLiftingMatrixResponse &response);
 
   // ROS publisher
   ros::Publisher anchorPublisher;
   ros::Publisher statusPublisher;
   ros::Publisher commandPublisher;
+  ros::Publisher publicPosesPublisher;
   ros::Publisher poseArrayPublisher;
   ros::Publisher pathPublisher;
 
@@ -97,10 +109,10 @@ class PGOAgentROS : public PGOAgent {
   ros::Subscriber statusSubscriber;
   ros::Subscriber commandSubscriber;
   ros::Subscriber anchorSubscriber;
+  ros::Subscriber publicPosesSubscriber;
 
   // ROS service server
   ros::ServiceServer queryLiftingMatrixServer;
-  ros::ServiceServer queryPoseServer;
 };
 
 }  // namespace dpgo_ros

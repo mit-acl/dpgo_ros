@@ -20,11 +20,16 @@ using namespace DPGO;
 
 namespace dpgo_ros {
 
-PGOAgentROS::PGOAgentROS(const ros::NodeHandle& nh_, unsigned ID,
+PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
                          const PGOAgentParameters &params)
     : PGOAgent(ID, params),
       nh(nh_),
-      totalBytesReceived(0), iterationElapsedMs(0) {
+      mOptimizationRequested(false),
+      initCount(0),
+      totalBytesReceived(0),
+      iterationElapsedMs(0) {
+  mTeamIterRequired.assign(mParams.numRobots, 0);
+  mTeamIterReceived.assign(mParams.numRobots, 0);
 
   // ROS subscriber
   statusSubscriber =
@@ -36,17 +41,18 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle& nh_, unsigned ID,
   anchorSubscriber =
       nh.subscribe("/dpgo_anchor", 100, &PGOAgentROS::anchorCallback, this);
 
-  // ROS service
-  queryLiftingMatrixServer = nh.advertiseService(
-      "query_lifting_matrix", &PGOAgentROS::queryLiftingMatrixCallback, this);
+  publicPosesSubscriber =
+      nh.subscribe("/dpgo_public_poses", 100, &PGOAgentROS::publicPosesCallback, this);
 
-  queryPoseServer = nh.advertiseService("query_poses",
-                                        &PGOAgentROS::queryPosesCallback, this);
+  // ROS service
+  queryLiftingMatrixServer =
+      nh.advertiseService("query_lifting_matrix", &PGOAgentROS::queryLiftingMatrixCallback, this);
 
   // ROS publisher
   anchorPublisher = nh.advertise<LiftedPose>("/dpgo_anchor", 100);
   statusPublisher = nh.advertise<Status>("/dpgo_status", 100);
   commandPublisher = nh.advertise<Command>("/dpgo_command", 100);
+  publicPosesPublisher = nh.advertise<PublicPoses>("/dpgo_public_poses", 100);
   poseArrayPublisher = nh.advertise<geometry_msgs::PoseArray>("trajectory", 1);
   pathPublisher = nh.advertise<nav_msgs::Path>("path", 1);
 
@@ -68,49 +74,78 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle& nh_, unsigned ID,
   }
   // First agent sends out the initialization signal
   if (getID() == 0) {
-    ros::Duration(10).sleep();
-    publishInitializeCommand();
+    ros::Duration(5).sleep();
+    publishRequestPoseGraphCommand();
   }
 }
 
-PGOAgentROS::~PGOAgentROS() = default;
+void PGOAgentROS::runOnce() {
+  if (mOptimizationRequested) {
+    // Terminate if this agent does not have pose graph
+    if (getState() == PGOAgentState::WAIT_FOR_DATA) {
+      publishTerminateCommand();
+    }
+
+    // Check if this agent has received latest public poses from its neighbors
+    bool ready = true;
+    for (unsigned neighbor : getNeighbors()) {
+      unsigned requiredIter = mTeamIterRequired[neighbor];
+      if (mParams.acceleration) requiredIter = iteration_number() + 1;
+      if (mTeamIterReceived[neighbor] < requiredIter) {
+        ready = false;
+        if (mParams.verbose) {
+          ROS_WARN_STREAM(
+              "Agent " << getID() << " waiting for neighbor " << neighbor << " to finish iteration " << requiredIter);
+        }
+      }
+    }
+
+    // If ready, perform optimization
+    if (ready) {
+
+      // Iterate
+      auto startTime = std::chrono::high_resolution_clock::now();
+      iterate(true);
+      auto counter = std::chrono::high_resolution_clock::now() - startTime;
+      iterationElapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(counter).count();
+
+      mOptimizationRequested = false;
+
+      // First robot publish anchor
+      if (getID() == 0) publishAnchor();
+
+      // Publish status
+      publishStatus();
+
+      // Publish trajectory
+      publishTrajectory();
+
+      // Publish public poses
+      publishPublicPoses(mParams.acceleration);
+
+      // Log local iteration
+      if (mParams.logData) {
+        logIteration(mParams.logDirectory + "dpgo_log.csv");
+      }
+
+      // Check termination condition OR notify next robot to update
+      if (shouldTerminate()) {
+        publishTerminateCommand();
+      } else {
+        // Notify next robot to update
+        publishUpdateCommand();
+      }
+    }
+  }
+}
 
 void PGOAgentROS::reset() {
   PGOAgent::reset();
+  mOptimizationRequested = false;
+  initCount = 0;
+  mTeamIterRequired.assign(mParams.numRobots, 0);
+  mTeamIterReceived.assign(mParams.numRobots, 0);
   totalBytesReceived = 0;
-}
-
-void PGOAgentROS::update() {
-  ROS_INFO_STREAM("Agent " << getID() << " updating...");
-  auto startTime = std::chrono::high_resolution_clock::now();
-
-  // Query neighbors for their public poses
-  std::vector<unsigned> neighborAgents = getNeighbors();
-  for (unsigned neighborID : neighborAgents) {
-    if (!requestPublicPosesFromAgent(neighborID)) {
-      ROS_WARN_STREAM("Public poses from neighbor " << neighborID
-                                                    << " are not available.");
-    }
-  }
-
-  // Optimize!
-  OptResult = optimize();
-  if (!OptResult.success) {
-    ROS_WARN("Skipped optimization!");
-  } else {
-    relativeChanges[getID()] = OptResult.relativeChange;
-    funcDecreases[getID()] = OptResult.fInit - OptResult.fOpt;
-  }
-
-  // Record overall elapsed time
-  auto counter = std::chrono::high_resolution_clock::now() - startTime;
-  iterationElapsedMs =
-      std::chrono::duration_cast<std::chrono::milliseconds>(counter).count();
-
-  // Log iteration information
-  if (mParams.logData) {
-    logIteration(mParams.logDirectory + "dpgo_log.csv");
-  }
 }
 
 bool PGOAgentROS::requestPoseGraph() {
@@ -137,7 +172,7 @@ bool PGOAgentROS::requestPoseGraph() {
   vector<RelativeSEMeasurement> odometry;
   vector<RelativeSEMeasurement> privateLoopClosures;
   vector<RelativeSEMeasurement> sharedLoopClosures;
-  for (const auto& edge : pose_graph.edges) {
+  for (const auto &edge : pose_graph.edges) {
     RelativeSEMeasurement m = RelativeMeasurementFromMsg(edge);
     if (m.r1 != getID() && m.r2 != getID()) {
       ROS_ERROR_STREAM("Agent " << getID()
@@ -164,53 +199,9 @@ bool PGOAgentROS::requestPoseGraph() {
   return true;
 }
 
-bool PGOAgentROS::requestPublicPosesFromAgent(const unsigned &neighborID) {
-  std::vector<unsigned> poseIndices = getNeighborPublicPoses(neighborID);
-
-  // Call ROS service
-  QueryPoses srv;
-  srv.request.robot_id = neighborID;
-  for (unsigned int & poseIndex : poseIndices) {
-    srv.request.pose_ids.push_back(poseIndex);
-  }
-  std::string service_name =
-      "/kimera" + std::to_string(neighborID) + "/dpgo_ros_node/query_poses";
-
-  if (!ros::service::waitForService(service_name, ros::Duration(5.0))) {
-    ROS_ERROR_STREAM("ROS service " << service_name << " does not exist!");
-    return false;
-  }
-  if (!ros::service::call(service_name, srv)) {
-    ROS_ERROR_STREAM("Failed to call ROS service " << service_name);
-    return false;
-  }
-  if (srv.response.poses.size() != srv.request.pose_ids.size()) {
-    ROS_ERROR(
-        "Number of replied poses does not match number of requested pose!");
-    return false;
-  }
-
-  if (srv.response.poses[0].cluster_id != 0) {
-    ROS_WARN("Received poses are not merged in active cluster yet.");
-    return false;
-  }
-
-  // Iterate in reverse order
-  auto rit = srv.response.poses.rbegin();
-  for (; rit != srv.response.poses.rend(); ++rit) {
-    LiftedPose poseNbr = *rit;
-    Matrix Xnbr = MatrixFromMsg(poseNbr.pose);
-    updateNeighborPose(poseNbr.cluster_id, poseNbr.robot_id, poseNbr.pose_id,
-                       Xnbr);
-    totalBytesReceived += computeLiftedPosePayloadBytes(poseNbr);
-  }
-
-  return true;
-}
-
 void PGOAgentROS::publishAnchor() {
   Matrix T0;
-  getXComponent(0, T0);
+  getSharedPose(0, T0);
   LiftedPose msg = constructLiftedPoseMsg(dimension(), relaxation_rank(),
                                           getCluster(), getID(), 0, T0);
   anchorPublisher.publish(msg);
@@ -227,18 +218,18 @@ void PGOAgentROS::publishUpdateCommand() {
   } else {
     std::vector<double> neighborWeights(neighbors.size());
     for (size_t j = 0; j < neighbors.size(); ++j) {
-      unsigned nID = neighbors[j];
-      neighborWeights[j] = funcDecreases[nID];
+      // TODO: improve over uniform sampling
+      neighborWeights[j] = 1;
     }
     std::discrete_distribution<int> distribution(neighborWeights.begin(),
                                                  neighborWeights.end());
-    std::cout << std::endl;
     std::random_device rd;
     std::mt19937 gen(rd());
     msg.executing_robot = neighbors[distribution(gen)];
   }
 
   msg.command = Command::UPDATE;
+  msg.executing_iteration = iteration_number() + 1;
   commandPublisher.publish(msg);
 }
 
@@ -246,25 +237,32 @@ void PGOAgentROS::publishTerminateCommand() {
   Command msg;
   msg.command = Command::TERMINATE;
   commandPublisher.publish(msg);
+  ROS_INFO("Published TERMINATE command.");
+}
+
+void PGOAgentROS::publishRequestPoseGraphCommand() {
+  if (getID() != 0) {
+    ROS_ERROR("Only robot 0 should send request pose graph command! ");
+  }
+  Command msg;
+  msg.command = Command::REQUESTPOSEGRAPH;
+  commandPublisher.publish(msg);
+  ROS_INFO("Published REQUESTPOSEGRAPH command.");
 }
 
 void PGOAgentROS::publishInitializeCommand() {
   if (getID() != 0) {
-    ROS_ERROR("Only robot 0 should send INITIALIZE command! ");
+    ROS_ERROR("Only robot 0 should send INITIALIZE command!");
   }
   Command msg;
   msg.command = Command::INITIALIZE;
   commandPublisher.publish(msg);
+  initCount++;
+  ROS_INFO("Published INITIALIZE command.");
 }
 
 void PGOAgentROS::publishStatus() {
-  Status msg;
-  msg.robot_id = getID();
-  msg.instance_number = instance_number();
-  msg.iteration_number = iteration_number();
-  msg.optimization_success = OptResult.success;
-  msg.relative_change = OptResult.relativeChange;
-  msg.objective_decrease = OptResult.fInit - OptResult.fOpt;
+  Status msg = statusToMsg(getStatus());
   statusPublisher.publish(msg);
 }
 
@@ -286,6 +284,37 @@ bool PGOAgentROS::publishTrajectory() {
   return true;
 }
 
+void PGOAgentROS::publishPublicPoses(bool aux) {
+  PoseDict map;
+  if (aux) {
+    if (!getAuxSharedPoseDict(map)) {
+      if (mParams.verbose) ROS_WARN_STREAM("Agent " << getID() << " cannot publish auxiliary public poses! ");
+      return;
+    }
+  } else {
+    if (!getSharedPoseDict(map)) {
+      if (mParams.verbose) ROS_WARN_STREAM("Agent " << getID() << " cannot publish public poses! ");
+      return;
+    }
+  }
+
+  PublicPoses msg;
+  msg.robot_id = getID();
+  msg.cluster_id = getCluster();
+  msg.instance_number = instance_number();
+  msg.iteration_number = iteration_number();
+  msg.is_auxiliary = aux;
+
+  for (auto &sharedPose : map) {
+    PoseID nID = sharedPose.first;
+    Matrix var = sharedPose.second;
+    assert(std::get<0>(nID) == getID());
+    msg.pose_ids.push_back(std::get<1>(nID));
+    msg.poses.push_back(MatrixToMsg(var));
+  }
+  publicPosesPublisher.publish(msg);
+}
+
 bool PGOAgentROS::createLogFile(const std::string &filename) {
   std::ofstream file;
   file.open(filename);
@@ -293,18 +322,15 @@ bool PGOAgentROS::createLogFile(const std::string &filename) {
     ROS_ERROR_STREAM("Error opening log file: " << filename);
     return false;
   }
-
   // Instance number, global iteration number, Number of poses, total bytes
-  // received, overall iteration time (sec), optimization only time (sec),
-  // function decrease, relative change
+  // received, iteration time (sec), relative change
   file << "instance, iteration, num_poses, total_bytes_received, "
-          "iteration_time_sec, optimization_time_sec, func_decrease, "
-          "relative_change \n";
+          "iteration_time_sec, relative_change \n";
   file.close();
   return true;
 }
 
-bool PGOAgentROS::logIteration(const std::string &filename) const{
+bool PGOAgentROS::logIteration(const std::string &filename) const {
   std::ofstream file;
   file.open(filename, std::ios_base::app);
   if (!file.is_open()) {
@@ -313,16 +339,13 @@ bool PGOAgentROS::logIteration(const std::string &filename) const{
   }
 
   // Instance number, global iteration number, Number of poses, total bytes
-  // received, overall iteration time (sec), optimization only time (sec),
-  // function decrease, relative change
+  // received, iteration time (sec), relative change
   file << instance_number() << ",";
   file << iteration_number() << ",";
   file << num_poses() << ",";
   file << totalBytesReceived << ",";
   file << iterationElapsedMs / 1e3 << ",";
-  file << OptResult.elapsedMs / 1e3 << ",";
-  file << OptResult.fOpt - OptResult.fInit << ",";
-  file << OptResult.relativeChange << "\n";
+  file << mStatus.relativeChange << "\n";
   file.close();
   return true;
 }
@@ -343,15 +366,13 @@ void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
   if (msg->iteration_number != iteration_number()) {
     ROS_ERROR("Iteration number does not match!");
   }
-  if (msg->optimization_success) {
-    relativeChanges[msg->robot_id] = msg->relative_change;
-    funcDecreases[msg->robot_id] = msg->objective_decrease;
-  }
+
+  mTeamStatus[msg->robot_id] = statusFromMsg(*msg);
 }
 
 void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
   switch (msg->command) {
-    case Command::INITIALIZE: {
+    case Command::REQUESTPOSEGRAPH: {
       ROS_INFO_STREAM("Agent " << getID() << " initiates round "
                                << instance_number() << "...");
       // Request latest pose graph
@@ -360,14 +381,12 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       if (mParams.logData) {
         createLogFile(mParams.logDirectory + "dpgo_log.csv");
       }
-      // First robot initiates update sequence
+      publishStatus();
+      // Enter initialization round
       if (getID() == 0) {
         if (getState() == PGOAgentState::INITIALIZED) publishAnchor();
         ros::Duration(1).sleep();
-        Command msg2;
-        msg2.command = Command::UPDATE;
-        msg2.executing_robot = 0;
-        commandPublisher.publish(msg2);
+        publishInitializeCommand();
       }
       break;
     }
@@ -381,40 +400,59 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       // First robot initiates next optimization round
       if (getID() == 0) {
         ros::Duration(30).sleep();
-        publishInitializeCommand();
+        publishRequestPoseGraphCommand();
+      }
+      break;
+    }
+
+    case Command::INITIALIZE: {
+      publishPublicPoses(false);
+      publishTrajectory();
+      publishStatus();
+      if (getID() == 0) {
+        ros::Duration(0.1).sleep();
+        if (initCount > 100) {
+          ROS_WARN("Exceeded maximum number of initialization steps. ");
+          publishTerminateCommand();
+          return;
+        }
+        for (auto status : mTeamStatus) {
+          if (status.state == PGOAgentState::WAIT_FOR_DATA) {
+            ROS_WARN_STREAM("Agent " << status.agentID << " has not received data. ");
+            publishTerminateCommand();
+            return;
+          }
+          if (status.state != PGOAgentState::INITIALIZED) {
+            ROS_WARN_STREAM("Agent " << status.agentID << " has not initialized.");
+            publishInitializeCommand();
+            return;
+          }
+        }
+        Command cmdMsg;
+        cmdMsg.command = Command::UPDATE;
+        cmdMsg.executing_robot = 0;
+        cmdMsg.executing_iteration = iteration_number() + 1;
+        commandPublisher.publish(cmdMsg);
       }
       break;
     }
 
     case Command::UPDATE: {
-      iterate();
+      // Update local record
+      mTeamIterRequired[msg->executing_robot] = msg->executing_iteration;
+      if (msg->executing_iteration != iteration_number() + 1) {
+        ROS_ERROR("Update iteration does not match local iteration!");
+      }
 
       if (msg->executing_robot == getID()) {
-        if (getState() == PGOAgentState::WAIT_FOR_DATA) {
-          // Agent has not received pose graph
-          publishTerminateCommand();
-          break;
-        }
-
-        // Update my estimate
-        update();
-
-        // The first robot should also publishes its anchor
-        if (getID() == 0) publishAnchor();
-
-        // Publish status
-        publishStatus();
-
-        // Publish trajectory in global frame
-        publishTrajectory();
-
-        // Check termination condition
-        if (shouldTerminate()) {
-          publishTerminateCommand();
-        } else {
-          // Notify next robot to update
-          ros::Duration(0.01).sleep();
-          publishUpdateCommand();
+        mOptimizationRequested = true;
+      } else {
+        // Agents that are not selected for optimization can iterate immediately
+        iterate(false);
+        // When acceleration is used, agents' estimates change at every iteration
+        // even if the agent has not been selected to perform optimization
+        if (mParams.acceleration) {
+          publishPublicPoses(true);
         }
       }
       break;
@@ -422,6 +460,36 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
 
     default:ROS_ERROR("Invalid command!");
   }
+}
+
+void PGOAgentROS::publicPosesCallback(const PublicPosesConstPtr &msg) {
+
+  std::vector<unsigned> neighbors = getNeighbors();
+  if (std::find(neighbors.begin(), neighbors.end(), msg->robot_id) == neighbors.end()) {
+    // Discard messages send by non-neighbors
+    return;
+  }
+
+  if (msg->cluster_id != 0) {
+    if (mParams.verbose) {
+      ROS_WARN("Received poses are not merged in active cluster yet.");
+    }
+    return;
+  }
+
+  for (size_t j = 0; j < msg->pose_ids.size(); ++j) {
+    size_t poseID = msg->pose_ids[j];
+    Matrix poseVal = MatrixFromMsg(msg->poses[j]);
+    if (msg->is_auxiliary) {
+      updateAuxNeighborPose(msg->cluster_id, msg->robot_id, poseID, poseVal);
+    } else {
+      updateNeighborPose(msg->cluster_id, msg->robot_id, poseID, poseVal);
+    }
+  }
+
+  // Update local bookkeeping
+  mTeamIterReceived[msg->robot_id] = msg->iteration_number;
+  totalBytesReceived += computePublicPosesMsgSize(*msg);
 }
 
 bool PGOAgentROS::queryLiftingMatrixCallback(
@@ -442,27 +510,6 @@ bool PGOAgentROS::queryLiftingMatrixCallback(
     return false;
   }
   response.matrix = MatrixToMsg(YLift);
-  return true;
-}
-
-bool PGOAgentROS::queryPosesCallback(QueryPosesRequest &request,
-                                     QueryPosesResponse &response) {
-  if (request.robot_id != getID()) {
-    ROS_ERROR("Pose query addressed to wrong agent!");
-    return false;
-  }
-
-  for (unsigned int poseIndex : request.pose_ids) {
-    Matrix Xi;
-    if (!getXComponent(poseIndex, Xi)) {
-      ROS_ERROR("Requested pose index does not exist!");
-      return false;
-    }
-    LiftedPose pose = constructLiftedPoseMsg(
-        dimension(), relaxation_rank(), getCluster(), getID(), poseIndex, Xi);
-    response.poses.push_back(pose);
-  }
-
   return true;
 }
 
