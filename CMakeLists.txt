@@ -60,15 +60,13 @@ find_package(catkin REQUIRED COMPONENTS
    Status.msg
    Command.msg
    MatrixMsg.msg
-   LiftedPose.msg
-   LiftedPoseArray.msg
    PublicPoses.msg
+   RelativeMeasurementWeights.msg
  )
 
 # Generate services in the 'srv' folder
 add_service_files(
   FILES
-  QueryPoses.srv
   QueryLiftingMatrix.srv
 )
 

@@ -76,10 +76,22 @@ int main(int argc, char **argv) {
   Load optional options
   ###########################################
   */
+  // Nesterov acceleration parameters
   ros::param::get("~acceleration", params.acceleration);
   int restart_interval_int;
-  if (ros::param::get("~restart_interval", restart_interval_int))
+  if (ros::param::get("~restart_interval", restart_interval_int)) {
     params.restartInterval = (unsigned) restart_interval_int;
+  }
+
+  // Graduated non-convexity (GNC) parameters
+  ros::param::get("~GNC", params.GNC);
+  ros::param::get("~GNC_barc_sq", params.GNCBarcSq);
+  ros::param::get("~GNC_mu_step", params.GNCMuStep);
+  int GNC_weight_update_int;
+  if (ros::param::get("~GNC_weight_update_interval", GNC_weight_update_int)) {
+    params.GNCWeightUpdateInterval = (unsigned) GNC_weight_update_int;
+  }
+
   int max_iters_int;
   if (ros::param::get("~max_iteration_number", max_iters_int))
     params.maxNumIters = (unsigned) max_iters_int;
@@ -95,7 +107,7 @@ int main(int argc, char **argv) {
   dpgo_ros::PGOAgentROS agent(nh, ID, params);
   ROS_INFO_STREAM("Initialized PGO Agent " << ID << ".");
   ros::Rate rate(100);
-  while(ros::ok()) {
+  while (ros::ok()) {
     ros::spinOnce();
     agent.runOnce();
     rate.sleep();

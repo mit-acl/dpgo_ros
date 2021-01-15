@@ -11,8 +11,8 @@
 #include <DPGO/PGOAgent.h>
 #include <dpgo_ros/Command.h>
 #include <dpgo_ros/PublicPoses.h>
+#include <dpgo_ros/RelativeMeasurementWeights.h>
 #include <dpgo_ros/QueryLiftingMatrix.h>
-#include <dpgo_ros/QueryPoses.h>
 #include <dpgo_ros/Status.h>
 #include <pose_graph_tools/PoseGraph.h>
 #include <ros/console.h>
@@ -38,17 +38,14 @@ class PGOAgentROS : public PGOAgent {
   // ROS node handle
   ros::NodeHandle nh;
 
-  // True if this agent is scheduled to perform optimization
-  bool mOptimizationRequested;
-
   // Number of initialization steps performed
-  size_t initCount;
+  size_t mInitStepsDone;
 
   // Total bytes of public poses received
-  size_t totalBytesReceived;
+  size_t mTotalBytesReceived;
 
   // Elapsed time for the latest update
-  double iterationElapsedMs;
+  double mIterationElapsedMs;
 
   // Data structures to enforce synchronization during iterations
   std::vector<unsigned> mTeamIterReceived;
@@ -56,7 +53,7 @@ class PGOAgentROS : public PGOAgent {
 
   // Reset the pose graph. This function overrides the function from the base
   // class.
-  void reset();
+  void reset() override;
 
   // Request latest local pose graph
   bool requestPoseGraph();
@@ -85,34 +82,40 @@ class PGOAgentROS : public PGOAgent {
   // Publish latest public poses
   void publishPublicPoses(bool aux);
 
+  // Publish latest weights for the responsible inter-robot loop closures
+  void publishMeasurementWeights();
+
   // Log iteration
   static bool createLogFile(const std::string &filename);
 
   bool logIteration(const std::string &filename) const;
 
   // ROS callbacks
-  void anchorCallback(const LiftedPoseConstPtr &msg);
+  void anchorCallback(const PublicPosesConstPtr &msg);
   void statusCallback(const StatusConstPtr &msg);
   void commandCallback(const CommandConstPtr &msg);
   void publicPosesCallback(const PublicPosesConstPtr &msg);
+  void measurementWeightsCallback(const RelativeMeasurementWeightsConstPtr &msg);
   bool queryLiftingMatrixCallback(QueryLiftingMatrixRequest &request, QueryLiftingMatrixResponse &response);
 
   // ROS publisher
-  ros::Publisher anchorPublisher;
-  ros::Publisher statusPublisher;
-  ros::Publisher commandPublisher;
-  ros::Publisher publicPosesPublisher;
-  ros::Publisher poseArrayPublisher;
-  ros::Publisher pathPublisher;
+  ros::Publisher mAnchorPublisher;
+  ros::Publisher mStatusPublisher;
+  ros::Publisher mCommandPublisher;
+  ros::Publisher mPublicPosesPublisher;
+  ros::Publisher mMeasurementWeightsPublisher;
+  ros::Publisher mPoseArrayPublisher;
+  ros::Publisher mPathPublisher;
 
   // ROS subscriber
-  ros::Subscriber statusSubscriber;
-  ros::Subscriber commandSubscriber;
-  ros::Subscriber anchorSubscriber;
-  ros::Subscriber publicPosesSubscriber;
+  ros::Subscriber mStatusSubscriber;
+  ros::Subscriber mCommandSubscriber;
+  ros::Subscriber mAnchorSubscriber;
+  ros::Subscriber mPublicPosesSubscriber;
+  ros::Subscriber mMeasurementWeightsSubscriber;
 
   // ROS service server
-  ros::ServiceServer queryLiftingMatrixServer;
+  ros::ServiceServer mQueryLiftingMatrixServer;
 };
 
 }  // namespace dpgo_ros

@@ -5,8 +5,12 @@
   <arg name="num_robots" default="1" />
   <arg name="dimension" default="3" />
   <arg name="relaxation_rank" default="5"/>
-  <arg name="acceleration" default="true"/>
+  <arg name="acceleration" default="false"/>
   <arg name="restart_interval" default="50" />
+  <arg name="GNC" default="true" />
+  <arg name="GNC_barc_sq" default="16.0" />
+  <arg name="GNC_mu_step" default="1.4" />
+  <arg name="GNC_weight_update_interval" default="50" />
   <arg name="verbose" default="true"/>
   <arg name="max_iteration_number" default="1000" />
   <arg name="relative_change_tolerance" default="5e-3" />
@@ -20,6 +24,10 @@
     <param name="~relaxation_rank" type="int" value="$(arg relaxation_rank)" />
     <param name="~acceleration" type="bool" value="$(arg acceleration)"/>
     <param name="~restart_interval" type="int" value="$(arg restart_interval)" />
+    <param name="~GNC" type="bool" value="$(arg GNC)" />
+    <param name="~GNC_barc_sq" type="double" value="$(arg GNC_barc_sq)" />
+    <param name="~GNC_mu_step" type="double" value="$(arg GNC_mu_step)" />
+    <param name="~GNC_weight_update_interval" type="int" value="$(arg GNC_weight_update_interval)" />
     <param name="~verbose" type="bool" value="$(arg verbose)" />
     <param name="~max_iteration_number" type="int" value="$(arg max_iteration_number)" />
     <param name="~relative_change_tolerance" type="double" value="$(arg relative_change_tolerance)" />

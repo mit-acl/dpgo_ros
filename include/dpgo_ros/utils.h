@@ -10,8 +10,6 @@
 #include <DPGO/DPGO_types.h>
 #include <DPGO/PGOAgent.h>
 #include <DPGO/RelativeSEMeasurement.h>
-#include <dpgo_ros/LiftedPose.h>
-#include <dpgo_ros/LiftedPoseArray.h>
 #include <dpgo_ros/MatrixMsg.h>
 #include <dpgo_ros/PublicPoses.h>
 #include <dpgo_ros/Status.h>
@@ -52,12 +50,6 @@ MatrixMsg MatrixToMsg(const Matrix &Mat);
 Read a matrix from ROS message
 */
 Matrix MatrixFromMsg(const MatrixMsg &msg);
-
-/**
-Construct a lifted pose message from inputs
-*/
-LiftedPose constructLiftedPoseMsg(size_t dimension, size_t relaxation_rank, size_t cluster_id, size_t robot_id,
-                                  size_t pose_id, const Matrix &pose);
 
 /**
 Write a relative measurement to ROS message

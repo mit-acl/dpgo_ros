@@ -60,21 +60,6 @@ Matrix MatrixFromMsg(const MatrixMsg &msg) {
   return deserializeMatrix(msg.rows, msg.cols, msg.values);
 }
 
-LiftedPose constructLiftedPoseMsg(size_t dimension,
-                                  size_t relaxation_rank,
-                                  size_t cluster_id,
-                                  size_t robot_id, size_t pose_id,
-                                  const Matrix &pose) {
-  assert(pose.rows() == (int) relaxation_rank);
-  assert(pose.cols() == (int) dimension + 1);
-  LiftedPose msg;
-  msg.cluster_id = cluster_id;
-  msg.robot_id = robot_id;
-  msg.pose_id = pose_id;
-  msg.pose = MatrixToMsg(pose);
-  return msg;
-}
-
 PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement &m) {
   assert(m.R.rows() == 3 && m.R.cols() == 3);
   assert(m.t.rows() == 3 && m.t.cols() == 1);
