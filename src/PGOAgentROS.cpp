@@ -95,7 +95,7 @@ void PGOAgentROS::runOnce() {
       int requiredIter = mTeamIterRequired[neighbor];
       if (mParams.acceleration) requiredIter = (int) iteration_number() + 1;
       // TODO: allow delays to speed up executions
-      // requiredIter = requiredIter - 10;
+      requiredIter = requiredIter - 3;
       if ((int) mTeamIterReceived[neighbor] < requiredIter) {
         ready = false;
         if (mParams.verbose) {
