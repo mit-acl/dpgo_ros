@@ -92,12 +92,15 @@ void PGOAgentROS::runOnce() {
     // Check if this agent has received latest public poses from its neighbors
     bool ready = true;
     for (unsigned neighbor : getNeighbors()) {
-      unsigned requiredIter = mTeamIterRequired[neighbor];
-      if (mParams.acceleration) requiredIter = iteration_number() + 1;
-      if (mTeamIterReceived[neighbor] < requiredIter) {
+      int requiredIter = mTeamIterRequired[neighbor];
+      if (mParams.acceleration) requiredIter = (int) iteration_number() + 1;
+      // TODO: allow delays to speed up executions
+      // requiredIter = requiredIter - 10;
+      if ((int) mTeamIterReceived[neighbor] < requiredIter) {
         ready = false;
         if (mParams.verbose) {
-          ROS_WARN("Robot %u waiting for neighbor %u to finish iteration %u", getID(), neighbor, requiredIter);
+          ROS_WARN("Robot %u iteration %u waits for neighbor %u iteration %u (last received iteration %u).",
+                   getID(), iteration_number() + 1, neighbor, requiredIter, mTeamIterReceived[neighbor]);
         }
       }
     }
@@ -231,9 +234,9 @@ void PGOAgentROS::publishUpdateCommand() {
     ROS_WARN("Robot %u does not have any neighbor!", getID());
     msg.executing_robot = getID();
   } else {
+    // Uniform sampling of neighbors
     std::vector<double> neighborWeights(neighbors.size());
     for (size_t j = 0; j < neighbors.size(); ++j) {
-      // TODO: improve over uniform sampling
       neighborWeights[j] = 1;
     }
     std::discrete_distribution<int> distribution(neighborWeights.begin(),

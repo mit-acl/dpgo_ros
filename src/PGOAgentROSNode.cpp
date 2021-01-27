@@ -83,13 +83,25 @@ int main(int argc, char **argv) {
     params.restartInterval = (unsigned) restart_interval_int;
   }
 
-  // Graduated non-convexity (GNC) parameters
-  ros::param::get("~GNC", params.GNC);
+  // Robustness parameters
+  std::string costName;
+  if (ros::param::get("~robust_cost_type", costName)) {
+    if (costName == "L2") {
+      params.robustCostType = RobustCostType::L2;
+    }
+    else if (costName == "GNC_TLS") {
+      params.robustCostType = RobustCostType::GNC_TLS;
+    }
+    else {
+      ROS_ERROR_STREAM("Unknown robust cost type: " << costName);
+      ros::shutdown();
+    }
+  }
   ros::param::get("~GNC_barc_sq", params.GNCBarcSq);
   ros::param::get("~GNC_mu_step", params.GNCMuStep);
-  int GNC_weight_update_int;
-  if (ros::param::get("~GNC_weight_update_interval", GNC_weight_update_int)) {
-    params.GNCWeightUpdateInterval = (unsigned) GNC_weight_update_int;
+  int weight_update_int;
+  if (ros::param::get("~weight_update_interval", weight_update_int)) {
+    params.weightUpdateInterval = (unsigned) weight_update_int;
   }
 
   int max_iters_int;
