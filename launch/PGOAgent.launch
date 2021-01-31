@@ -7,10 +7,10 @@
   <arg name="relaxation_rank" default="5"/>
   <arg name="acceleration" default="true"/>
   <arg name="restart_interval" default="50" />
-  <arg name="robust_cost_type" default="TLS" />
+  <arg name="robust_cost_type" default="GNC_TLS" />
   <arg name="GNC_barc" default="10.0" />
   <arg name="GNC_mu_step" default="1.4" />
-  <arg name="weight_update_interval" default="10" />
+  <arg name="weight_update_interval" default="50" />
   <arg name="verbose" default="true"/>
   <arg name="max_iteration_number" default="1000" />
   <arg name="relative_change_tolerance" default="5e-3" />
