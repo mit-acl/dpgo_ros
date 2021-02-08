@@ -111,6 +111,7 @@ int main(int argc, char **argv) {
   }
   ros::param::get("~GNC_barc", params.GNCBarc);
   ros::param::get("~GNC_mu_step", params.GNCMuStep);
+  ros::param::get("~GNC_min_TLS_convergence_ratio", params.GNCMinTLSConvergenceRatio);
   int weight_update_int;
   if (ros::param::get("~weight_update_interval", weight_update_int)) {
     params.weightUpdateInterval = (unsigned) weight_update_int;

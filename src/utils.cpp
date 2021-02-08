@@ -193,7 +193,7 @@ Status statusToMsg(const PGOAgentStatus &status) {
   msg.state = status.state;
   msg.instance_number = status.instanceNumber;
   msg.iteration_number = status.iterationNumber;
-  msg.optimization_success = status.optimizationSuccess;
+  msg.ready_to_terminate = status.readyToTerminate;
   msg.relative_change = status.relativeChange;
   return msg;
 }
@@ -203,7 +203,7 @@ PGOAgentStatus statusFromMsg(const Status &msg) {
                         static_cast<PGOAgentState>(msg.state),
                         msg.instance_number,
                         msg.iteration_number,
-                        msg.optimization_success,
+                        msg.ready_to_terminate,
                         msg.relative_change);
   return status;
 }
