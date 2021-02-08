@@ -14,7 +14,7 @@
   <arg name="verbose" default="true"/>
   <arg name="max_iteration_number" default="1000" />
   <arg name="relative_change_tolerance" default="5e-3" />
-  <arg name="log_directory" default="$(find dpgo_ros)/logs" />
+  <arg name="log_directory" default="$(find dpgo_ros)/logs/agent$(arg agent_id)/" />
 
   <!-- GDB: launch-prefix="gnome-terminal -x gdb -ex run \-\-args" -->
   <node ns="dpgo_ros_node" name="agent" pkg="dpgo_ros" type="dpgo_ros_node" output="screen">
@@ -31,7 +31,7 @@
     <param name="~verbose" type="bool" value="$(arg verbose)" />
     <param name="~max_iteration_number" type="int" value="$(arg max_iteration_number)" />
     <param name="~relative_change_tolerance" type="double" value="$(arg relative_change_tolerance)" />
-    <param name="~log_output_path" type="str" value="$(arg log_directory)/agent$(arg agent_id)/" />
+    <param name="~log_output_path" type="str" value="$(arg log_directory)" />
   </node>
 
 

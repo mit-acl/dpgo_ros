@@ -456,19 +456,19 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       publishStatus();
       if (getID() == 0) {
         ros::Duration(0.1).sleep();
-        if (mInitStepsDone > 100) {
+        if (mInitStepsDone > 20) {
           ROS_WARN("Exceeded maximum number of initialization steps. ");
           publishTerminateCommand();
           return;
         }
         for (auto status : mTeamStatus) {
           if (status.state == PGOAgentState::WAIT_FOR_DATA) {
-            ROS_WARN("Robot %u has not received data. ", getID());
+            ROS_WARN("Robot %u has not received data. Send INITIALIZE command again.", status.agentID);
             publishTerminateCommand();
             return;
           }
           if (status.state != PGOAgentState::INITIALIZED) {
-            ROS_WARN("Robot %u has not initialized.", getID());
+            ROS_WARN("Robot %u has not initialized in global frame. Send INITIALIZE command again.", status.agentID);
             publishInitializeCommand();
             return;
           }
