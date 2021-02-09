@@ -109,9 +109,9 @@ int main(int argc, char **argv) {
       ros::shutdown();
     }
   }
-  ros::param::get("~GNC_barc", params.GNCBarc);
-  ros::param::get("~GNC_mu_step", params.GNCMuStep);
-  ros::param::get("~GNC_min_TLS_convergence_ratio", params.GNCMinTLSConvergenceRatio);
+  ros::param::get("~GNC_barc", params.robustCostParams.GNCBarc);
+  ros::param::get("~GNC_mu_step", params.robustCostParams.GNCMuStep);
+  ros::param::get("~min_converged_loop_closure_ratio", params.minConvergedLoopClosureRatio);
   int weight_update_int;
   if (ros::param::get("~weight_update_interval", weight_update_int)) {
     params.weightUpdateInterval = (unsigned) weight_update_int;
