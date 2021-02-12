@@ -3,8 +3,10 @@
 ## Introduction
 This repository implements a ROS wrapper for the DPGO library
 
-## Requirements
+## Dependencies
 This package assumes that [DPGO](https://gitlab.com/mit-acl/dpgo/dpgo) has been built and installed, and that a catkin workspace has been initialized.
+
+Before building this package, also clone the the `feature/multirobot` branch of [pose_graph_tools](https://github.com/MIT-SPARK/pose_graph_tools/tree/feature/multirobot) in the same catkin workspace.
 
 ## Building the package
 
