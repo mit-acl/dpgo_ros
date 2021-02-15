@@ -6,5 +6,5 @@ uint16 instance_number
 uint16 iteration_number
 uint16 robot_id
 uint8 state
-bool optimization_success
+bool ready_to_terminate
 float32 relative_change

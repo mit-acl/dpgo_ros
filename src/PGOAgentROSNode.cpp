@@ -76,10 +76,47 @@ int main(int argc, char **argv) {
   Load optional options
   ###########################################
   */
+  // Nesterov acceleration parameters
   ros::param::get("~acceleration", params.acceleration);
   int restart_interval_int;
-  if (ros::param::get("~restart_interval", restart_interval_int))
+  if (ros::param::get("~restart_interval", restart_interval_int)) {
     params.restartInterval = (unsigned) restart_interval_int;
+  }
+
+  // Robust cost function
+  std::string costName;
+  if (ros::param::get("~robust_cost_type", costName)) {
+    if (costName == "L2") {
+      params.robustCostType = RobustCostType::L2;
+    }
+    else if (costName == "L1") {
+      params.robustCostType = RobustCostType::L1;
+    }
+    else if (costName == "Huber") {
+      params.robustCostType = RobustCostType::Huber;
+    }
+    else if(costName == "TLS") {
+      params.robustCostType = RobustCostType::TLS;
+    }
+    else if (costName == "GM") {
+      params.robustCostType = RobustCostType::GM;
+    }
+    else if (costName == "GNC_TLS") {
+      params.robustCostType = RobustCostType::GNC_TLS;
+    }
+    else {
+      ROS_ERROR_STREAM("Unknown robust cost type: " << costName);
+      ros::shutdown();
+    }
+  }
+  ros::param::get("~GNC_barc", params.robustCostParams.GNCBarc);
+  ros::param::get("~GNC_mu_step", params.robustCostParams.GNCMuStep);
+  ros::param::get("~min_converged_loop_closure_ratio", params.minConvergedLoopClosureRatio);
+  int weight_update_int;
+  if (ros::param::get("~weight_update_interval", weight_update_int)) {
+    params.weightUpdateInterval = (unsigned) weight_update_int;
+  }
+
   int max_iters_int;
   if (ros::param::get("~max_iteration_number", max_iters_int))
     params.maxNumIters = (unsigned) max_iters_int;
@@ -95,7 +132,7 @@ int main(int argc, char **argv) {
   dpgo_ros::PGOAgentROS agent(nh, ID, params);
   ROS_INFO_STREAM("Initialized PGO Agent " << ID << ".");
   ros::Rate rate(100);
-  while(ros::ok()) {
+  while (ros::ok()) {
     ros::spinOnce();
     agent.runOnce();
     rate.sleep();

@@ -60,21 +60,6 @@ Matrix MatrixFromMsg(const MatrixMsg &msg) {
   return deserializeMatrix(msg.rows, msg.cols, msg.values);
 }
 
-LiftedPose constructLiftedPoseMsg(size_t dimension,
-                                  size_t relaxation_rank,
-                                  size_t cluster_id,
-                                  size_t robot_id, size_t pose_id,
-                                  const Matrix &pose) {
-  assert(pose.rows() == (int) relaxation_rank);
-  assert(pose.cols() == (int) dimension + 1);
-  LiftedPose msg;
-  msg.cluster_id = cluster_id;
-  msg.robot_id = robot_id;
-  msg.pose_id = pose_id;
-  msg.pose = MatrixToMsg(pose);
-  return msg;
-}
-
 PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement &m) {
   assert(m.R.rows() == 3 && m.R.cols() == 3);
   assert(m.t.rows() == 3 && m.t.cols() == 1);
@@ -208,7 +193,7 @@ Status statusToMsg(const PGOAgentStatus &status) {
   msg.state = status.state;
   msg.instance_number = status.instanceNumber;
   msg.iteration_number = status.iterationNumber;
-  msg.optimization_success = status.optimizationSuccess;
+  msg.ready_to_terminate = status.readyToTerminate;
   msg.relative_change = status.relativeChange;
   return msg;
 }
@@ -218,7 +203,7 @@ PGOAgentStatus statusFromMsg(const Status &msg) {
                         static_cast<PGOAgentState>(msg.state),
                         msg.instance_number,
                         msg.iteration_number,
-                        msg.optimization_success,
+                        msg.ready_to_terminate,
                         msg.relative_change);
   return status;
 }
