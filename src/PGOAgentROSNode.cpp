@@ -109,8 +109,14 @@ int main(int argc, char **argv) {
       ros::shutdown();
     }
   }
-  ros::param::get("~GNC_barc", params.robustCostParams.GNCBarc);
+  //ros::param::get("~GNC_barc", params.robustCostParams.GNCBarc);
+  double gnc_quantile;
+  if (ros::param::get("~GNC_quantile", gnc_quantile)) {
+    params.robustCostParams.GNCBarc = RobustCost::computeErrorThresholdAtQuantile(gnc_quantile, 3);
+    ROS_WARN("GNC confidence quantile: %f, threshold: %f", gnc_quantile, params.robustCostParams.GNCBarc);
+  }
   ros::param::get("~GNC_mu_step", params.robustCostParams.GNCMuStep);
+  ros::param::get("~GNC_init_mu", params.robustCostParams.GNCInitMu);
   ros::param::get("~min_converged_loop_closure_ratio", params.minConvergedLoopClosureRatio);
   int weight_update_int;
   if (ros::param::get("~weight_update_interval", weight_update_int)) {

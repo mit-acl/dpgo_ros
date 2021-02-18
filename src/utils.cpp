@@ -108,7 +108,7 @@ RelativeSEMeasurement RelativeMeasurementFromMsg(const PoseGraphEdge &msg) {
 
   // TODO: read covariance from message
   // (To enable this, make sure Kimera-Multi is publishing correct covariances!)
-  double kappa = 1500.0;
+  double kappa = 10000.0;
   double tau = 100.0;
 
   return RelativeSEMeasurement(r1, r2, p1, p2, R, t, kappa, tau);

@@ -8,8 +8,9 @@
   <arg name="acceleration" default="true"/>
   <arg name="restart_interval" default="50" />
   <arg name="robust_cost_type" default="GNC_TLS" />
-  <arg name="GNC_barc" default="10.0" />
+  <arg name="GNC_quantile" default="0.9" />
   <arg name="GNC_mu_step" default="1.4" />
+  <arg name="GNC_init_mu" default="1e-3" />
   <arg name="min_converged_loop_closure_ratio" default="0.8" />
   <arg name="weight_update_interval" default="50" />
   <arg name="verbose" default="true"/>
@@ -26,8 +27,9 @@
     <param name="~acceleration" type="bool" value="$(arg acceleration)"/>
     <param name="~restart_interval" type="int" value="$(arg restart_interval)" />
     <param name="~robust_cost_type" type="str" value="$(arg robust_cost_type)" />
-    <param name="~GNC_barc" type="double" value="$(arg GNC_barc)" />
+    <param name="~GNC_quantile" type="double" value="$(arg GNC_quantile)" />
     <param name="~GNC_mu_step" type="double" value="$(arg GNC_mu_step)" />
+    <param name="~GNC_init_mu" type="double" value="$(arg GNC_init_mu)" />
     <param name="~min_converged_loop_closure_ratio" type="double" value="$(arg min_converged_loop_closure_ratio)" />
     <param name="~weight_update_interval" type="int" value="$(arg weight_update_interval)" />
     <param name="~verbose" type="bool" value="$(arg verbose)" />
