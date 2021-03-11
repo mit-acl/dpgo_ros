@@ -1,5 +1,7 @@
 <launch>
   <arg name="num_robots" value="5" />
+  <arg name="robust_cost_type" default="L2" />
+  <arg name="acceleration" default="true"/>
 
   <!-- Launch ROS node to publish pose graph -->
   <param name="/num_robots" type="int" value="$(arg num_robots)" />
@@ -10,30 +12,40 @@
   <group ns="kimera0">
     <include file="$(find dpgo_ros)/launch/PGOAgent.launch" pass_all_args="true">
       <arg name="agent_id" value="0" />
+      <arg name="robust_cost_type" value="$(arg robust_cost_type)" />
+      <arg name="acceleration" value="$(arg acceleration)" />
     </include>
   </group>
 
   <group ns="kimera1">
     <include file="$(find dpgo_ros)/launch/PGOAgent.launch" pass_all_args="true">
       <arg name="agent_id" value="1" />
+      <arg name="robust_cost_type" value="$(arg robust_cost_type)" />
+      <arg name="acceleration" value="$(arg acceleration)" />
     </include>
   </group>
 
   <group ns="kimera2">
     <include file="$(find dpgo_ros)/launch/PGOAgent.launch" pass_all_args="true">
       <arg name="agent_id" value="2" />
+      <arg name="robust_cost_type" value="$(arg robust_cost_type)" />
+      <arg name="acceleration" value="$(arg acceleration)" />
     </include>
   </group>
 
   <group ns="kimera3">
     <include file="$(find dpgo_ros)/launch/PGOAgent.launch" pass_all_args="true">
       <arg name="agent_id" value="3" />
+      <arg name="robust_cost_type" value="$(arg robust_cost_type)" />
+      <arg name="acceleration" value="$(arg acceleration)" />
     </include>
   </group>
 
   <group ns="kimera4">
     <include file="$(find dpgo_ros)/launch/PGOAgent.launch" pass_all_args="true">
       <arg name="agent_id" value="4" />
+      <arg name="robust_cost_type" value="$(arg robust_cost_type)" />
+      <arg name="acceleration" value="$(arg acceleration)" />
     </include>
   </group>
 
