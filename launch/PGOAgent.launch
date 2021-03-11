@@ -5,14 +5,14 @@
   <arg name="num_robots" default="1" />
   <arg name="dimension" default="3" />
   <arg name="relaxation_rank" default="5"/>
-  <arg name="acceleration" default="true"/>
+  <arg name="acceleration" default="false"/>
   <arg name="restart_interval" default="50" />
   <arg name="robust_cost_type" default="GNC_TLS" />
   <arg name="GNC_quantile" default="0.9" />
-  <arg name="GNC_mu_step" default="1.4" />
-  <arg name="GNC_init_mu" default="1e-3" />
-  <arg name="min_converged_loop_closure_ratio" default="0.8" />
-  <arg name="weight_update_interval" default="50" />
+  <arg name="GNC_mu_step" default="2.0" />
+  <arg name="GNC_init_mu" default="1e-5" />
+  <arg name="min_converged_loop_closure_ratio" default="0.95" />
+  <arg name="weight_update_interval" default="15" />
   <arg name="verbose" default="true"/>
   <arg name="max_iteration_number" default="1000" />
   <arg name="relative_change_tolerance" default="5e-3" />
