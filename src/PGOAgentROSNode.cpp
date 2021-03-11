@@ -112,8 +112,9 @@ int main(int argc, char **argv) {
   //ros::param::get("~GNC_barc", params.robustCostParams.GNCBarc);
   double gnc_quantile;
   if (ros::param::get("~GNC_quantile", gnc_quantile)) {
-    params.robustCostParams.GNCBarc = RobustCost::computeErrorThresholdAtQuantile(gnc_quantile, 3);
-    ROS_WARN("GNC confidence quantile: %f, threshold: %f", gnc_quantile, params.robustCostParams.GNCBarc);
+    double barc = RobustCost::computeErrorThresholdAtQuantile(gnc_quantile, 3);
+    params.robustCostParams.GNCBarc = barc;
+    ROS_INFO("PGOAgentRos: set GNC confidence at %f, barcsq: %f\n", gnc_quantile, barc * barc);
   }
   ros::param::get("~GNC_mu_step", params.robustCostParams.GNCMuStep);
   ros::param::get("~GNC_init_mu", params.robustCostParams.GNCInitMu);

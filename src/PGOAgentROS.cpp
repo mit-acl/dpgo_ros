@@ -365,9 +365,9 @@ bool PGOAgentROS::createLogFile(const std::string &filename) {
     return false;
   }
   // Instance number, global iteration number, Number of poses, total bytes
-  // received, iteration time (sec), relative change
+  // received, iteration time (sec), total elapsed time (sec), relative change
   file << "instance, iteration, num_poses, total_bytes_received, "
-          "iteration_time_sec, relative_change \n";
+          "iteration_time_sec, total_time_sec, relative_change \n";
   file.close();
   return true;
 }
@@ -380,13 +380,18 @@ bool PGOAgentROS::logIteration(const std::string &filename) const {
     return false;
   }
 
+  // Compute total elapsed time since beginning of optimization
+  auto counter = std::chrono::high_resolution_clock::now() - mGlobalStartTime;
+  double globalElapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(counter).count();
+
   // Instance number, global iteration number, Number of poses, total bytes
-  // received, iteration time (sec), relative change
+  // received, iteration time (sec), total elapsed time (sec), relative change
   file << instance_number() << ",";
   file << iteration_number() << ",";
   file << num_poses() << ",";
   file << mTotalBytesReceived << ",";
   file << mIterationElapsedMs / 1e3 << ",";
+  file << globalElapsedMs / 1e3 << ",";
   file << mStatus.relativeChange << "\n";
   file.close();
   return true;
@@ -451,6 +456,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     }
 
     case Command::INITIALIZE: {
+      mGlobalStartTime = std::chrono::high_resolution_clock::now();
       publishPublicPoses(false);
       publishTrajectory();
       publishStatus();
