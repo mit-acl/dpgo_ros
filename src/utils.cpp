@@ -60,6 +60,27 @@ Matrix MatrixFromMsg(const MatrixMsg &msg) {
   return deserializeMatrix(msg.rows, msg.cols, msg.values);
 }
 
+Matrix RotationFromPoseMsg(const geometry_msgs::Pose &msg) {
+  // read rotation
+  tf::Quaternion quat;
+  tf::quaternionMsgToTF(msg.orientation, quat);
+  tf::Matrix3x3 rotation(quat);
+  Matrix R(3, 3);
+  R << rotation[0][0], rotation[0][1], rotation[0][2],
+       rotation[1][0], rotation[1][1], rotation[1][2],
+       rotation[2][0], rotation[2][1], rotation[2][2];
+
+  return R;
+}
+
+Matrix TranslationFromPoseMsg(const geometry_msgs::Pose &msg) {
+  tf::Vector3 translation;
+  tf::pointMsgToTF(msg.position, translation);
+  Matrix t(3, 1);
+  t << translation.x(), translation.y(), translation.z();
+  return t;
+}
+
 PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement &m) {
   assert(m.R.rows() == 3 && m.R.cols() == 3);
   assert(m.t.rows() == 3 && m.t.cols() == 1);
@@ -92,32 +113,14 @@ RelativeSEMeasurement RelativeMeasurementFromMsg(const PoseGraphEdge &msg) {
   size_t p2 = msg.key_to;
 
   // read rotation
-  tf::Quaternion quat;
-  tf::quaternionMsgToTF(msg.pose.orientation, quat);
-  tf::Matrix3x3 rotation(quat);
-  Matrix R(3, 3);
-  R << rotation[0][0], rotation[0][1], rotation[0][2], rotation[1][0],
-      rotation[1][1], rotation[1][2], rotation[2][0], rotation[2][1],
-      rotation[2][2];
+  Matrix R = RotationFromPoseMsg(msg.pose);
 
   // read translation
-  tf::Vector3 translation;
-  tf::pointMsgToTF(msg.pose.position, translation);
-  Matrix t(3, 1);
-  t << translation.x(), translation.y(), translation.z();
+  Matrix t = TranslationFromPoseMsg(msg.pose);
 
   // TODO: read covariance from message
-  // (To enable this, make sure Kimera-Multi is publishing correct covariances!)
-  double kappa;
-  double tau;
-  // TODO: try different weights for odometry and loop closure edges
-  if (r1 == r2 && p1 + 1 == p2) {
-    kappa = 10000;
-    tau = 100;
-  } else {
-    kappa = 10000;
-    tau = 100;
-  }
+  double kappa = 10000;
+  double tau = 100;
 
   return RelativeSEMeasurement(r1, r2, p1, p2, R, t, kappa, tau);
 }

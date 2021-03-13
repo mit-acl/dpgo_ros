@@ -52,6 +52,20 @@ Read a matrix from ROS message
 Matrix MatrixFromMsg(const MatrixMsg &msg);
 
 /**
+ * @brief Retrieve 3-by-3 rotation matrix from geometry_msgs::Pose
+ * @param msg
+ * @return
+ */
+Matrix RotationFromPoseMsg(const geometry_msgs::Pose &msg);
+
+/**
+ * @brief Retrieve 3-by-1 translation vector from geometry_msgs::Pose
+ * @param msg
+ * @return
+ */
+Matrix TranslationFromPoseMsg(const geometry_msgs::Pose &msg);
+
+/**
 Write a relative measurement to ROS message
 */
 PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement &m);
@@ -76,8 +90,18 @@ Compute the number of bytes of a PublicPoses message.
 */
 size_t computePublicPosesMsgSize(const PublicPoses &msg);
 
-
+/**
+ * @brief Convert a PGOAgentStatus struct to its corresponding ROS message
+ * @param status
+ * @return
+ */
 Status statusToMsg(const PGOAgentStatus &status);
-PGOAgentStatus statusFromMsg(const Status& msg);
+
+/**
+ * @brief Create a PGOAgentStatus struct from its corresponding ROS message
+ * @param msg
+ * @return
+ */
+PGOAgentStatus statusFromMsg(const Status &msg);
 
 }  // namespace dpgo_ros

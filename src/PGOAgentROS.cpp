@@ -175,12 +175,13 @@ bool PGOAgentROS::requestPoseGraph() {
     return false;
   }
 
-  // Set pose graph
   pose_graph_tools::PoseGraph pose_graph = query.response.pose_graph;
   if (pose_graph.edges.empty()) {
     ROS_WARN("Received empty pose graph.");
     return false;
   }
+
+  // Process edges
   vector<RelativeSEMeasurement> odometry;
   vector<RelativeSEMeasurement> privateLoopClosures;
   vector<RelativeSEMeasurement> sharedLoopClosures;
@@ -199,7 +200,32 @@ bool PGOAgentROS::requestPoseGraph() {
       sharedLoopClosures.push_back(m);
     }
   }
-  setPoseGraph(odometry, privateLoopClosures, sharedLoopClosures);
+
+  // Process nodes
+  Matrix TInit;
+  if (!pose_graph.nodes.empty()) {
+    // Only look at nodes that belong to this robot
+    vector<pose_graph_tools::PoseGraphNode> nodes_filtered;
+    for (const auto &node : pose_graph.nodes) {
+      if ((unsigned) node.robot_id == getID()) nodes_filtered.push_back(node);
+    }
+    // If pose graph contains initial guess for the poses, we will use them
+    // Otherwise, TInit can be left as empty and DPGO will perform automatic initialization
+    size_t num_poses = nodes_filtered.size();
+    TInit = Matrix::Zero(dimension(), (dimension() + 1) * num_poses);
+    for (const auto &node : nodes_filtered) {
+      assert((unsigned) node.robot_id == getID());
+      size_t index = node.key;
+      assert(index >= 0 && index < num_poses);
+      Matrix R = RotationFromPoseMsg(node.pose);
+      Matrix t = TranslationFromPoseMsg(node.pose);
+      TInit.block(0, index * (d + 1), d, d) = R;
+      TInit.block(0, index * (d + 1) + d, d, 1) = t;
+    }
+    ROS_WARN("Using provided initial trajectory with %zu poses", num_poses);
+  }
+
+  setPoseGraph(odometry, privateLoopClosures, sharedLoopClosures, TInit);
   ROS_INFO("Robot %u receives updated pose graph. "
            "Number of odometry edges = %zu, "
            "number of private loop closures = %zu, "
