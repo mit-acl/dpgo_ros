@@ -192,11 +192,14 @@ bool PGOAgentROS::requestPoseGraph() {
     }
     if (m.r1 == m.r2) {
       if (m.p1 + 1 == m.p2) {
+        m.isKnownInlier = true;
         odometry.push_back(m);
       } else {
+        m.isKnownInlier = false;
         privateLoopClosures.push_back(m);
       }
     } else {
+      m.isKnownInlier = false;
       sharedLoopClosures.push_back(m);
     }
   }
