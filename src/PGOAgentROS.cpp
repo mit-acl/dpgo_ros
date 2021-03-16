@@ -122,7 +122,7 @@ void PGOAgentROS::runOnce() {
       publishStatus();
 
       // Publish trajectory
-      publishTrajectory();
+      // publishTrajectory();
 
       // Log local iteration
       if (mParams.logData) {
