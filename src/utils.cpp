@@ -210,6 +210,7 @@ sensor_msgs::PointCloud TrajectoryToPointCloud(unsigned d, unsigned n, const Mat
     point.z = ti(2);
     msg.points.push_back(point);
   }
+  return msg;
 }
 
 pose_graph_tools::PoseGraph TrajectoryToPoseGraphMsg(unsigned robotID, unsigned d, unsigned n, const Matrix &T) {
