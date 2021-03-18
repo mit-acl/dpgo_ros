@@ -81,6 +81,30 @@ Matrix TranslationFromPoseMsg(const geometry_msgs::Pose &msg) {
   return t;
 }
 
+geometry_msgs::Quaternion RotationToQuaternionMsg(const Matrix &R) {
+  assert(R.rows() == 3);
+  assert(R.cols() == 3);
+
+  tf::Matrix3x3 rotation(R(0, 0), R(0, 1), R(0, 2),
+                         R(1, 0), R(1, 1), R(1, 2),
+                         R(2, 0), R(2, 1), R(2, 2));
+  tf::Quaternion quat;
+  rotation.getRotation(quat);
+  geometry_msgs::Quaternion quat_msg;
+  tf::quaternionTFToMsg(quat, quat_msg);
+  return quat_msg;
+}
+
+geometry_msgs::Point TranslationToPointMsg(const Matrix &t) {
+  assert(t.rows() == 3);
+  assert(t.cols() == 1);
+  // convert translation to ROS message
+  tf::Vector3 translation(t(0), t(1), t(2));
+  geometry_msgs::Point point_msg;
+  tf::pointTFToMsg(translation, point_msg);
+  return point_msg;
+}
+
 PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement &m) {
   assert(m.R.rows() == 3 && m.R.cols() == 3);
   assert(m.t.rows() == 3 && m.t.cols() == 1);
@@ -92,15 +116,10 @@ PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement &m) {
   msg.key_to = m.p2;
 
   // convert rotation to ROS message
-  tf::Matrix3x3 rotation(m.R(0, 0), m.R(0, 1), m.R(0, 2), m.R(1, 0), m.R(1, 1),
-                         m.R(1, 2), m.R(2, 0), m.R(2, 1), m.R(2, 2));
-  tf::Quaternion quat;
-  rotation.getRotation(quat);
-  tf::quaternionTFToMsg(quat, msg.pose.orientation);
+  msg.pose.orientation = RotationToQuaternionMsg(m.R);
 
   // convert translation to ROS message
-  tf::Vector3 translation(m.t(0), m.t(1), m.t(2));
-  tf::pointTFToMsg(translation, msg.pose.position);
+  msg.pose.position = TranslationToPointMsg(m.t);
 
   // TODO: write covariance to message
   return msg;
@@ -138,15 +157,10 @@ geometry_msgs::PoseArray TrajectoryToPoseArray(unsigned d, unsigned n, const Mat
     Matrix ti = T.block(0, i * (d + 1) + d, d, 1);
 
     // convert rotation to ROS message
-    tf::Matrix3x3 rotation(Ri(0, 0), Ri(0, 1), Ri(0, 2), Ri(1, 0), Ri(1, 1),
-                           Ri(1, 2), Ri(2, 0), Ri(2, 1), Ri(2, 2));
-    tf::Quaternion quat;
-    rotation.getRotation(quat);
-    tf::quaternionTFToMsg(quat, pose.orientation);
+    pose.orientation = RotationToQuaternionMsg(Ri);
 
     // convert translation to ROS message
-    tf::Vector3 translation(ti(0), ti(1), ti(2));
-    tf::pointTFToMsg(translation, pose.position);
+    pose.position = TranslationToPointMsg(ti);
 
     msg.poses.push_back(pose);
   }
@@ -166,15 +180,10 @@ nav_msgs::Path TrajectoryToPath(unsigned d, unsigned n, const Matrix &T) {
     Matrix ti = T.block(0, i * (d + 1) + d, d, 1);
 
     // convert rotation to ROS message
-    tf::Matrix3x3 rotation(Ri(0, 0), Ri(0, 1), Ri(0, 2), Ri(1, 0), Ri(1, 1),
-                           Ri(1, 2), Ri(2, 0), Ri(2, 1), Ri(2, 2));
-    tf::Quaternion quat;
-    rotation.getRotation(quat);
-    tf::quaternionTFToMsg(quat, pose.orientation);
+    pose.orientation = RotationToQuaternionMsg(Ri);
 
     // convert translation to ROS message
-    tf::Vector3 translation(ti(0), ti(1), ti(2));
-    tf::pointTFToMsg(translation, pose.position);
+    pose.position = TranslationToPointMsg(ti);
 
     geometry_msgs::PoseStamped poseStamped;
     poseStamped.header.frame_id = "/world";
@@ -184,6 +193,51 @@ nav_msgs::Path TrajectoryToPath(unsigned d, unsigned n, const Matrix &T) {
     msg.poses.push_back(poseStamped);
   }
   return msg;
+}
+
+sensor_msgs::PointCloud TrajectoryToPointCloud(unsigned d, unsigned n, const Matrix &T) {
+  assert(d == 3);
+  assert(T.rows() == d);
+  assert(T.cols() == (d + 1) * n);
+  sensor_msgs::PointCloud msg;
+  msg.header.frame_id = "/world";
+  msg.header.stamp = ros::Time::now();
+  for (size_t i = 0; i < n; ++i) {
+    geometry_msgs::Point32 point;
+    Matrix ti = T.block(0, i * (d + 1) + d, d, 1);
+    point.x = ti(0);
+    point.y = ti(1);
+    point.z = ti(2);
+    msg.points.push_back(point);
+  }
+}
+
+pose_graph_tools::PoseGraph TrajectoryToPoseGraphMsg(unsigned robotID, unsigned d, unsigned n, const Matrix &T) {
+  assert(d == 3);
+  assert(T.rows() == d);
+  assert(T.cols() == (d + 1) * n);
+  pose_graph_tools::PoseGraph pose_graph_msg;
+  pose_graph_msg.header.frame_id = "/world";
+  pose_graph_msg.header.stamp = ros::Time::now();
+  for (size_t i = 0; i < n; ++i) {
+    pose_graph_tools::PoseGraphNode node_msg;
+    node_msg.robot_id = robotID;
+    node_msg.key = i;
+    node_msg.header.frame_id = "/world";
+    node_msg.header.stamp = pose_graph_msg.header.stamp;
+
+    Matrix Ri = T.block(0, i * (d + 1), d, d);
+    Matrix ti = T.block(0, i * (d + 1) + d, d, 1);
+
+    // convert rotation to ROS message
+    node_msg.pose.orientation = RotationToQuaternionMsg(Ri);
+
+    // convert translation to ROS message
+    node_msg.pose.position = TranslationToPointMsg(ti);
+
+    pose_graph_msg.nodes.push_back(node_msg);
+  }
+  return pose_graph_msg;
 }
 
 size_t computePublicPosesMsgSize(const PublicPoses &msg) {

@@ -15,8 +15,9 @@
 #include <dpgo_ros/Status.h>
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <sensor_msgs/PointCloud.h>
 #include <nav_msgs/Path.h>
-#include <pose_graph_tools/PoseGraphEdge.h>
+#include <pose_graph_tools/PoseGraph.h>
 #include <tf/tf.h>
 
 #include <cassert>
@@ -66,6 +67,20 @@ Matrix RotationFromPoseMsg(const geometry_msgs::Pose &msg);
 Matrix TranslationFromPoseMsg(const geometry_msgs::Pose &msg);
 
 /**
+ * @brief Convert a 3-by-3 rotation matrix to quaternion message in ROS
+ * @param R
+ * @return
+ */
+geometry_msgs::Quaternion RotationToQuaternionMsg(const Matrix &R);
+
+/**
+ * @brief Convert a 3-by-1 translation vector to point message in ROS
+ * @param t
+ * @return
+ */
+geometry_msgs::Point TranslationToPointMsg(const Matrix &t);
+
+/**
 Write a relative measurement to ROS message
 */
 PoseGraphEdge RelativeMeasurementToMsg(const RelativeSEMeasurement &m);
@@ -84,6 +99,25 @@ geometry_msgs::PoseArray TrajectoryToPoseArray(unsigned d, unsigned n, const Mat
 Convert an aggregate matrix T \in (SO(d) \times Rd)^n to a ROS Path message
 */
 nav_msgs::Path TrajectoryToPath(unsigned d, unsigned n, const Matrix &T);
+
+/**
+ * @brief Convert an an aggregate matrix T \in (SO(d) \times Rd)^n to a point cloud message. This message does not contain rotation estimates.
+ * @param d
+ * @param n
+ * @param T
+ * @return
+ */
+sensor_msgs::PointCloud TrajectoryToPointCloud(unsigned d, unsigned n, const Matrix &T);
+
+/**
+ * @brief Convert an aggregate matrix T \in (SO(d) \times Rd)^n to a PoseGraph message. Currently only populates the nodes.
+ * @param robotID
+ * @param d
+ * @param n
+ * @param T
+ * @return
+ */
+pose_graph_tools::PoseGraph TrajectoryToPoseGraphMsg(unsigned robotID, unsigned d, unsigned n, const Matrix &T);
 
 /**
 Compute the number of bytes of a PublicPoses message.

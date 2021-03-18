@@ -107,8 +107,9 @@ class PGOAgentROS : public PGOAgent {
   ros::Publisher mCommandPublisher;
   ros::Publisher mPublicPosesPublisher;
   ros::Publisher mMeasurementWeightsPublisher;
-  ros::Publisher mPoseArrayPublisher;
-  ros::Publisher mPathPublisher;
+  ros::Publisher mPoseArrayPublisher;  // Publish optimized trajectory
+  ros::Publisher mPathPublisher;       // Publish optimized trajectory
+  ros::Publisher mPoseGraphPublisher;  // Publish optimized pose graph
 
   // ROS subscriber
   ros::Subscriber mStatusSubscriber;

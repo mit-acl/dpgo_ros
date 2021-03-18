@@ -56,8 +56,9 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
   mCommandPublisher = nh.advertise<Command>("/dpgo_command", 100);
   mMeasurementWeightsPublisher = nh.advertise<RelativeMeasurementWeights>("/dpgo_measurement_weights", 100);
   mPublicPosesPublisher = nh.advertise<PublicPoses>("/dpgo_public_poses", 100);
-  mPoseArrayPublisher = nh.advertise<geometry_msgs::PoseArray>("trajectory", 1);
-  mPathPublisher = nh.advertise<nav_msgs::Path>("path", 1);
+  mPoseArrayPublisher = nh.advertise<geometry_msgs::PoseArray>("trajectory", 5);
+  mPathPublisher = nh.advertise<nav_msgs::Path>("path", 5);
+  mPoseGraphPublisher = nh.advertise<pose_graph_tools::PoseGraph>("optimized_pose_graph", 5);
 
   // Query robot 0 for lifting matrix
   if (getID() != 0) {
@@ -328,6 +329,10 @@ bool PGOAgentROS::publishTrajectory() {
   nav_msgs::Path path = TrajectoryToPath(dimension(), num_poses(), T);
   mPathPublisher.publish(path);
 
+  // Publish as optimized pose graph
+  pose_graph_tools::PoseGraph pose_graph = TrajectoryToPoseGraphMsg(getID(), dimension(), num_poses(), T);
+  mPoseGraphPublisher.publish(pose_graph);
+
   return true;
 }
 
@@ -487,7 +492,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     case Command::INITIALIZE: {
       mGlobalStartTime = std::chrono::high_resolution_clock::now();
       publishPublicPoses(false);
-      publishTrajectory();
+      // publishTrajectory();
       publishStatus();
       if (getID() == 0) {
         ros::Duration(0.1).sleep();
