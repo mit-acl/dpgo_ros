@@ -31,54 +31,39 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
   mTeamIterReceived.assign(mParams.numRobots, 0);
 
   // ROS subscriber
-  mStatusSubscriber =
-      nh.subscribe("/dpgo_status", 100, &PGOAgentROS::statusCallback, this);
-
-  mCommandSubscriber =
-      nh.subscribe("/dpgo_command", 100, &PGOAgentROS::commandCallback, this);
-
-  mAnchorSubscriber =
-      nh.subscribe("/dpgo_anchor", 100, &PGOAgentROS::anchorCallback, this);
-
-  mPublicPosesSubscriber =
-      nh.subscribe("/dpgo_public_poses", 100, &PGOAgentROS::publicPosesCallback, this);
-
-  mMeasurementWeightsSubscriber =
-      nh.subscribe("/dpgo_measurement_weights", 100, &PGOAgentROS::measurementWeightsCallback, this);
-
-  // ROS service
-  mQueryLiftingMatrixServer =
-      nh.advertiseService("query_lifting_matrix", &PGOAgentROS::queryLiftingMatrixCallback, this);
+  for (size_t robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
+    std::string topic_prefix = "/kimera" + std::to_string(robot_id) + "/dpgo_ros_node/";
+    mLiftingMatrixSubscriber.push_back(
+        nh.subscribe(topic_prefix + "lifting_matrix", 1000, &PGOAgentROS::liftingMatrixCallback, this));
+    mStatusSubscriber.push_back(
+        nh.subscribe(topic_prefix + "status", 1000, &PGOAgentROS::statusCallback, this));
+    mCommandSubscriber.push_back(
+        nh.subscribe(topic_prefix + "command", 1000, &PGOAgentROS::commandCallback, this));
+    mAnchorSubscriber.push_back(
+        nh.subscribe(topic_prefix + "anchor", 1000, &PGOAgentROS::anchorCallback, this));
+    mPublicPosesSubscriber.push_back(
+        nh.subscribe(topic_prefix + "public_poses", 1000, &PGOAgentROS::publicPosesCallback, this));
+    mMeasurementWeightsSubscriber.push_back(
+        nh.subscribe(topic_prefix + "measurement_weights", 1000, &PGOAgentROS::measurementWeightsCallback, this));
+  }
 
   // ROS publisher
-  mAnchorPublisher = nh.advertise<PublicPoses>("/dpgo_anchor", 100);
-  mStatusPublisher = nh.advertise<Status>("/dpgo_status", 100);
-  mCommandPublisher = nh.advertise<Command>("/dpgo_command", 100);
-  mMeasurementWeightsPublisher = nh.advertise<RelativeMeasurementWeights>("/dpgo_measurement_weights", 100);
-  mPublicPosesPublisher = nh.advertise<PublicPoses>("/dpgo_public_poses", 100);
+  mLiftingMatrixPublisher = nh.advertise<MatrixMsg>("lifting_matrix", 1000);
+  mAnchorPublisher = nh.advertise<PublicPoses>("anchor", 1000);
+  mStatusPublisher = nh.advertise<Status>("status", 1000);
+  mCommandPublisher = nh.advertise<Command>("command", 1000);
+  mMeasurementWeightsPublisher = nh.advertise<RelativeMeasurementWeights>("measurement_weights", 1000);
+  mPublicPosesPublisher = nh.advertise<PublicPoses>("public_poses", 1000);
   mPoseArrayPublisher = nh.advertise<geometry_msgs::PoseArray>("trajectory", 5);
   mPathPublisher = nh.advertise<nav_msgs::Path>("path", 5);
   mPoseGraphPublisher = nh.advertise<pose_graph_tools::PoseGraph>("optimized_pose_graph", 5);
 
-  // Query robot 0 for lifting matrix
-  if (getID() != 0) {
-    std::string service_name = "/kimera0/dpgo_ros_node/query_lifting_matrix";
-    QueryLiftingMatrix query;
-    query.request.robot_id = 0;
-    if (!ros::service::waitForService(service_name, ros::Duration(5.0))) {
-      ROS_ERROR("Service to query lifting matrix does not exist!");
-      ros::shutdown();
-    }
-    if (!ros::service::call(service_name, query)) {
-      ROS_ERROR("Failed to query lifting matrix!");
-      ros::shutdown();
-    }
-    Matrix YLift = MatrixFromMsg(query.response.matrix);
-    setLiftingMatrix(YLift);
-  }
-  // First agent sends out the initialization signal
+  // First robot publishes lifting matrix
   if (getID() == 0) {
-    ros::Duration(5).sleep();
+    for (size_t iter_ = 0; iter_ < 50; ++iter_){
+      publishLiftingMatrix();
+      ros::Duration(0.1).sleep();
+    }
     publishRequestPoseGraphCommand();
   }
 }
@@ -237,6 +222,18 @@ bool PGOAgentROS::requestPoseGraph() {
            getID(), odometry.size(), privateLoopClosures.size(), sharedLoopClosures.size());
 
   return true;
+}
+
+void PGOAgentROS::publishLiftingMatrix() {
+  if (getID() != 0) {
+    ROS_ERROR("Only robot 0 should publish lifting matrix!");
+  }
+  Matrix YLift;
+  if (!getLiftingMatrix(YLift)) {
+    ROS_ERROR("Queried lifting matrix is not available! ");
+  }
+  MatrixMsg msg = MatrixToMsg(YLift);
+  mLiftingMatrixPublisher.publish(msg);
 }
 
 void PGOAgentROS::publishAnchor() {
@@ -431,6 +428,13 @@ bool PGOAgentROS::logIteration(const std::string &filename) const {
   return true;
 }
 
+void PGOAgentROS::liftingMatrixCallback(const MatrixMsgConstPtr &msg) {
+  if (mParams.verbose) {
+    ROS_INFO("Robot %u receives lifting matrix.", getID());
+  }
+  setLiftingMatrix(MatrixFromMsg(*msg));
+}
+
 void PGOAgentROS::anchorCallback(const PublicPosesConstPtr &msg) {
   if (msg->robot_id != 0 || msg->pose_ids[0] != 0) {
     ROS_ERROR("Received wrong pose as anchor!");
@@ -440,18 +444,6 @@ void PGOAgentROS::anchorCallback(const PublicPosesConstPtr &msg) {
 }
 
 void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
-  // Check that robots are in agreement of current iteration number
-  if (msg->instance_number != instance_number()) {
-    ROS_ERROR("Local instance number at robot %u does not match with neighbor %u!"
-              "Local instance number = %u, received instance number = %u.",
-              getID(), msg->robot_id, instance_number(), msg->instance_number);
-  }
-  if (msg->iteration_number != iteration_number()) {
-    ROS_ERROR("Local iteration number at robot %u does not match with neighbor %u!"
-              "Local iteration number = %u, received instance number = %u.",
-              getID(), msg->robot_id, iteration_number(), msg->iteration_number);
-  }
-
   mTeamStatus[msg->robot_id] = statusFromMsg(*msg);
 }
 
@@ -503,7 +495,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
         }
         for (auto status : mTeamStatus) {
           if (status.state == PGOAgentState::WAIT_FOR_DATA) {
-            ROS_WARN("Robot %u has not received data. Send INITIALIZE command again.", status.agentID);
+            ROS_WARN("Robot %u has not received data. Send TERMINATE command.", status.agentID);
             publishTerminateCommand();
             return;
           }
@@ -606,25 +598,6 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
 
     }
   }
-}
-
-bool PGOAgentROS::queryLiftingMatrixCallback(
-    QueryLiftingMatrixRequest &request, QueryLiftingMatrixResponse &response) {
-  if (getID() != 0) {
-    ROS_ERROR("Agent %u should not receive request for lifting matrix!", getID());
-    return false;
-  }
-  if (request.robot_id != 0) {
-    ROS_ERROR("Requested robot ID is not zero! ");
-    return false;
-  }
-  Matrix YLift;
-  if (!getLiftingMatrix(YLift)) {
-    ROS_ERROR("Queried lifting matrix is not available! ");
-    return false;
-  }
-  response.matrix = MatrixToMsg(YLift);
-  return true;
 }
 
 }  // namespace dpgo_ros

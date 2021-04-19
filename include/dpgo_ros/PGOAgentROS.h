@@ -22,6 +22,8 @@ using namespace DPGO;
 
 namespace dpgo_ros {
 
+typedef std::vector<ros::Subscriber> SubscriberVector;
+
 class PGOAgentROS : public PGOAgent {
  public:
   PGOAgentROS(const ros::NodeHandle& nh_, unsigned ID,
@@ -76,6 +78,9 @@ class PGOAgentROS : public PGOAgent {
   // Publish termination command
   void publishTerminateCommand();
 
+  // Publish lifting matrix
+  void publishLiftingMatrix();
+
   // Publish anchor
   void publishAnchor();
 
@@ -94,14 +99,15 @@ class PGOAgentROS : public PGOAgent {
   bool logIteration(const std::string &filename) const;
 
   // ROS callbacks
+  void liftingMatrixCallback(const MatrixMsgConstPtr &msg);
   void anchorCallback(const PublicPosesConstPtr &msg);
   void statusCallback(const StatusConstPtr &msg);
   void commandCallback(const CommandConstPtr &msg);
   void publicPosesCallback(const PublicPosesConstPtr &msg);
   void measurementWeightsCallback(const RelativeMeasurementWeightsConstPtr &msg);
-  bool queryLiftingMatrixCallback(QueryLiftingMatrixRequest &request, QueryLiftingMatrixResponse &response);
 
   // ROS publisher
+  ros::Publisher mLiftingMatrixPublisher;
   ros::Publisher mAnchorPublisher;
   ros::Publisher mStatusPublisher;
   ros::Publisher mCommandPublisher;
@@ -112,14 +118,12 @@ class PGOAgentROS : public PGOAgent {
   ros::Publisher mPoseGraphPublisher;  // Publish optimized pose graph
 
   // ROS subscriber
-  ros::Subscriber mStatusSubscriber;
-  ros::Subscriber mCommandSubscriber;
-  ros::Subscriber mAnchorSubscriber;
-  ros::Subscriber mPublicPosesSubscriber;
-  ros::Subscriber mMeasurementWeightsSubscriber;
-
-  // ROS service server
-  ros::ServiceServer mQueryLiftingMatrixServer;
+  SubscriberVector mLiftingMatrixSubscriber;
+  SubscriberVector mStatusSubscriber;
+  SubscriberVector mCommandSubscriber;
+  SubscriberVector mAnchorSubscriber;
+  SubscriberVector mPublicPosesSubscriber;
+  SubscriberVector mMeasurementWeightsSubscriber;
 };
 
 }  // namespace dpgo_ros
