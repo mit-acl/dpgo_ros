@@ -429,9 +429,9 @@ bool PGOAgentROS::logIteration(const std::string &filename) const {
 }
 
 void PGOAgentROS::liftingMatrixCallback(const MatrixMsgConstPtr &msg) {
-  if (mParams.verbose) {
-    ROS_INFO("Robot %u receives lifting matrix.", getID());
-  }
+  // if (mParams.verbose) {
+  //   ROS_INFO("Robot %u receives lifting matrix.", getID());
+  // }
   setLiftingMatrix(MatrixFromMsg(*msg));
 }
 
@@ -484,19 +484,21 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     case Command::INITIALIZE: {
       mGlobalStartTime = std::chrono::high_resolution_clock::now();
       publishPublicPoses(false);
+      if (getID() == 0) 
+        publishLiftingMatrix();
       // publishTrajectory();
       publishStatus();
       if (getID() == 0) {
         ros::Duration(0.1).sleep();
         if (mInitStepsDone > 20) {
-          ROS_WARN("Exceeded maximum number of initialization steps. ");
+          ROS_WARN("Exceeded maximum number of initialization steps. Send TERMINATE command.");
           publishTerminateCommand();
           return;
         }
         for (auto status : mTeamStatus) {
           if (status.state == PGOAgentState::WAIT_FOR_DATA) {
-            ROS_WARN("Robot %u has not received data. Send TERMINATE command.", status.agentID);
-            publishTerminateCommand();
+            ROS_WARN("Robot %u has not received data. Send INITIALIZE command again.", status.agentID);
+            publishInitializeCommand();
             return;
           }
           if (status.state != PGOAgentState::INITIALIZED) {
