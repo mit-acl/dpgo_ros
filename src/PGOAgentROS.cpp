@@ -276,6 +276,7 @@ void PGOAgentROS::publishUpdateCommand() {
   msg.command = Command::UPDATE;
   msg.executing_iteration = iteration_number() + 1;
   mCommandPublisher.publish(msg);
+  ROS_INFO("Robot %u informs %u to update at iteration %u.", getID(), msg.executing_robot, msg.executing_iteration);
 }
 
 void PGOAgentROS::publishTerminateCommand() {
@@ -497,12 +498,12 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
         }
         for (auto status : mTeamStatus) {
           if (status.state == PGOAgentState::WAIT_FOR_DATA) {
-            ROS_WARN("Robot %u has not received data. Send INITIALIZE command again.", status.agentID);
+            ROS_WARN("Robot %u has not received data.", status.agentID);
             publishInitializeCommand();
             return;
           }
           if (status.state != PGOAgentState::INITIALIZED) {
-            ROS_WARN("Robot %u has not initialized in global frame. Send INITIALIZE command again.", status.agentID);
+            ROS_WARN("Robot %u has not initialized in global frame.", status.agentID);
             publishInitializeCommand();
             return;
           }
@@ -520,11 +521,12 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       // Update local record
       mTeamIterRequired[msg->executing_robot] = msg->executing_iteration;
       if (msg->executing_iteration != iteration_number() + 1) {
-        ROS_ERROR("Update iteration does not match local iteration!");
+        ROS_WARN("Update iteration does not match local iteration. (received: %u, local: %u)", msg->executing_iteration, iteration_number() + 1);
       }
 
       if (msg->executing_robot == getID()) {
         mOptimizationRequested = true;
+        ROS_INFO("Robot %u receives command to update.", getID());
       } else {
         // Agents that are not selected for optimization can iterate immediately
         iterate(false);
