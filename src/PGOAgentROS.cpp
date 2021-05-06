@@ -60,7 +60,7 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
 
   // First robot publishes lifting matrix
   if (getID() == 0) {
-    for (size_t iter_ = 0; iter_ < 50; ++iter_){
+    for (size_t iter_ = 0; iter_ < 50; ++iter_) {
       publishLiftingMatrix();
       ros::Duration(0.1).sleep();
     }
@@ -78,7 +78,7 @@ void PGOAgentROS::runOnce() {
     // Check if this agent has received latest public poses from its neighbors
     bool ready = true;
     for (unsigned neighbor : getNeighbors()) {
-      int requiredIter = mTeamIterRequired[neighbor];
+      int requiredIter = (int) mTeamIterRequired[neighbor];
       if (mParams.acceleration) requiredIter = (int) iteration_number() + 1;
       // TODO: allow delays to speed up executions
       requiredIter = requiredIter - 3;
@@ -337,17 +337,9 @@ bool PGOAgentROS::publishTrajectory() {
 void PGOAgentROS::publishPublicPoses(bool aux) {
   PoseDict map;
   if (aux) {
-    if (!getAuxSharedPoseDict(map)) {
-      if (mParams.verbose)
-        ROS_WARN("Robot %u is not initialized to publish public poses! ", getID());
-      return;
-    }
+    if (!getAuxSharedPoseDict(map)) return;
   } else {
-    if (!getSharedPoseDict(map)) {
-      if (mParams.verbose)
-        ROS_WARN("Robot %u is not initialized to publish public poses! ", getID());
-      return;
-    }
+    if (!getSharedPoseDict(map)) return;
   }
 
   PublicPoses msg;
@@ -357,12 +349,12 @@ void PGOAgentROS::publishPublicPoses(bool aux) {
   msg.iteration_number = iteration_number();
   msg.is_auxiliary = aux;
 
-  for (auto &sharedPose : map) {
-    PoseID nID = sharedPose.first;
-    Matrix var = sharedPose.second;
+  for (const auto &sharedPose : map) {
+    const PoseID nID = sharedPose.first;
+    const auto &matrix = sharedPose.second;
     assert(std::get<0>(nID) == getID());
     msg.pose_ids.push_back(std::get<1>(nID));
-    msg.poses.push_back(MatrixToMsg(var));
+    msg.poses.push_back(MatrixToMsg(matrix));
   }
   mPublicPosesPublisher.publish(msg);
 }
@@ -485,7 +477,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     case Command::INITIALIZE: {
       mGlobalStartTime = std::chrono::high_resolution_clock::now();
       publishPublicPoses(false);
-      if (getID() == 0) 
+      if (getID() == 0)
         publishLiftingMatrix();
       // publishTrajectory();
       publishStatus();
@@ -521,7 +513,9 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       // Update local record
       mTeamIterRequired[msg->executing_robot] = msg->executing_iteration;
       if (msg->executing_iteration != iteration_number() + 1) {
-        ROS_WARN("Update iteration does not match local iteration. (received: %u, local: %u)", msg->executing_iteration, iteration_number() + 1);
+        ROS_WARN("Update iteration does not match local iteration. (received: %u, local: %u)",
+                 msg->executing_iteration,
+                 iteration_number() + 1);
       }
 
       if (msg->executing_robot == getID()) {
@@ -555,11 +549,11 @@ void PGOAgentROS::publicPosesCallback(const PublicPosesConstPtr &msg) {
 
   for (size_t j = 0; j < msg->pose_ids.size(); ++j) {
     size_t poseID = msg->pose_ids[j];
-    Matrix poseVal = MatrixFromMsg(msg->poses[j]);
+    const auto matrix = MatrixFromMsg(msg->poses[j]);
     if (msg->is_auxiliary) {
-      updateAuxNeighborPose(msg->cluster_id, msg->robot_id, poseID, poseVal);
+      updateAuxNeighborPose(msg->cluster_id, msg->robot_id, poseID, matrix);
     } else {
-      updateNeighborPose(msg->cluster_id, msg->robot_id, poseID, poseVal);
+      updateNeighborPose(msg->cluster_id, msg->robot_id, poseID, matrix);
     }
   }
 
@@ -590,10 +584,6 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
       try {
         auto &mMeasurement = findSharedLoopClosure(robotSrc, poseSrc, robotDst, poseDst);
         mMeasurement.weight = w;
-//        if (mParams.verbose) {
-//          ROS_INFO("Robot %u receives updated weights: (%u, %u) -> (%u, %u), new weight = %f",
-//                   getID(), robotSrc, poseSrc, robotDst, poseDst, w);
-//        }
       }
       catch (const std::runtime_error &e) {
         ROS_ERROR("Cannot find specified shared loop closure (%u, %u) -> (%u, %u)",
