@@ -108,7 +108,7 @@ void PGOAgentROS::runOnce() {
       publishStatus();
 
       // Publish trajectory
-      // publishTrajectory();
+      publishTrajectory();
 
       // Log local iteration
       if (mParams.logData) {
@@ -479,7 +479,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       publishPublicPoses(false);
       if (getID() == 0)
         publishLiftingMatrix();
-      // publishTrajectory();
+      publishTrajectory();
       publishStatus();
       if (getID() == 0) {
         ros::Duration(0.1).sleep();
@@ -547,9 +547,14 @@ void PGOAgentROS::publicPosesCallback(const PublicPosesConstPtr &msg) {
     return;
   }
 
-  for (size_t j = 0; j < msg->pose_ids.size(); ++j) {
-    size_t poseID = msg->pose_ids[j];
-    const auto matrix = MatrixFromMsg(msg->poses[j]);
+  // Generate a random permutation of indices
+  std::vector<unsigned> indices;
+  for (size_t index = 0; index < msg->pose_ids.size(); ++index)
+    indices.push_back(index);
+  std::shuffle(indices.begin(), indices.end(), std::mt19937(std::random_device()()));
+  for (const unsigned index : indices) {
+    const size_t poseID = msg->pose_ids.at(index);
+    const auto matrix = MatrixFromMsg(msg->poses.at(index));
     if (msg->is_auxiliary) {
       updateAuxNeighborPose(msg->cluster_id, msg->robot_id, poseID, matrix);
     } else {

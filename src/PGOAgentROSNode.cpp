@@ -76,6 +76,12 @@ int main(int argc, char **argv) {
   Load optional options
   ###########################################
   */
+  // Cross-robot initialization
+  ros::param::get("~multirobot_initialization", params.multirobot_initialization);
+  if (!params.multirobot_initialization) {
+    ROS_WARN("DPGO cross-robot initialization is OFF.");
+  }
+
   // Nesterov acceleration parameters
   ros::param::get("~acceleration", params.acceleration);
   int restart_interval_int;

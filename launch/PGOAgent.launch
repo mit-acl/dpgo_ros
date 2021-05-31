@@ -5,6 +5,7 @@
   <arg name="num_robots" default="1" />
   <arg name="dimension" default="3" />
   <arg name="relaxation_rank" default="5"/>
+  <arg name="multirobot_initialization" default="true"/>
   <arg name="acceleration" default="false"/>
   <arg name="restart_interval" default="50" />
   <arg name="robust_cost_type" default="GNC_TLS" />
@@ -24,6 +25,7 @@
     <param name="~num_robots" type="int" value="$(arg num_robots)"/>
     <param name="~dimension" type="int" value="$(arg dimension)" />
     <param name="~relaxation_rank" type="int" value="$(arg relaxation_rank)" />
+    <param name="~multirobot_initialization" type="bool" value="$(arg multirobot_initialization)" />
     <param name="~acceleration" type="bool" value="$(arg acceleration)"/>
     <param name="~restart_interval" type="int" value="$(arg restart_interval)" />
     <param name="~robust_cost_type" type="str" value="$(arg robust_cost_type)" />
