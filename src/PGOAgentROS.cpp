@@ -71,7 +71,7 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
 void PGOAgentROS::runOnce() {
   if (mOptimizationRequested) {
     // Terminate if this agent does not have pose graph
-    if (getState() == PGOAgentState::WAIT_FOR_DATA) {
+    if (mState == PGOAgentState::WAIT_FOR_DATA) {
       publishTerminateCommand();
     }
 
@@ -221,6 +221,8 @@ bool PGOAgentROS::requestPoseGraph() {
            "number of shared loop closures = %zu. ",
            getID(), odometry.size(), privateLoopClosures.size(), sharedLoopClosures.size());
 
+  publishStatus();
+
   return true;
 }
 
@@ -242,7 +244,6 @@ void PGOAgentROS::publishAnchor() {
 
   PublicPoses msg;
   msg.robot_id = getID();
-  msg.cluster_id = getCluster();
   msg.instance_number = instance_number();
   msg.iteration_number = iteration_number();
   msg.is_auxiliary = false;
@@ -345,7 +346,6 @@ void PGOAgentROS::publishPublicPoses(bool aux) {
 
   PublicPoses msg;
   msg.robot_id = getID();
-  msg.cluster_id = getCluster();
   msg.instance_number = instance_number();
   msg.iteration_number = iteration_number();
   msg.is_auxiliary = aux;
@@ -438,7 +438,7 @@ void PGOAgentROS::anchorCallback(const PublicPosesConstPtr &msg) {
 }
 
 void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
-  mTeamStatus[msg->robot_id] = statusFromMsg(*msg);
+  setNeighborStatus(statusFromMsg(*msg));
 }
 
 void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
@@ -454,7 +454,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       publishStatus();
       // Enter initialization round
       if (getID() == 0) {
-        if (getState() == PGOAgentState::INITIALIZED) publishAnchor();
+        if (mState == PGOAgentState::INITIALIZED) publishAnchor();
         ros::Duration(1).sleep();
         publishInitializeCommand();
       }
@@ -541,13 +541,6 @@ void PGOAgentROS::publicPosesCallback(const PublicPosesConstPtr &msg) {
     return;
   }
 
-  if (msg->cluster_id != 0) {
-    if (mParams.verbose) {
-      ROS_WARN("Received poses are not merged in active cluster yet.");
-    }
-    return;
-  }
-
   // Generate a random permutation of indices
   std::vector<unsigned> indices;
   for (size_t index = 0; index < msg->pose_ids.size(); ++index)
@@ -557,9 +550,9 @@ void PGOAgentROS::publicPosesCallback(const PublicPosesConstPtr &msg) {
     const size_t poseID = msg->pose_ids.at(index);
     const auto matrix = MatrixFromMsg(msg->poses.at(index));
     if (msg->is_auxiliary) {
-      updateAuxNeighborPose(msg->cluster_id, msg->robot_id, poseID, matrix);
+      updateAuxNeighborPose(msg->robot_id, poseID, matrix);
     } else {
-      updateNeighborPose(msg->cluster_id, msg->robot_id, poseID, matrix);
+      updateNeighborPose(msg->robot_id, poseID, matrix);
     }
   }
 
@@ -569,7 +562,7 @@ void PGOAgentROS::publicPosesCallback(const PublicPosesConstPtr &msg) {
 }
 
 void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsConstPtr &msg) {
-  if (getState() != PGOAgentState::INITIALIZED) return;
+  if (mState != PGOAgentState::INITIALIZED) return;
 
   for (size_t k = 0; k < msg->weights.size(); ++k) {
     unsigned robotSrc = msg->src_robot_ids[k];
