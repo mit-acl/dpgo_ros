@@ -276,7 +276,8 @@ void PGOAgentROS::publishUpdateCommand() {
   msg.command = Command::UPDATE;
   msg.executing_iteration = iteration_number() + 1;
   mCommandPublisher.publish(msg);
-  ROS_INFO("Robot %u informs %u to update at iteration %u.", getID(), msg.executing_robot, msg.executing_iteration);
+  if (mParams.verbose)
+    ROS_INFO("Robot %u informs %u to update at iteration %u.", getID(), msg.executing_robot, msg.executing_iteration);
 }
 
 void PGOAgentROS::publishTerminateCommand() {
@@ -520,7 +521,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
 
       if (msg->executing_robot == getID()) {
         mOptimizationRequested = true;
-        ROS_INFO("Robot %u receives command to update.", getID());
+        if (mParams.verbose) ROS_INFO("Robot %u receives command to update.", getID());
       } else {
         // Agents that are not selected for optimization can iterate immediately
         iterate(false);
