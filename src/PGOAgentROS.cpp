@@ -285,7 +285,7 @@ void PGOAgentROS::publishTerminateCommand() {
   Command msg;
   msg.command = Command::TERMINATE;
   mCommandPublisher.publish(msg);
-  ROS_INFO("Published TERMINATE command.");
+  ROS_INFO("Robot %u published TERMINATE command.", getID());
 }
 
 void PGOAgentROS::publishRequestPoseGraphCommand() {
@@ -295,7 +295,7 @@ void PGOAgentROS::publishRequestPoseGraphCommand() {
   Command msg;
   msg.command = Command::REQUESTPOSEGRAPH;
   mCommandPublisher.publish(msg);
-  ROS_INFO("Published REQUESTPOSEGRAPH command.");
+  ROS_INFO("Robot %u published REQUESTPOSEGRAPH command.", getID());
 }
 
 void PGOAgentROS::publishInitializeCommand() {
@@ -306,7 +306,7 @@ void PGOAgentROS::publishInitializeCommand() {
   msg.command = Command::INITIALIZE;
   mCommandPublisher.publish(msg);
   mInitStepsDone++;
-  ROS_INFO("Published INITIALIZE command.");
+  ROS_INFO("Robot %u published INITIALIZE command.", getID());
 }
 
 void PGOAgentROS::publishStatus() {
