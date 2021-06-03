@@ -93,6 +93,9 @@ class PGOAgentROS : public PGOAgent {
   // Publish latest weights for the responsible inter-robot loop closures
   void publishMeasurementWeights();
 
+  // Publish loop closures for visualization
+  void publishLoopClosures();
+
   // Log iteration
   static bool createLogFile(const std::string &filename);
 
@@ -113,9 +116,10 @@ class PGOAgentROS : public PGOAgent {
   ros::Publisher mCommandPublisher;
   ros::Publisher mPublicPosesPublisher;
   ros::Publisher mMeasurementWeightsPublisher;
-  ros::Publisher mPoseArrayPublisher;  // Publish optimized trajectory
-  ros::Publisher mPathPublisher;       // Publish optimized trajectory
-  ros::Publisher mPoseGraphPublisher;  // Publish optimized pose graph
+  ros::Publisher mPoseArrayPublisher;    // Publish optimized trajectory
+  ros::Publisher mPathPublisher;         // Publish optimized trajectory
+  ros::Publisher mPoseGraphPublisher;    // Publish optimized pose graph
+  ros::Publisher mLoopClosurePublisher;  // Publish loop closures
 
   // ROS subscriber
   SubscriberVector mLiftingMatrixSubscriber;

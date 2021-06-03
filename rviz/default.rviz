@@ -167,6 +167,46 @@ Visualization Manager:
       Topic: /kimera4/dpgo_ros_node/path
       Unreliable: false
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /kimera0/dpgo_ros_node/loop_closures
+      Name: Marker
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /kimera1/dpgo_ros_node/loop_closures
+      Name: Marker
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /kimera2/dpgo_ros_node/loop_closures
+      Name: Marker
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /kimera3/dpgo_ros_node/loop_closures
+      Name: Marker
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /kimera4/dpgo_ros_node/loop_closures
+      Name: Marker
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 0; 0; 0
@@ -195,7 +235,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 41.368377685546875
+      Distance: 180.51065063476562
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -210,10 +250,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4297976493835449
+      Pitch: 0.094797782599926
       Target Frame: world
       Value: Orbit (rviz)
-      Yaw: 0.8049933910369873
+      Yaw: 1.374992847442627
     Saved: ~
 Window Geometry:
   Displays:

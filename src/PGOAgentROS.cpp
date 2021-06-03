@@ -9,6 +9,7 @@
 #include <dpgo_ros/utils.h>
 #include <geometry_msgs/PoseArray.h>
 #include <nav_msgs/Path.h>
+#include <visualization_msgs/Marker.h>
 #include <pose_graph_tools/PoseGraphQuery.h>
 #include <pose_graph_tools/utils.h>
 #include <tf/tf.h>
@@ -57,6 +58,7 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
   mPoseArrayPublisher = nh.advertise<geometry_msgs::PoseArray>("trajectory", 5);
   mPathPublisher = nh.advertise<nav_msgs::Path>("path", 5);
   mPoseGraphPublisher = nh.advertise<pose_graph_tools::PoseGraph>("optimized_pose_graph", 5);
+  mLoopClosurePublisher = nh.advertise<visualization_msgs::Marker>("loop_closures", 5);
 
   // First robot publishes lifting matrix
   if (getID() == 0) {
@@ -109,6 +111,9 @@ void PGOAgentROS::runOnce() {
 
       // Publish trajectory
       publishTrajectory();
+
+      // Publish loop closures
+      publishLoopClosures();
 
       // Log local iteration
       if (mParams.logData) {
@@ -388,6 +393,50 @@ void PGOAgentROS::publishMeasurementWeights() {
   if (!msg.weights.empty()) {
     mMeasurementWeightsPublisher.publish(msg);
   }
+}
+
+void PGOAgentROS::publishLoopClosures() {
+  if (mState != PGOAgentState::INITIALIZED) return;
+  visualization_msgs::Marker line_list;
+  line_list.id = (int) getID();
+  line_list.type = visualization_msgs::Marker::LINE_LIST;
+  line_list.scale.x = 0.1;
+  line_list.header.frame_id = "/world";
+  line_list.color.b = 1.0;
+  line_list.color.a = 1.0;
+  line_list.pose.orientation.x = 0.0;
+  line_list.pose.orientation.y = 0.0;
+  line_list.pose.orientation.z = 0.0;
+  line_list.pose.orientation.w = 1.0;
+  line_list.action = visualization_msgs::Marker::ADD;
+  for (const auto &measurement : sharedLoopClosures) {
+    Matrix mT, nT;
+    Matrix mt, nt;
+    bool mb, nb;
+    if (measurement.r1 == getID()) {
+      mb = getPoseInGlobalFrame(measurement.p1, mT);
+      nb = getNeighborPoseInGlobalFrame(measurement.r2, measurement.p2, nT);
+    } else {
+      mb = getPoseInGlobalFrame(measurement.p2, mT);
+      nb = getNeighborPoseInGlobalFrame(measurement.r1, measurement.p1, nT);
+    }
+    if (mb && nb) {
+      mt = mT.block(0, d, d, 1);
+      nt = nT.block(0, d, d, 1);
+      geometry_msgs::Point mp, np;
+      mp.x = mt(0);
+      mp.y = mt(1);
+      mp.z = mt(2);
+      np.x = nt(0);
+      np.y = nt(1);
+      np.z = nt(2);
+      line_list.points.push_back(mp);
+      line_list.points.push_back(np);
+    } else {
+      ROS_WARN("Robot %u cannot publish loop closures in global frame.", getID());
+    }
+  }
+  mLoopClosurePublisher.publish(line_list);
 }
 
 bool PGOAgentROS::createLogFile(const std::string &filename) {
