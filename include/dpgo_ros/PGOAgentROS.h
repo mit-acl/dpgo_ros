@@ -50,7 +50,7 @@ class PGOAgentROS : public PGOAgent {
   double mIterationElapsedMs;
 
   // Global optimization start time
-  std::chrono::time_point<std::chrono::high_resolution_clock> mGlobalStartTime;
+  std::chrono::time_point<std::chrono::high_resolution_clock> mGlobalStartTime, mLastCommandTime;
 
   // Data structures to enforce synchronization during iterations
   std::vector<unsigned> mTeamIterReceived;

@@ -136,6 +136,16 @@ void PGOAgentROS::runOnce() {
     mPublishWeightsRequested = false;
   }
 
+  if (mID == 0 && mState == PGOAgentState::INITIALIZED) {
+    // Terminate if quiet for long time (possible message drop)
+    auto counter = std::chrono::high_resolution_clock::now() - mLastCommandTime;
+    double elapsedSecond = std::chrono::duration_cast<std::chrono::milliseconds>(counter).count() / 1e3;
+    if (elapsedSecond > 15) {
+      ROS_WARN("Last command is 15 sec ago. Send Terminate command.");
+      publishTerminateCommand();
+    }
+  }
+
 }
 
 void PGOAgentROS::reset() {
@@ -211,7 +221,7 @@ bool PGOAgentROS::requestPoseGraph() {
       TInit.block(0, index * (d + 1), d, d) = R;
       TInit.block(0, index * (d + 1) + d, d, 1) = t;
     }
-    ROS_WARN("Using provided initial trajectory with %zu poses", num_poses);
+    ROS_WARN("Using provided initial trajectory with %zu poses.", num_poses);
   }
 
   setPoseGraph(odometry, privateLoopClosures, sharedLoopClosures, TInit);
@@ -220,8 +230,6 @@ bool PGOAgentROS::requestPoseGraph() {
            "number of private loop closures = %zu, "
            "number of shared loop closures = %zu. ",
            getID(), odometry.size(), privateLoopClosures.size(), sharedLoopClosures.size());
-
-  publishStatus();
 
   return true;
 }
@@ -407,7 +415,7 @@ bool PGOAgentROS::logIteration(const std::string &filename) const {
 
   // Compute total elapsed time since beginning of optimization
   auto counter = std::chrono::high_resolution_clock::now() - mGlobalStartTime;
-  double globalElapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(counter).count();
+  auto globalElapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(counter).count();
 
   // Instance number, global iteration number, Number of poses, total bytes
   // received, iteration time (sec), total elapsed time (sec), relative change
@@ -442,6 +450,8 @@ void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
 }
 
 void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
+  mLastCommandTime = std::chrono::high_resolution_clock::now();
+
   switch (msg->command) {
     case Command::REQUESTPOSEGRAPH: {
       ROS_INFO("Robot %u requesting pose graph for round %u", getID(), instance_number());
