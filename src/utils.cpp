@@ -244,7 +244,6 @@ pose_graph_tools::PoseGraph TrajectoryToPoseGraphMsg(unsigned robotID, unsigned 
 size_t computePublicPosesMsgSize(const PublicPoses &msg) {
   size_t bytes = 0;
   bytes += sizeof(msg.robot_id);
-  bytes += sizeof(msg.cluster_id);
   bytes += sizeof(msg.instance_number);
   bytes += sizeof(msg.iteration_number);
   bytes += sizeof(msg.is_auxiliary);
