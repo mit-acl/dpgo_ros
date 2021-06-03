@@ -535,6 +535,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       } else {
         // Agents that are not selected for optimization can iterate immediately
         iterate(false);
+        publishStatus();
       }
       break;
     }
