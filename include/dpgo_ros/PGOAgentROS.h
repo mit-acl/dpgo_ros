@@ -26,7 +26,7 @@ typedef std::vector<ros::Subscriber> SubscriberVector;
 
 class PGOAgentROS : public PGOAgent {
  public:
-  PGOAgentROS(const ros::NodeHandle& nh_, unsigned ID,
+  PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
               const PGOAgentParameters &params);
 
   ~PGOAgentROS() = default;
@@ -88,7 +88,7 @@ class PGOAgentROS : public PGOAgent {
   bool publishTrajectory();
 
   // Publish latest public poses
-  void publishPublicPoses(bool aux);
+  void publishPublicPoses(bool aux = false);
 
   // Publish latest weights for the responsible inter-robot loop closures
   void publishMeasurementWeights();
@@ -108,6 +108,7 @@ class PGOAgentROS : public PGOAgent {
   void commandCallback(const CommandConstPtr &msg);
   void publicPosesCallback(const PublicPosesConstPtr &msg);
   void measurementWeightsCallback(const RelativeMeasurementWeightsConstPtr &msg);
+  void timerCallback(const ros::TimerEvent &event);
 
   // ROS publisher
   ros::Publisher mLiftingMatrixPublisher;
@@ -128,6 +129,9 @@ class PGOAgentROS : public PGOAgent {
   SubscriberVector mAnchorSubscriber;
   SubscriberVector mPublicPosesSubscriber;
   SubscriberVector mMeasurementWeightsSubscriber;
+
+  // ROS timer
+  ros::Timer timer;
 };
 
 }  // namespace dpgo_ros

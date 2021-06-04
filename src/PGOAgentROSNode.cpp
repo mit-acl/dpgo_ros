@@ -115,13 +115,17 @@ int main(int argc, char **argv) {
       ros::shutdown();
     }
   }
-  //ros::param::get("~GNC_barc", params.robustCostParams.GNCBarc);
   double gnc_quantile;
   if (ros::param::get("~GNC_quantile", gnc_quantile)) {
     double barc = RobustCost::computeErrorThresholdAtQuantile(gnc_quantile, 3);
     params.robustCostParams.GNCBarc = barc;
-    ROS_INFO("PGOAgentRos: set GNC confidence at %f, barcsq: %f\n", gnc_quantile, barc * barc);
+    ROS_INFO("PGOAgentROS: set GNC confidence at %f, barc: %f.", gnc_quantile, barc);
   }
+
+  // Debug
+  // params.robustCostParams.GNCBarc = 20;
+  // ROS_WARN("PGOAgentROS: overwrite GNC barc: %f.", params.robustCostParams.GNCBarc);
+
   ros::param::get("~GNC_mu_step", params.robustCostParams.GNCMuStep);
   ros::param::get("~GNC_init_mu", params.robustCostParams.GNCInitMu);
   ros::param::get("~min_converged_loop_closure_ratio", params.minConvergedLoopClosureRatio);

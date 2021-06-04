@@ -60,6 +60,9 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
   mPoseGraphPublisher = nh.advertise<pose_graph_tools::PoseGraph>("optimized_pose_graph", 5);
   mLoopClosurePublisher = nh.advertise<visualization_msgs::Marker>("loop_closures", 5);
 
+  // ROS timer
+  timer = nh.createTimer(ros::Duration(1), &PGOAgentROS::timerCallback, this);
+
   // First robot publishes lifting matrix
   if (getID() == 0) {
     for (size_t iter_ = 0; iter_ < 50; ++iter_) {
@@ -400,7 +403,7 @@ void PGOAgentROS::publishLoopClosures() {
   visualization_msgs::Marker line_list;
   line_list.id = (int) getID();
   line_list.type = visualization_msgs::Marker::LINE_LIST;
-  line_list.scale.x = 0.1;
+  line_list.scale.x = 0.3;
   line_list.header.frame_id = "/world";
   line_list.color.b = 1.0;
   line_list.color.a = 1.0;
@@ -410,6 +413,8 @@ void PGOAgentROS::publishLoopClosures() {
   line_list.pose.orientation.w = 1.0;
   line_list.action = visualization_msgs::Marker::ADD;
   for (const auto &measurement : sharedLoopClosures) {
+    if (measurement.r1 == getID() && measurement.r2 < getID()) continue;
+    if (measurement.r2 == getID() && measurement.r1 < getID()) continue;
     Matrix mT, nT;
     Matrix mt, nt;
     bool mb, nb;
@@ -433,10 +438,11 @@ void PGOAgentROS::publishLoopClosures() {
       line_list.points.push_back(mp);
       line_list.points.push_back(np);
     } else {
-      ROS_WARN("Robot %u cannot publish loop closures in global frame.", getID());
+      ROS_WARN("Robot %u cannot publish loop closure: (%zu,%zu) -> (%zu,%zu)",
+               getID(), measurement.r1, measurement.p1, measurement.r2, measurement.p2);
     }
   }
-  mLoopClosurePublisher.publish(line_list);
+  if (!line_list.points.empty()) mLoopClosurePublisher.publish(line_list);
 }
 
 bool PGOAgentROS::createLogFile(const std::string &filename) {
@@ -651,6 +657,11 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
 
     }
   }
+}
+
+void PGOAgentROS::timerCallback(const ros::TimerEvent &event) {
+  publishStatus();
+  publishLoopClosures();
 }
 
 }  // namespace dpgo_ros
