@@ -412,6 +412,25 @@ void PGOAgentROS::publishLoopClosures() {
   line_list.pose.orientation.z = 0.0;
   line_list.pose.orientation.w = 1.0;
   line_list.action = visualization_msgs::Marker::ADD;
+  for (const auto &measurement : privateLoopClosures) {
+    Matrix T1, T2, t1, t2;
+    bool b1, b2;
+    geometry_msgs::Point p1, p2;
+    b1 = getPoseInGlobalFrame(measurement.p1, T1);
+    b2 = getPoseInGlobalFrame(measurement.p2, T2);
+    if (b1 && b2) {
+      t1 = T1.block(0, d, d, 1);
+      t2 = T2.block(0, d, d, 1);
+      p1.x = t1(0);
+      p1.y = t1(1);
+      p1.z = t1(2);
+      p2.x = t2(0);
+      p2.y = t2(1);
+      p2.z = t2(2);
+      line_list.points.push_back(p1);
+      line_list.points.push_back(p2);
+    }
+  }
   for (const auto &measurement : sharedLoopClosures) {
     if (measurement.r1 == getID() && measurement.r2 < getID()) continue;
     if (measurement.r2 == getID() && measurement.r1 < getID()) continue;
