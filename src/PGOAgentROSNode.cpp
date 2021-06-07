@@ -115,17 +115,22 @@ int main(int argc, char **argv) {
       ros::shutdown();
     }
   }
-  double gnc_quantile;
-  if (ros::param::get("~GNC_quantile", gnc_quantile)) {
-    double barc = RobustCost::computeErrorThresholdAtQuantile(gnc_quantile, 3);
-    params.robustCostParams.GNCBarc = barc;
-    ROS_INFO("PGOAgentROS: set GNC confidence at %f, barc: %f.", gnc_quantile, barc);
+
+  // GNC parameters
+  bool gnc_use_quantile = false;
+  ros::param::get("~GNC_use_probability", gnc_use_quantile);
+  if (gnc_use_quantile) {
+    double gnc_quantile = 0.9;
+    ros::param::get("~GNC_quantile", gnc_quantile);
+    double gnc_barc = RobustCost::computeErrorThresholdAtQuantile(gnc_quantile, 3);
+    params.robustCostParams.GNCBarc = gnc_barc;
+    ROS_INFO("PGOAgentROS: set GNC confidence quantile at %f (barc %f).", gnc_quantile, gnc_barc);
+  } else {
+    double gnc_barc = 5.0;
+    ros::param::get("~GNC_barc", gnc_barc);
+    params.robustCostParams.GNCBarc = gnc_barc;
+    ROS_INFO("PGOAgentROS: set GNC barc at %f.", gnc_barc);
   }
-
-  // Debug
-  // params.robustCostParams.GNCBarc = 20;
-  // ROS_WARN("PGOAgentROS: overwrite GNC barc: %f.", params.robustCostParams.GNCBarc);
-
   ros::param::get("~GNC_mu_step", params.robustCostParams.GNCMuStep);
   ros::param::get("~GNC_init_mu", params.robustCostParams.GNCInitMu);
   ros::param::get("~min_converged_loop_closure_ratio", params.minConvergedLoopClosureRatio);
@@ -134,6 +139,7 @@ int main(int argc, char **argv) {
     params.weightUpdateInterval = (unsigned) weight_update_int;
   }
 
+  // Other options
   int max_iters_int;
   if (ros::param::get("~max_iteration_number", max_iters_int))
     params.maxNumIters = (unsigned) max_iters_int;

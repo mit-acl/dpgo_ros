@@ -457,8 +457,8 @@ void PGOAgentROS::publishLoopClosures() {
       line_list.points.push_back(mp);
       line_list.points.push_back(np);
     } else {
-      ROS_WARN("Robot %u cannot publish loop closure: (%zu,%zu) -> (%zu,%zu)",
-               getID(), measurement.r1, measurement.p1, measurement.r2, measurement.p2);
+      // ROS_WARN("Robot %u cannot publish loop closure: (%zu,%zu) -> (%zu,%zu)",
+      //         getID(), measurement.r1, measurement.p1, measurement.r2, measurement.p2);
     }
   }
   if (!line_list.points.empty()) mLoopClosurePublisher.publish(line_list);

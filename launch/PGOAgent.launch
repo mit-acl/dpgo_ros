@@ -1,43 +1,47 @@
 <launch>
-  
+
   <!-- args that needs to be passed in from higher-level launch files -->
-  <arg name="agent_id" default="0"/>
-  <arg name="num_robots" default="1" />
-  <arg name="dimension" default="3" />
-  <arg name="relaxation_rank" default="5"/>
-  <arg name="multirobot_initialization" default="true"/>
-  <arg name="acceleration" default="false"/>
-  <arg name="restart_interval" default="50" />
-  <arg name="robust_cost_type" default="GNC_TLS" />
-  <arg name="GNC_quantile" default="0.9" />
-  <arg name="GNC_mu_step" default="2.0" />
-  <arg name="GNC_init_mu" default="1e-5" />
+  <arg name="agent_id"                         default="0"/>
+  <arg name="num_robots"                       default="1" />
+  <arg name="dimension"                        default="3" />
+  <arg name="relaxation_rank"                  default="5"/>
+  <arg name="multirobot_initialization"        default="true"/>
+  <arg name="acceleration"                     default="false"/>
+  <arg name="restart_interval"                 default="50" />
+  <arg name="robust_cost_type"                 default="GNC_TLS" />
+  <arg name="GNC_use_probability"              default="true" />
+  <arg name="GNC_quantile"                     default="0.9" />
+  <arg name="GNC_barc"                         default="5.0" />
+  <arg name="GNC_mu_step"                      default="2.0" />
+  <arg name="GNC_init_mu"                      default="1e-5" />
   <arg name="min_converged_loop_closure_ratio" default="0.95" />
-  <arg name="weight_update_interval" default="15" />
-  <arg name="verbose" default="true"/>
-  <arg name="max_iteration_number" default="1000" />
-  <arg name="relative_change_tolerance" default="5e-3" />
-  <arg name="log_directory" default="$(find dpgo_ros)/logs/agent$(arg agent_id)/" />
+  <arg name="weight_update_interval"           default="15" />
+  <arg name="verbose"                          default="true"/>
+  <arg name="max_iteration_number"             default="1000" />
+  <arg name="relative_change_tolerance"        default="5e-3" />
+  <arg name="log_directory"                    default="$(find dpgo_ros)/logs/agent$(arg agent_id)/" />
 
   <!-- GDB: launch-prefix="gnome-terminal -x gdb -ex run \-\-args" -->
   <node ns="dpgo_ros_node" name="agent" pkg="dpgo_ros" type="dpgo_ros_node" output="screen">
-    <param name="~agent_id" type="int" value="$(arg agent_id)" />
-    <param name="~num_robots" type="int" value="$(arg num_robots)"/>
-    <param name="~dimension" type="int" value="$(arg dimension)" />
-    <param name="~relaxation_rank" type="int" value="$(arg relaxation_rank)" />
-    <param name="~multirobot_initialization" type="bool" value="$(arg multirobot_initialization)" />
-    <param name="~acceleration" type="bool" value="$(arg acceleration)"/>
-    <param name="~restart_interval" type="int" value="$(arg restart_interval)" />
-    <param name="~robust_cost_type" type="str" value="$(arg robust_cost_type)" />
-    <param name="~GNC_quantile" type="double" value="$(arg GNC_quantile)" />
-    <param name="~GNC_mu_step" type="double" value="$(arg GNC_mu_step)" />
-    <param name="~GNC_init_mu" type="double" value="$(arg GNC_init_mu)" />
+    <param name="~agent_id"                         type="int"    value="$(arg agent_id)" />
+    <param name="~num_robots"                       type="int"    value="$(arg num_robots)"/>
+    <param name="~dimension"                        type="int"    value="$(arg dimension)" />
+    <param name="~relaxation_rank"                  type="int"    value="$(arg relaxation_rank)" />
+    <param name="~multirobot_initialization"        type="bool"   value="$(arg multirobot_initialization)" />
+    <param name="~acceleration"                     type="bool"   value="$(arg acceleration)"/>
+    <param name="~restart_interval"                 type="int"    value="$(arg restart_interval)" />
+    <param name="~robust_cost_type"                 type="str"    value="$(arg robust_cost_type)" />
+    <param name="~GNC_use_probability"              type="bool"   value="$(arg GNC_use_probability)" />
+    <param name="~GNC_quantile"                     type="double" value="$(arg GNC_quantile)" />
+    <param name="~GNC_barc"                         type="double" value="$(arg GNC_barc)" />
+    <param name="~GNC_mu_step"                      type="double" value="$(arg GNC_mu_step)" />
+    <param name="~GNC_init_mu"                      type="double" value="$(arg GNC_init_mu)" />
     <param name="~min_converged_loop_closure_ratio" type="double" value="$(arg min_converged_loop_closure_ratio)" />
-    <param name="~weight_update_interval" type="int" value="$(arg weight_update_interval)" />
-    <param name="~verbose" type="bool" value="$(arg verbose)" />
-    <param name="~max_iteration_number" type="int" value="$(arg max_iteration_number)" />
-    <param name="~relative_change_tolerance" type="double" value="$(arg relative_change_tolerance)" />
-    <param name="~log_output_path" type="str" value="$(arg log_directory)" />
+    <param name="~weight_update_interval"           type="int"    value="$(arg weight_update_interval)" />
+    <param name="~verbose"                          type="bool"   value="$(arg verbose)" />
+    <param name="~max_iteration_number"             type="int"    value="$(arg max_iteration_number)" />
+    <param name="~relative_change_tolerance"        type="double" value="$(arg relative_change_tolerance)" />
+    <param name="~log_output_path"                  type="str"    value="$(arg log_directory)" />
   </node>
 
 
