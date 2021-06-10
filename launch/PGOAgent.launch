@@ -14,8 +14,9 @@
   <arg name="GNC_barc"                         default="5.0" />
   <arg name="GNC_mu_step"                      default="2.0" />
   <arg name="GNC_init_mu"                      default="1e-5" />
-  <arg name="min_converged_loop_closure_ratio" default="0.95" />
-  <arg name="weight_update_interval"           default="15" />
+  <arg name="robust_opt_warm_start"            default="true" />
+  <arg name="robust_opt_min_convergence_ratio" default="0.95" />
+  <arg name="robust_opt_inner_iters"           default="15" />
   <arg name="verbose"                          default="true"/>
   <arg name="max_iteration_number"             default="1000" />
   <arg name="relative_change_tolerance"        default="5e-3" />
@@ -36,8 +37,9 @@
     <param name="~GNC_barc"                         type="double" value="$(arg GNC_barc)" />
     <param name="~GNC_mu_step"                      type="double" value="$(arg GNC_mu_step)" />
     <param name="~GNC_init_mu"                      type="double" value="$(arg GNC_init_mu)" />
-    <param name="~min_converged_loop_closure_ratio" type="double" value="$(arg min_converged_loop_closure_ratio)" />
-    <param name="~weight_update_interval"           type="int"    value="$(arg weight_update_interval)" />
+    <param name="~robust_opt_warm_start"            type="bool"   value="$(arg robust_opt_warm_start)" />
+    <param name="~robust_opt_min_convergence_ratio" type="double" value="$(arg robust_opt_min_convergence_ratio)" />
+    <param name="~robust_opt_inner_iters"           type="int"    value="$(arg robust_opt_inner_iters)" />
     <param name="~verbose"                          type="bool"   value="$(arg verbose)" />
     <param name="~max_iteration_number"             type="int"    value="$(arg max_iteration_number)" />
     <param name="~relative_change_tolerance"        type="double" value="$(arg relative_change_tolerance)" />

@@ -133,10 +133,11 @@ int main(int argc, char **argv) {
   }
   ros::param::get("~GNC_mu_step", params.robustCostParams.GNCMuStep);
   ros::param::get("~GNC_init_mu", params.robustCostParams.GNCInitMu);
-  ros::param::get("~min_converged_loop_closure_ratio", params.minConvergedLoopClosureRatio);
-  int weight_update_int;
-  if (ros::param::get("~weight_update_interval", weight_update_int)) {
-    params.weightUpdateInterval = (unsigned) weight_update_int;
+  ros::param::get("~robust_opt_warm_start", params.robustOptWarmStart);
+  ros::param::get("~robust_opt_min_convergence_ratio", params.robustOptMinConvergenceRatio);
+  int robust_opt_inner_iters;
+  if (ros::param::get("~robust_opt_inner_iters", robust_opt_inner_iters)) {
+    params.robustOptInnerIters = (unsigned) robust_opt_inner_iters;
   }
 
   // Other options
@@ -147,13 +148,15 @@ int main(int argc, char **argv) {
   ros::param::get("~verbose", params.verbose);
   params.logData = ros::param::get("~log_output_path", params.logDirectory);
 
+  // Print params
+  ROS_INFO_STREAM("Initializing PGOAgent " << ID << " with params: \n" << params);
+
   /**
   ###########################################
   Initialize PGO agent
   ###########################################
   */
   dpgo_ros::PGOAgentROS agent(nh, ID, params);
-  ROS_INFO_STREAM("Initialized PGO Agent " << ID << ".");
   ros::Rate rate(100);
   while (ros::ok()) {
     ros::spinOnce();
