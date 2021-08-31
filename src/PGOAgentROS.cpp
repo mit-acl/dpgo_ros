@@ -627,18 +627,16 @@ void PGOAgentROS::publicPosesCallback(const PublicPosesConstPtr &msg) {
   }
 
   // Generate a random permutation of indices
-  std::vector<unsigned> indices;
-  for (size_t index = 0; index < msg->pose_ids.size(); ++index)
-    indices.push_back(index);
-  std::shuffle(indices.begin(), indices.end(), std::mt19937(std::random_device()()));
-  for (const unsigned index : indices) {
-    const size_t poseID = msg->pose_ids.at(index);
+  PoseDict poseDict;
+  for (size_t index = 0; index < msg->pose_ids.size(); ++index) {
+    const PoseID nID = std::make_pair(msg->robot_id, msg->pose_ids.at(index));
     const auto matrix = MatrixFromMsg(msg->poses.at(index));
-    if (msg->is_auxiliary) {
-      updateAuxNeighborPose(msg->robot_id, poseID, matrix);
-    } else {
-      updateNeighborPose(msg->robot_id, poseID, matrix);
-    }
+    poseDict.emplace(nID, matrix);
+  }
+  if (!msg->is_auxiliary) {
+    updateNeighborPoses(msg->robot_id, poseDict);
+  } else {
+    updateAuxNeighborPoses(msg->robot_id, poseDict);
   }
 
   // Update local bookkeeping
@@ -650,10 +648,12 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
   if (mState != PGOAgentState::INITIALIZED) return;
 
   for (size_t k = 0; k < msg->weights.size(); ++k) {
-    unsigned robotSrc = msg->src_robot_ids[k];
-    unsigned robotDst = msg->dst_robot_ids[k];
-    unsigned poseSrc = msg->src_pose_ids[k];
-    unsigned poseDst = msg->dst_pose_ids[k];
+    const unsigned robotSrc = msg->src_robot_ids[k];
+    const unsigned robotDst = msg->dst_robot_ids[k];
+    const unsigned poseSrc = msg->src_pose_ids[k];
+    const unsigned poseDst = msg->dst_pose_ids[k];
+    const PoseID srcID = std::make_pair(robotSrc, poseSrc);
+    const PoseID dstID = std::make_pair(robotDst, poseDst);
     double w = msg->weights[k];
 
     unsigned otherID;
@@ -666,7 +666,7 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
     }
     if (otherID < getID()) {
       try {
-        auto &mMeasurement = findSharedLoopClosure(robotSrc, poseSrc, robotDst, poseDst);
+        auto &mMeasurement = findSharedLoopClosure(srcID, dstID);
         mMeasurement.weight = w;
       }
       catch (const std::runtime_error &e) {
