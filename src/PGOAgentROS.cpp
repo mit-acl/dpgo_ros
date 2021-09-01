@@ -113,7 +113,7 @@ void PGOAgentROS::runOnce() {
       publishStatus();
 
       // Publish trajectory
-      publishTrajectory();
+      // publishTrajectory();
 
       // Publish loop closures
       publishLoopClosures();
@@ -564,7 +564,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       publishPublicPoses(false);
       if (getID() == 0)
         publishLiftingMatrix();
-      publishTrajectory();
+      // publishTrajectory();
       publishStatus();
       if (getID() == 0) {
         ros::Duration(0.1).sleep();
