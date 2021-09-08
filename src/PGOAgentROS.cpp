@@ -568,7 +568,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       publishStatus();
       if (getID() == 0) {
         ros::Duration(0.1).sleep();
-        if (mInitStepsDone > 10000) {
+        if (mInitStepsDone > 1000) {
           ROS_WARN("Exceeded maximum number of initialization steps. Send TERMINATE command.");
           publishTerminateCommand();
           return;
@@ -681,6 +681,9 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
 void PGOAgentROS::timerCallback(const ros::TimerEvent &event) {
   publishStatus();
   publishLoopClosures();
+  if (mState == PGOAgentState::INITIALIZED) {
+    publishPublicPoses(false);
+  }
 }
 
 }  // namespace dpgo_ros
