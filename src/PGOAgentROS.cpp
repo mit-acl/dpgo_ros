@@ -148,8 +148,8 @@ void PGOAgentROS::runOnce() {
     // Terminate if quiet for long time (possible message drop)
     auto counter = std::chrono::high_resolution_clock::now() - mLastCommandTime;
     double elapsedSecond = std::chrono::duration_cast<std::chrono::milliseconds>(counter).count() / 1e3;
-    if (elapsedSecond > 15) {
-      ROS_WARN("Last command is 15 sec ago. Send Terminate command.");
+    if (elapsedSecond > 120) {
+      ROS_WARN("Last command is 120 sec ago. Send Terminate command.");
       publishTerminateCommand();
     }
   }
@@ -568,7 +568,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       publishStatus();
       if (getID() == 0) {
         ros::Duration(0.1).sleep();
-        if (mInitStepsDone > 20) {
+        if (mInitStepsDone > 10000) {
           ROS_WARN("Exceeded maximum number of initialization steps. Send TERMINATE command.");
           publishTerminateCommand();
           return;
