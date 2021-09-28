@@ -147,6 +147,9 @@ int main(int argc, char **argv) {
   ros::param::get("~relative_change_tolerance", params.relChangeTol);
   ros::param::get("~verbose", params.verbose);
   params.logData = ros::param::get("~log_output_path", params.logDirectory);
+  if (params.logDirectory.empty()) {
+    params.logData = false;
+  }
 
   // Print params
   ROS_INFO_STREAM("Initializing PGOAgent " << ID << " with params: \n" << params);
