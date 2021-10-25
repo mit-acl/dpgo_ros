@@ -27,7 +27,8 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
       nh(nh_),
       mInitStepsDone(0),
       mTotalBytesReceived(0),
-      mIterationElapsedMs(0) {
+      mIterationElapsedMs(0),
+      mPublishIterate(false) {
   mTeamIterRequired.assign(mParams.numRobots, 0);
   mTeamIterReceived.assign(mParams.numRobots, 0);
 
@@ -113,10 +114,10 @@ void PGOAgentROS::runOnce() {
       publishStatus();
 
       // Publish trajectory
-      // publishTrajectory();
-
-      // Publish loop closures
-      publishLoopClosures();
+      if (mPublishIterate) {
+        publishTrajectory();
+        publishLoopClosures();
+      }      
 
       // Log local iteration
       if (mParams.logData) {
@@ -549,6 +550,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       ROS_INFO("Robot %u received TERMINATE command. ", getID());
       // Publish optimized trajectory
       publishTrajectory();
+      publishLoopClosures();
       // Reset!
       reset();
       // First robot initiates next optimization round
@@ -680,10 +682,14 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
 
 void PGOAgentROS::timerCallback(const ros::TimerEvent &event) {
   publishStatus();
-  publishLoopClosures();
+  // publishLoopClosures();
   if (mState == PGOAgentState::INITIALIZED) {
     publishPublicPoses(false);
   }
+}
+
+void PGOAgentROS::setPublishIterate(bool publish) {
+  mPublishIterate = publish;
 }
 
 }  // namespace dpgo_ros

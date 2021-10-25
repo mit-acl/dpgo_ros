@@ -36,6 +36,11 @@ class PGOAgentROS : public PGOAgent {
    */
   void runOnce();
 
+  /**
+   * @brief Publish internal iterate in ROS.
+   */
+  void setPublishIterate(bool publish = true);
+
  private:
   // ROS node handle
   ros::NodeHandle nh;
@@ -48,6 +53,9 @@ class PGOAgentROS : public PGOAgent {
 
   // Elapsed time for the latest update
   double mIterationElapsedMs;
+
+  // Publish optimization iterate
+  bool mPublishIterate;
 
   // Global optimization start time
   std::chrono::time_point<std::chrono::high_resolution_clock> mGlobalStartTime, mLastCommandTime;
@@ -98,7 +106,6 @@ class PGOAgentROS : public PGOAgent {
 
   // Log iteration
   static bool createLogFile(const std::string &filename);
-
   bool logIteration(const std::string &filename) const;
 
   // ROS callbacks

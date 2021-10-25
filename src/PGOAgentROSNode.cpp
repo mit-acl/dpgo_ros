@@ -89,6 +89,27 @@ int main(int argc, char **argv) {
     params.restartInterval = (unsigned) restart_interval_int;
   }
 
+  // Maximum number of iterations
+  int max_iters_int;
+  if (ros::param::get("~max_iteration_number", max_iters_int))
+    params.maxNumIters = (unsigned) max_iters_int;
+  
+  // Stopping condition in terms of relative change
+  ros::param::get("~relative_change_tolerance", params.relChangeTol);
+
+  // Verbose flag
+  ros::param::get("~verbose", params.verbose);
+
+  // Publish iterate during optimization
+  bool publish_iterate_flag = false;
+  ros::param::get("~publish_iterate", publish_iterate_flag);
+
+  // Logging
+  params.logData = ros::param::get("~log_output_path", params.logDirectory);
+  if (params.logDirectory.empty()) {
+    params.logData = false;
+  }
+
   // Robust cost function
   std::string costName;
   if (ros::param::get("~robust_cost_type", costName)) {
@@ -140,17 +161,6 @@ int main(int argc, char **argv) {
     params.robustOptInnerIters = (unsigned) robust_opt_inner_iters;
   }
 
-  // Other options
-  int max_iters_int;
-  if (ros::param::get("~max_iteration_number", max_iters_int))
-    params.maxNumIters = (unsigned) max_iters_int;
-  ros::param::get("~relative_change_tolerance", params.relChangeTol);
-  ros::param::get("~verbose", params.verbose);
-  params.logData = ros::param::get("~log_output_path", params.logDirectory);
-  if (params.logDirectory.empty()) {
-    params.logData = false;
-  }
-
   // Print params
   ROS_INFO_STREAM("Initializing PGOAgent " << ID << " with params: \n" << params);
 
@@ -160,6 +170,7 @@ int main(int argc, char **argv) {
   ###########################################
   */
   dpgo_ros::PGOAgentROS agent(nh, ID, params);
+  agent.setPublishIterate(publish_iterate_flag);
   ros::Rate rate(100);
   while (ros::ok()) {
     ros::spinOnce();
