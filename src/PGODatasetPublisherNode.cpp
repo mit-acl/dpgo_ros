@@ -25,12 +25,19 @@ class DatasetPublisher {
  public:
   DatasetPublisher(ros::NodeHandle nh_) : nh(nh_) {
     int num_robots = 0;
-    if (!nh.getParam("/num_robots", num_robots)) {
+    if (!ros::param::get("~num_robots", num_robots)) {
       ROS_ERROR_STREAM("Failed to get number of robots!");
     }
 
+    // Load robot names
+    for (size_t id = 0; id < (unsigned) num_robots; id++) {
+      std::string robot_name = "kimera" + std::to_string(id);
+      ros::param::get("~robot" + std::to_string(id) + "_name", robot_name);
+      robotNames[id] = robot_name;
+    }
+
     string filename;
-    if (!nh.getParam("/dataset", filename)) {
+    if (!ros::param::get("~dataset", filename)) {
       ROS_ERROR_STREAM("Failed to get dataset!");
     }
 
@@ -92,7 +99,7 @@ class DatasetPublisher {
       }
     }
 
-    for (size_t robot = 0; robot < (unsigned)num_robots; ++robot) {
+    for (size_t robot = 0; robot < (unsigned) num_robots; ++robot) {
       pose_graph_tools::PoseGraph pose_graph;
       // Add odometry factors
       for (size_t k = 0; k < odometry[robot].size(); ++k) {
@@ -115,8 +122,8 @@ class DatasetPublisher {
       poseGraphs.push_back(pose_graph);
     }
 
-    for (size_t id = 0; id < (unsigned)num_robots; ++id) {
-      string service_name = "/kimera" + std::to_string(id) + "/distributed_pcm/request_pose_graph";
+    for (size_t id = 0; id < (unsigned) num_robots; ++id) {
+      string service_name = "/" + robotNames.at(id) + "/distributed_pcm/request_pose_graph";
       ros::ServiceServer server = nh.advertiseService(
           service_name, &DatasetPublisher::queryPoseGraphCallback, this);
       poseGraphServers.push_back(server);
@@ -129,6 +136,7 @@ class DatasetPublisher {
   ros::NodeHandle nh;
   vector<PoseGraph> poseGraphs;
   vector<ros::ServiceServer> poseGraphServers;
+  std::map<unsigned, std::string> robotNames;
   bool queryPoseGraphCallback(
       pose_graph_tools::PoseGraphQueryRequest& request,
       pose_graph_tools::PoseGraphQueryResponse& response) {
