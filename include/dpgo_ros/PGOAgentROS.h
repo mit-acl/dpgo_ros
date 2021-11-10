@@ -60,6 +60,9 @@ class PGOAgentROS : public PGOAgent {
   // Global optimization start time
   std::chrono::time_point<std::chrono::high_resolution_clock> mGlobalStartTime, mLastCommandTime;
 
+  // Map from robot ID to name
+  std::map<unsigned, std::string> mRobotNames;
+
   // Data structures to enforce synchronization during iterations
   std::vector<unsigned> mTeamIterReceived;
   std::vector<unsigned> mTeamIterRequired;

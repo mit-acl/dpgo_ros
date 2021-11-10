@@ -32,9 +32,16 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
   mTeamIterRequired.assign(mParams.numRobots, 0);
   mTeamIterReceived.assign(mParams.numRobots, 0);
 
+  // Load robot names
+  for (size_t id = 0; id < mParams.numRobots; id++) {
+    std::string robot_name = "kimera" + std::to_string(id);
+    ros::param::get("~robot" + std::to_string(id) + "_name", robot_name);
+    mRobotNames[id] = robot_name;
+  }
+
   // ROS subscriber
   for (size_t robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
-    std::string topic_prefix = "/kimera" + std::to_string(robot_id) + "/dpgo_ros_node/";
+    std::string topic_prefix = "/" + mRobotNames.at(robot_id) + "/dpgo_ros_node/";
     mLiftingMatrixSubscriber.push_back(
         nh.subscribe(topic_prefix + "lifting_matrix", 1000, &PGOAgentROS::liftingMatrixCallback, this));
     mStatusSubscriber.push_back(
@@ -169,7 +176,7 @@ bool PGOAgentROS::requestPoseGraph() {
   // Query local pose graph
   pose_graph_tools::PoseGraphQuery query;
   query.request.robot_id = getID();
-  std::string service_name = "/kimera" + std::to_string(getID()) +
+  std::string service_name = "/" + mRobotNames.at(getID()) +
       "/distributed_pcm/request_pose_graph";
   if (!ros::service::waitForService(service_name, ros::Duration(5.0))) {
     ROS_ERROR_STREAM("ROS service " << service_name << " does not exist!");
