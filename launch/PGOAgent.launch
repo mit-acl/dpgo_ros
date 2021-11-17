@@ -3,7 +3,7 @@
   <!-- GDB: launch-prefix="gnome-terminal -x gdb -ex run \-\-args" -->
   <arg name="debug"                            default="false" />
   <arg name="launch_prefix"                    value="xterm -e" if="$(arg debug)"/>
-  <arg name="launch_prefix"                    value=""                    unless="$(arg debug)"/>
+  <arg name="launch_prefix"                    value=""         unless="$(arg debug)"/>
 
   <!-- args that needs to be passed in from higher-level launch files -->
   <arg name="agent_id"                         default="0"/>
@@ -22,11 +22,13 @@
   <arg name="robust_opt_warm_start"            default="true" />
   <arg name="robust_opt_min_convergence_ratio" default="0.95" />
   <arg name="robust_opt_inner_iters"           default="15" />
+  <arg name="robust_init_min_inliers"          default="2" />
   <arg name="verbose"                          default="true"/>
   <arg name="max_iteration_number"             default="1000" />
   <arg name="relative_change_tolerance"        default="5e-3" />
   <arg name="publish_iterate"                  default="false"/>
   <arg name="log_directory"                    default="$(find dpgo_ros)/logs/agent$(arg agent_id)/" />
+  <arg name="robot_names_file"                 default="$(find kimera_distributed)/params/robot_names.yaml" />
 
   <node launch-prefix="$(arg launch_prefix)" ns="dpgo_ros_node" name="agent" pkg="dpgo_ros" type="dpgo_ros_node" output="screen">
     <param name="~agent_id"                         type="int"    value="$(arg agent_id)" />
@@ -45,12 +47,13 @@
     <param name="~robust_opt_warm_start"            type="bool"   value="$(arg robust_opt_warm_start)" />
     <param name="~robust_opt_min_convergence_ratio" type="double" value="$(arg robust_opt_min_convergence_ratio)" />
     <param name="~robust_opt_inner_iters"           type="int"    value="$(arg robust_opt_inner_iters)" />
+    <param name="~robust_init_min_inliers"          type="int"    value="$(arg robust_init_min_inliers)" />
     <param name="~verbose"                          type="bool"   value="$(arg verbose)" />
     <param name="~max_iteration_number"             type="int"    value="$(arg max_iteration_number)" />
     <param name="~relative_change_tolerance"        type="double" value="$(arg relative_change_tolerance)" />
     <param name="~publish_iterate"                  type="bool"   value="$(arg publish_iterate)" />
     <param name="~log_output_path"                  type="str"    value="$(arg log_directory)" />
-    <rosparam file="$(find kimera_distributed)/params/robot_names.yaml" />
+    <rosparam file="$(arg robot_names_file)" />
   </node>
 
 

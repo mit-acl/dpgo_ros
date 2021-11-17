@@ -160,6 +160,10 @@ int main(int argc, char **argv) {
   if (ros::param::get("~robust_opt_inner_iters", robust_opt_inner_iters)) {
     params.robustOptInnerIters = (unsigned) robust_opt_inner_iters;
   }
+  int robust_init_min_inliers;
+  if (ros::param::get("~robust_init_min_inliers", robust_init_min_inliers)) {
+    params.robustInitMinInliers = (unsigned) robust_init_min_inliers;
+  }
 
   // Print params
   ROS_INFO_STREAM("Initializing PGOAgent " << ID << " with params: \n" << params);

@@ -4,6 +4,7 @@
   <arg name="acceleration"         default="true"/>
   <arg name="publish_iterate"      default="true"/>
   <arg name="max_iteration_number" default="1000"/>
+  <arg name="robot_names_file"     default="$(find dpgo_ros)/params/robot_names.yaml"/>
 
   <!-- Launch ROS node to publish pose graph -->
   <node name="dataset_publisher"   pkg="dpgo_ros" type="dpgo_ros_dataset_publisher_node" output="screen">

@@ -582,7 +582,8 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
           publishTerminateCommand();
           return;
         }
-        for (auto status : mTeamStatus) {
+        for (auto it : mTeamStatus) {
+          auto status = it.second;
           if (status.state == PGOAgentState::WAIT_FOR_DATA) {
             ROS_WARN("Robot %u has not received data.", status.agentID);
             publishInitializeCommand();
