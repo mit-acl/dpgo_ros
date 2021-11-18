@@ -2,8 +2,8 @@
   <!-- debug flags -->
   <!-- GDB: launch-prefix="gnome-terminal -x gdb -ex run \-\-args" -->
   <arg name="debug"                            default="false" />
-  <arg name="launch_prefix"                    value="xterm -e" if="$(arg debug)"/>
-  <arg name="launch_prefix"                    value=""         unless="$(arg debug)"/>
+  <arg name="launch_prefix"                    value="xterm -e gdb -ex run \-\-args" if="$(arg debug)"/>
+  <arg name="launch_prefix"                    value="" unless="$(arg debug)"/>
 
   <!-- args that needs to be passed in from higher-level launch files -->
   <arg name="agent_id"                         default="0"/>

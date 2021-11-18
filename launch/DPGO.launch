@@ -1,5 +1,6 @@
 <launch>
   <arg name="num_robots"           value="5" />
+  <arg name="debug"                default="false" />
   <arg name="robust_cost_type"     default="L2" />
   <arg name="acceleration"         default="true"/>
   <arg name="publish_iterate"      default="true"/>
