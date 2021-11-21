@@ -114,22 +114,22 @@ int main(int argc, char **argv) {
   std::string costName;
   if (ros::param::get("~robust_cost_type", costName)) {
     if (costName == "L2") {
-      params.robustCostType = RobustCostType::L2;
+      params.robustCostParams.costType = RobustCostParameters::Type::L2;
     }
     else if (costName == "L1") {
-      params.robustCostType = RobustCostType::L1;
+      params.robustCostParams.costType = RobustCostParameters::Type::L1;
     }
     else if (costName == "Huber") {
-      params.robustCostType = RobustCostType::Huber;
+      params.robustCostParams.costType = RobustCostParameters::Type::Huber;
     }
     else if(costName == "TLS") {
-      params.robustCostType = RobustCostType::TLS;
+      params.robustCostParams.costType = RobustCostParameters::Type::TLS;
     }
     else if (costName == "GM") {
-      params.robustCostType = RobustCostType::GM;
+      params.robustCostParams.costType = RobustCostParameters::Type::GM;
     }
     else if (costName == "GNC_TLS") {
-      params.robustCostType = RobustCostType::GNC_TLS;
+      params.robustCostParams.costType = RobustCostParameters::Type::GNC_TLS;
     }
     else {
       ROS_ERROR_STREAM("Unknown robust cost type: " << costName);
