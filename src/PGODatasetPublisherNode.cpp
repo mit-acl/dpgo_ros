@@ -15,7 +15,6 @@
 #include <map>
 #include <vector>
 
-using pose_graph_tools::PoseGraph;
 using std::map;
 using std::string;
 using std::vector;
@@ -62,7 +61,7 @@ class DatasetPublisher {
       for (unsigned idx = startIdx; idx < endIdx; ++idx) {
         unsigned localIdx =
             idx - startIdx;  // this is the local ID of this pose
-        PoseID pose = std::make_pair(robot, localIdx);
+        PoseID pose(robot, localIdx);
         PoseMap[idx] = pose;
       }
     }
@@ -75,10 +74,10 @@ class DatasetPublisher {
       PoseID src = PoseMap[mIn.p1];
       PoseID dst = PoseMap[mIn.p2];
 
-      unsigned srcRobot = src.first;
-      unsigned srcIdx = src.second;
-      unsigned dstRobot = dst.first;
-      unsigned dstIdx = dst.second;
+      unsigned srcRobot = src.robot_id;
+      unsigned srcIdx = src.frame_id;
+      unsigned dstRobot = dst.robot_id;
+      unsigned dstIdx = dst.frame_id;
 
       RelativeSEMeasurement m(srcRobot, dstRobot, srcIdx, dstIdx, mIn.R, mIn.t,
                               mIn.kappa, mIn.tau);
@@ -134,7 +133,7 @@ class DatasetPublisher {
 
  private:
   ros::NodeHandle nh;
-  vector<PoseGraph> poseGraphs;
+  vector<pose_graph_tools::PoseGraph> poseGraphs;
   vector<ros::ServiceServer> poseGraphServers;
   std::map<unsigned, std::string> robotNames;
   bool queryPoseGraphCallback(

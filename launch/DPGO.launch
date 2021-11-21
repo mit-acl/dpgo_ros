@@ -11,7 +11,7 @@
   <node name="dataset_publisher"   pkg="dpgo_ros" type="dpgo_ros_dataset_publisher_node" output="screen">
     <param name="~num_robots"        type="int"     value="$(arg num_robots)" />
     <param name="~dataset"           type="str"     value="$(find dpgo_ros)/data/sphere2500.g2o" />
-    <rosparam file="$(find dpgo_ros)/params/robot_names.yaml" />
+    <rosparam file="$(arg robot_names_file)" />
   </node>
 
   <!-- Launch indivial PGO agents. Number must match /num_robots -->

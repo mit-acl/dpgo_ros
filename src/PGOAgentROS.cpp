@@ -376,9 +376,9 @@ void PGOAgentROS::publishPublicPoses(bool aux) {
 
   for (const auto &sharedPose : map) {
     const PoseID nID = sharedPose.first;
-    const auto &matrix = sharedPose.second;
-    assert(std::get<0>(nID) == getID());
-    msg.pose_ids.push_back(std::get<1>(nID));
+    const auto &matrix = sharedPose.second.getData();
+    assert(nID.robot_id == getID());
+    msg.pose_ids.push_back(nID.frame_id);
     msg.poses.push_back(MatrixToMsg(matrix));
   }
   mPublicPosesPublisher.publish(msg);
@@ -386,7 +386,7 @@ void PGOAgentROS::publishPublicPoses(bool aux) {
 
 void PGOAgentROS::publishMeasurementWeights() {
   RelativeMeasurementWeights msg;
-  for (const auto &m: sharedLoopClosures) {
+  for (const auto &m: mPoseGraph->sharedLoopClosures()) {
     unsigned otherID = 0;
     if (m.r1 == getID()) {
       otherID = m.r2;
@@ -420,7 +420,7 @@ void PGOAgentROS::publishLoopClosures() {
   line_list.pose.orientation.z = 0.0;
   line_list.pose.orientation.w = 1.0;
   line_list.action = visualization_msgs::Marker::ADD;
-  for (const auto &measurement : privateLoopClosures) {
+  for (const auto &measurement : mPoseGraph->privateLoopClosures()) {
     Matrix T1, T2, t1, t2;
     bool b1, b2;
     geometry_msgs::Point p1, p2;
@@ -439,7 +439,7 @@ void PGOAgentROS::publishLoopClosures() {
       line_list.points.push_back(p2);
     }
   }
-  for (const auto &measurement : sharedLoopClosures) {
+  for (const auto &measurement : mPoseGraph->sharedLoopClosures()) {
     if (measurement.r1 == getID() && measurement.r2 < getID()) continue;
     if (measurement.r2 == getID() && measurement.r1 < getID()) continue;
     Matrix mT, nT;
@@ -582,8 +582,14 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
           publishTerminateCommand();
           return;
         }
-        for (auto it : mTeamStatus) {
-          auto status = it.second;
+        for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
+          const auto &it = mTeamStatus.find(robot_id);
+          if (it == mTeamStatus.end()) {
+            ROS_WARN("Robot %u status not available.", robot_id);
+            publishInitializeCommand();
+            return;
+          }
+          const auto &status = it->second;
           if (status.state == PGOAgentState::WAIT_FOR_DATA) {
             ROS_WARN("Robot %u has not received data.", status.agentID);
             publishInitializeCommand();
@@ -639,7 +645,7 @@ void PGOAgentROS::publicPosesCallback(const PublicPosesConstPtr &msg) {
   // Generate a random permutation of indices
   PoseDict poseDict;
   for (size_t index = 0; index < msg->pose_ids.size(); ++index) {
-    const PoseID nID = std::make_pair(msg->robot_id, msg->pose_ids.at(index));
+    const PoseID nID(msg->robot_id, msg->pose_ids.at(index));
     const auto matrix = MatrixFromMsg(msg->poses.at(index));
     poseDict.emplace(nID, matrix);
   }
@@ -662,8 +668,8 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
     const unsigned robotDst = msg->dst_robot_ids[k];
     const unsigned poseSrc = msg->src_pose_ids[k];
     const unsigned poseDst = msg->dst_pose_ids[k];
-    const PoseID srcID = std::make_pair(robotSrc, poseSrc);
-    const PoseID dstID = std::make_pair(robotDst, poseDst);
+    const PoseID srcID(robotSrc, poseSrc);
+    const PoseID dstID(robotDst, poseDst);
     double w = msg->weights[k];
 
     unsigned otherID;
@@ -676,7 +682,7 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
     }
     if (otherID < getID()) {
       try {
-        auto &mMeasurement = findSharedLoopClosure(srcID, dstID);
+        auto &mMeasurement = mPoseGraph->findSharedLoopClosure(srcID, dstID);
         mMeasurement.weight = w;
       }
       catch (const std::runtime_error &e) {
