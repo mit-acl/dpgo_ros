@@ -64,6 +64,7 @@ find_package(catkin REQUIRED COMPONENTS
    MatrixMsg.msg
    PublicPoses.msg
    RelativeMeasurementWeights.msg
+   RelativeMeasurementList.msg
  )
 
 # Generate services in the 'srv' folder
@@ -84,6 +85,7 @@ add_service_files(
    DEPENDENCIES
    std_msgs
    geometry_msgs
+   pose_graph_tools
  )
 
 ################################################
