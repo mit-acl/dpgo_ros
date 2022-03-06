@@ -653,16 +653,19 @@ void PGOAgentROS::publicMeasurementsCallback(const RelativeMeasurementListConstP
   // Ignore if already received inter-robot loop closures from this robot
   if (mTeamReceivedSharedLoopClosures[msg->from_robot])
     return;
-  ROS_INFO("Robot %u received public measurements from robot %u.", getID(), msg->from_robot);
   mTeamReceivedSharedLoopClosures[msg->from_robot] = true;
 
   // Add inter-robot loop closures that involve this robot
+  const auto num_before = mPoseGraph->numSharedLoopClosures();
   for (const auto &e : msg->edges) {
     if (e.robot_from == (int) getID() || e.robot_to == (int) getID()) {
       const auto measurement = RelativeMeasurementFromMsg(e);
       addMeasurement(measurement);
     }
   }
+  const auto num_after = mPoseGraph->numSharedLoopClosures();
+  ROS_INFO("Robot %u received measurements from %u: "
+           "added %u missing measurements.", getID(), msg->from_robot, num_after - num_before);
 
   // If received shared loop closures from all robots, proceed to initialize optimization
   bool ready = true;

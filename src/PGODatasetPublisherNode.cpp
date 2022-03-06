@@ -94,7 +94,7 @@ class DatasetPublisher {
       } else {
         // shared measurement
         shared_loop_closure[srcRobot].push_back(m);
-        shared_loop_closure[dstRobot].push_back(m);
+        // shared_loop_closure[dstRobot].push_back(m);
       }
     }
 
@@ -129,7 +129,7 @@ class DatasetPublisher {
     }
   }
 
-  ~DatasetPublisher() {}
+  ~DatasetPublisher() = default;
 
  private:
   ros::NodeHandle nh;
