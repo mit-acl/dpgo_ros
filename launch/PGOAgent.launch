@@ -20,12 +20,12 @@
   <arg name="GNC_mu_step"                      default="2.0" />
   <arg name="GNC_init_mu"                      default="1e-5" />
   <arg name="robust_opt_warm_start"            default="true" />
-  <arg name="robust_opt_min_convergence_ratio" default="0.95" />
+  <arg name="robust_opt_min_convergence_ratio" default="0" />
   <arg name="robust_opt_inner_iters"           default="15" />
   <arg name="robust_init_min_inliers"          default="2" />
   <arg name="verbose"                          default="true"/>
   <arg name="max_iteration_number"             default="1000" />
-  <arg name="relative_change_tolerance"        default="5e-3" />
+  <arg name="relative_change_tolerance"        default="5e-2" />
   <arg name="publish_iterate"                  default="false"/>
   <arg name="log_directory"                    default="$(find dpgo_ros)/logs/agent$(arg agent_id)/" />
   <arg name="robot_names_file"                 default="$(find kimera_distributed)/params/robot_names.yaml" />
