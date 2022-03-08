@@ -690,7 +690,7 @@ void PGOAgentROS::publicMeasurementsCallback(const RelativeMeasurementListConstP
 
 void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsConstPtr &msg) {
   if (mState != PGOAgentState::INITIALIZED) return;
-
+  bool weights_updated = false;
   for (size_t k = 0; k < msg->weights.size(); ++k) {
     const unsigned robotSrc = msg->src_robot_ids[k];
     const unsigned robotDst = msg->dst_robot_ids[k];
@@ -711,12 +711,18 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
     if (otherID < getID()) {
       RelativeSEMeasurement *mMeasurement = PoseGraph::findMeasurement(mPoseGraph->sharedLoopClosures(),
                                                                        srcID, dstID);
-      if (mMeasurement)
+      if (mMeasurement) {
         mMeasurement->weight = w;
+        weights_updated = true;
+      }
       else
         ROS_ERROR("Cannot find specified shared loop closure (%u, %u) -> (%u, %u)",
                   robotSrc, poseSrc, robotDst, poseDst);
     }
+  }
+  if (weights_updated) {
+    // Need to recompute data matrices in the pose graph
+    mPoseGraph->clearDataMatrices();
   }
 }
 

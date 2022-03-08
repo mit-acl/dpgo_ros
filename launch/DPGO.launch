@@ -1,6 +1,7 @@
 <launch>
   <arg name="num_robots"           value="5" />
   <arg name="debug"                default="false" />
+  <arg name="verbose"              default="true" />
   <arg name="robust_cost_type"     default="L2" />
   <arg name="acceleration"         default="true"/>
   <arg name="publish_iterate"      default="true"/>
@@ -10,7 +11,7 @@
   <!-- Launch ROS node to publish pose graph -->
   <node name="dataset_publisher"   pkg="dpgo_ros" type="dpgo_ros_dataset_publisher_node" output="screen">
     <param name="~num_robots"        type="int"     value="$(arg num_robots)" />
-    <param name="~dataset"           type="str"     value="$(find dpgo_ros)/data/sphere2500.g2o" />
+    <param name="~dataset"           type="str"     value="$(find dpgo_ros)/data/smallGrid3D.g2o" />
     <rosparam file="$(arg robot_names_file)" />
   </node>
 
@@ -22,6 +23,7 @@
       <arg name="acceleration"         value="$(arg acceleration)" />
       <arg name="max_iteration_number" value="$(arg max_iteration_number)"/>
       <arg name="publish_iterate"      value="$(arg publish_iterate)"/>
+      <arg name="verbose"              value="$(arg verbose)" />
     </include>
   </group>
 
@@ -32,6 +34,7 @@
       <arg name="acceleration"         value="$(arg acceleration)" />
       <arg name="max_iteration_number" value="$(arg max_iteration_number)"/>
       <arg name="publish_iterate"      value="$(arg publish_iterate)"/>
+      <arg name="verbose"              value="$(arg verbose)" />
     </include>
   </group>
 
@@ -42,6 +45,7 @@
       <arg name="acceleration"         value="$(arg acceleration)" />
       <arg name="max_iteration_number" value="$(arg max_iteration_number)"/>
       <arg name="publish_iterate"      value="$(arg publish_iterate)"/>
+      <arg name="verbose"              value="$(arg verbose)" />
     </include>
   </group>
 
@@ -52,6 +56,7 @@
       <arg name="acceleration"         value="$(arg acceleration)" />
       <arg name="max_iteration_number" value="$(arg max_iteration_number)"/>
       <arg name="publish_iterate"      value="$(arg publish_iterate)"/>
+      <arg name="verbose"              value="$(arg verbose)" />
     </include>
   </group>
 
@@ -62,6 +67,7 @@
       <arg name="acceleration"         value="$(arg acceleration)" />
       <arg name="max_iteration_number" value="$(arg max_iteration_number)"/>
       <arg name="publish_iterate"      value="$(arg publish_iterate)"/>
+      <arg name="verbose"              value="$(arg verbose)" />
     </include>
   </group>
 
