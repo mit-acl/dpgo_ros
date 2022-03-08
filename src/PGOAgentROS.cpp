@@ -235,8 +235,31 @@ bool PGOAgentROS::initializePoseGraph() {
 
   mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
   mTeamReceivedSharedLoopClosures[getID()] = true;
-
+  tryInitializeOptimization();
   return true;
+}
+
+bool PGOAgentROS::tryInitializeOptimization() {
+  // If received shared loop closures from all robots, proceed to initialize optimization
+  bool ready = true;
+  for (const auto &b : mTeamReceivedSharedLoopClosures) {
+    if (!b) ready = false;
+  }
+  if (ready) {
+    if (mInitPoses.has_value())
+      initializeOptimization(&mInitPoses.value());
+    else
+      initializeOptimization();
+    ROS_INFO("Robot %u initializes optimization. "
+             "num_poses:%u, odom:%u, local_lc:%u, shared_lc:%u, init_guess:%d",
+             getID(),
+             num_poses(),
+             mPoseGraph->numOdometry(),
+             mPoseGraph->numPrivateLoopClosures(),
+             mPoseGraph->numSharedLoopClosures(),
+             mInitPoses.has_value());
+  }
+  return ready;
 }
 
 void PGOAgentROS::publishLiftingMatrix() {
@@ -668,25 +691,8 @@ void PGOAgentROS::publicMeasurementsCallback(const RelativeMeasurementListConstP
   ROS_INFO("Robot %u received measurements from %u: "
            "added %u missing measurements.", getID(), msg->from_robot, num_after - num_before);
 
-  // If received shared loop closures from all robots, proceed to initialize optimization
-  bool ready = true;
-  for (const auto &b : mTeamReceivedSharedLoopClosures) {
-    if (!b) ready = false;
-  }
-  if (ready) {
-    if (mInitPoses.has_value())
-      initializeOptimization(&mInitPoses.value());
-    else
-      initializeOptimization();
-    ROS_INFO("Robot %u initializes optimization. "
-             "num_poses:%u, odom:%u, local_lc:%u, shared_lc:%u, init_guess:%d",
-             getID(),
-             num_poses(),
-             mPoseGraph->numOdometry(),
-             mPoseGraph->numPrivateLoopClosures(),
-             mPoseGraph->numSharedLoopClosures(),
-             mInitPoses.has_value());
-  }
+  // Proceed to initialize optimization
+  tryInitializeOptimization();
 }
 
 void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsConstPtr &msg) {

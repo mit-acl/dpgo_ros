@@ -105,6 +105,9 @@ class PGOAgentROS : public PGOAgent {
   // Request latest local pose graph
   bool initializePoseGraph();
 
+  // Attempt to initialize optimization
+  bool tryInitializeOptimization();
+
   // Publish status
   void publishStatus();
 
