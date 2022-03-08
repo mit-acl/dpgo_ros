@@ -73,6 +73,9 @@ class PGOAgentROS : public PGOAgent {
   // A copy of the parameter struct
   const PGOAgentROSParameters mParamsROS;
 
+  // Handle to log file
+  std::ofstream mIterationLog;
+
   // Number of initialization steps performed
   size_t mInitStepsDone;
 
@@ -139,8 +142,8 @@ class PGOAgentROS : public PGOAgent {
   void publishLoopClosureMarkers();
 
   // Log iteration
-  static bool createLogFile(const std::string &filename);
-  bool logIteration(const std::string &filename) const;
+  bool createIterationLog(const std::string &filename);
+  bool logIteration();
 
   // ROS callbacks
   void liftingMatrixCallback(const MatrixMsgConstPtr &msg);

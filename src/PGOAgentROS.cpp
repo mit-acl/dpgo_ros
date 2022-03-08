@@ -130,7 +130,7 @@ void PGOAgentROS::runOnce() {
 
       // Log local iteration
       if (mParams.logData) {
-        logIteration(mParams.logDirectory + "dpgo_log.csv");
+        logIteration();
       }
 
       // Check termination condition OR notify next robot to update
@@ -176,6 +176,8 @@ void PGOAgentROS::reset() {
   mTeamIterReceived.assign(mParams.numRobots, 0);
   mTotalBytesReceived = 0;
   mInitPoses.reset();
+  if (mIterationLog.is_open())
+    mIterationLog.close();
 }
 
 bool PGOAgentROS::initializePoseGraph() {
@@ -465,26 +467,25 @@ void PGOAgentROS::publishLoopClosureMarkers() {
   if (!line_list.points.empty()) mLoopClosureMarkerPublisher.publish(line_list);
 }
 
-bool PGOAgentROS::createLogFile(const std::string &filename) {
-  std::ofstream file;
-  file.open(filename);
-  if (!file.is_open()) {
+bool PGOAgentROS::createIterationLog(const std::string &filename) {
+  if (mIterationLog.is_open())
+    mIterationLog.close();
+  mIterationLog.open(filename);
+  if (!mIterationLog.is_open()) {
     ROS_ERROR_STREAM("Error opening log file: " << filename);
     return false;
   }
   // Instance number, global iteration number, Number of poses, total bytes
   // received, iteration time (sec), total elapsed time (sec), relative change
-  file << "instance, iteration, num_poses, total_bytes_received, "
-          "iteration_time_sec, total_time_sec, relative_change \n";
-  file.close();
+  mIterationLog << "instance, iteration, num_poses, total_bytes_received, "
+              "iteration_time_sec, total_time_sec, relative_change \n";
+  mIterationLog.flush();
   return true;
 }
 
-bool PGOAgentROS::logIteration(const std::string &filename) const {
-  std::ofstream file;
-  file.open(filename, std::ios_base::app);
-  if (!file.is_open()) {
-    ROS_ERROR_STREAM("Error opening log file: " << filename);
+bool PGOAgentROS::logIteration() {
+  if (!mIterationLog.is_open()) {
+    ROS_ERROR_STREAM("No iteration log file!");
     return false;
   }
 
@@ -494,14 +495,14 @@ bool PGOAgentROS::logIteration(const std::string &filename) const {
 
   // Instance number, global iteration number, Number of poses, total bytes
   // received, iteration time (sec), total elapsed time (sec), relative change
-  file << instance_number() << ",";
-  file << iteration_number() << ",";
-  file << num_poses() << ",";
-  file << mTotalBytesReceived << ",";
-  file << mIterationElapsedMs / 1e3 << ",";
-  file << globalElapsedMs / 1e3 << ",";
-  file << mStatus.relativeChange << "\n";
-  file.close();
+  mIterationLog << instance_number() << ",";
+  mIterationLog << iteration_number() << ",";
+  mIterationLog << num_poses() << ",";
+  mIterationLog << mTotalBytesReceived << ",";
+  mIterationLog << mIterationElapsedMs / 1e3 << ",";
+  mIterationLog << globalElapsedMs / 1e3 << ",";
+  mIterationLog << mStatus.relativeChange << "\n";
+  mIterationLog.flush();
   return true;
 }
 
@@ -534,7 +535,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       initializePoseGraph();
       // Create log file for new round
       if (mParams.logData) {
-        createLogFile(mParams.logDirectory + "dpgo_log.csv");
+        createIterationLog(mParams.logDirectory + "dpgo_log_" + std::to_string(instance_number()) + ".csv");
       }
       publishStatus();
       // Enter initialization round
@@ -714,8 +715,7 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
       if (mMeasurement) {
         mMeasurement->weight = w;
         weights_updated = true;
-      }
-      else
+      } else
         ROS_ERROR("Cannot find specified shared loop closure (%u, %u) -> (%u, %u)",
                   robotSrc, poseSrc, robotDst, poseDst);
     }
