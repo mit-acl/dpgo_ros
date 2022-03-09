@@ -31,6 +31,7 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
       mIterationElapsedMs(0) {
   mTeamIterRequired.assign(mParams.numRobots, 0);
   mTeamIterReceived.assign(mParams.numRobots, 0);
+  mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
 
   // Load robot names
   for (size_t id = 0; id < mParams.numRobots; id++) {
@@ -174,6 +175,7 @@ void PGOAgentROS::reset() {
   mInitStepsDone = 0;
   mTeamIterRequired.assign(mParams.numRobots, 0);
   mTeamIterReceived.assign(mParams.numRobots, 0);
+  mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
   mTotalBytesReceived = 0;
   mInitPoses.reset();
   if (mIterationLog.is_open())
