@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
     return -1;
   }
 
-  PGOAgentParameters params(d, r, num_robots);
+  dpgo_ros::PGOAgentROSParameters params(d, r, num_robots);
 
   /**
   ###########################################
@@ -93,6 +93,9 @@ int main(int argc, char **argv) {
   int max_iters_int;
   if (ros::param::get("~max_iteration_number", max_iters_int))
     params.maxNumIters = (unsigned) max_iters_int;
+
+  // Maximum delayed iterations
+  ros::param::get("~max_delayed_iterations", params.maxDelayedIterations);
   
   // Stopping condition in terms of relative change
   ros::param::get("~relative_change_tolerance", params.relChangeTol);
@@ -101,8 +104,7 @@ int main(int argc, char **argv) {
   ros::param::get("~verbose", params.verbose);
 
   // Publish iterate during optimization
-  bool publish_iterate_flag = false;
-  ros::param::get("~publish_iterate", publish_iterate_flag);
+  ros::param::get("~publish_iterate", params.publishIterate);
 
   // Logging
   params.logData = ros::param::get("~log_output_path", params.logDirectory);
@@ -174,7 +176,6 @@ int main(int argc, char **argv) {
   ###########################################
   */
   dpgo_ros::PGOAgentROS agent(nh, ID, params);
-  agent.setPublishIterate(publish_iterate_flag);
   ros::Rate rate(100);
   while (ros::ok()) {
     ros::spinOnce();
