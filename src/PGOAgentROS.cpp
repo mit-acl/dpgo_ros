@@ -60,17 +60,17 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
   }
 
   // ROS publisher
-  mLiftingMatrixPublisher = nh.advertise<MatrixMsg>("lifting_matrix", 5);
-  mAnchorPublisher = nh.advertise<PublicPoses>("anchor", 5);
-  mStatusPublisher = nh.advertise<Status>("status", 5);
-  mCommandPublisher = nh.advertise<Command>("command", 5);
-  mPublicPosesPublisher = nh.advertise<PublicPoses>("public_poses", 10);
-  mPublicMeasurementsPublisher = nh.advertise<RelativeMeasurementList>("public_measurements", 10);
-  mMeasurementWeightsPublisher = nh.advertise<RelativeMeasurementWeights>("measurement_weights", 10);
-  mPoseArrayPublisher = nh.advertise<geometry_msgs::PoseArray>("trajectory", 5);
-  mPathPublisher = nh.advertise<nav_msgs::Path>("path", 5);
-  mPoseGraphPublisher = nh.advertise<pose_graph_tools::PoseGraph>("optimized_pose_graph", 5);
-  mLoopClosureMarkerPublisher = nh.advertise<visualization_msgs::Marker>("loop_closures", 5);
+  mLiftingMatrixPublisher = nh.advertise<MatrixMsg>("lifting_matrix", 1);
+  mAnchorPublisher = nh.advertise<PublicPoses>("anchor", 1);
+  mStatusPublisher = nh.advertise<Status>("status", 1);
+  mCommandPublisher = nh.advertise<Command>("command", 1);
+  mPublicPosesPublisher = nh.advertise<PublicPoses>("public_poses", 1);
+  mPublicMeasurementsPublisher = nh.advertise<RelativeMeasurementList>("public_measurements", 1);
+  mMeasurementWeightsPublisher = nh.advertise<RelativeMeasurementWeights>("measurement_weights", 5);
+  mPoseArrayPublisher = nh.advertise<geometry_msgs::PoseArray>("trajectory", 1);
+  mPathPublisher = nh.advertise<nav_msgs::Path>("path", 1);
+  mPoseGraphPublisher = nh.advertise<pose_graph_tools::PoseGraph>("optimized_pose_graph", 1);
+  mLoopClosureMarkerPublisher = nh.advertise<visualization_msgs::Marker>("loop_closures", 1);
 
   // ROS timer
   timer = nh.createTimer(ros::Duration(1), &PGOAgentROS::timerCallback, this);
@@ -92,7 +92,7 @@ void PGOAgentROS::runOnce() {
       publishTerminateCommand();
     }
 
-    // Check if this agent has received latest public poses from its neighbors
+    // Check if this agent has received the latest public poses from its neighbors
     bool ready = true;
     for (unsigned neighbor : getNeighbors()) {
       int requiredIter = (int) mTeamIterRequired[neighbor];
@@ -249,9 +249,9 @@ bool PGOAgentROS::tryInitializeOptimization() {
   }
   if (ready) {
     if (mInitPoses.has_value())
-      initializeOptimization(&mInitPoses.value());
+      initialize(&mInitPoses.value());
     else
-      initializeOptimization();
+      initialize();
     ROS_INFO("Robot %u initializes optimization. "
              "num_poses:%u, odom:%u, local_lc:%u, shared_lc:%u, init_guess:%d",
              getID(),
