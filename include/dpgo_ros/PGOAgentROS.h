@@ -74,7 +74,7 @@ class PGOAgentROS : public PGOAgent {
   const PGOAgentROSParameters mParamsROS;
 
   // Received request to iterate with optimization in synchronous mode
-  bool mSynchronousOptimizationRequested;
+  bool mSynchronousOptimizationRequested = false;
 
   // Handle to log file
   std::ofstream mIterationLog;
