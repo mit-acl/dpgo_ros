@@ -10,10 +10,10 @@
 #include <geometry_msgs/PoseArray.h>
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
+#include <tf/tf.h>
 #include <pose_graph_tools/PoseGraphQuery.h>
 #include <pose_graph_tools/utils.h>
-#include <tf/tf.h>
-
+#include <glog/logging.h>
 #include <map>
 #include <random>
 
@@ -86,62 +86,10 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
 }
 
 void PGOAgentROS::runOnce() {
-  if (mOptimizationRequested) {
-    // Terminate if this agent is not initialized
-    if (mState != PGOAgentState::INITIALIZED) {
-      publishTerminateCommand();
-    }
-
-    // Check if this agent has received the latest public poses from its neighbors
-    bool ready = true;
-    for (unsigned neighbor : getNeighbors()) {
-      int requiredIter = (int) mTeamIterRequired[neighbor];
-      if (mParams.acceleration) requiredIter = (int) iteration_number() + 1;
-      requiredIter = requiredIter - mParamsROS.maxDelayedIterations;
-      if ((int) mTeamIterReceived[neighbor] < requiredIter) {
-        ready = false;
-        if (mParams.verbose) {
-          ROS_WARN("Robot %u iteration %u waits for neighbor %u iteration %u (last received iteration %u).",
-                   getID(), iteration_number() + 1, neighbor, requiredIter, mTeamIterReceived[neighbor]);
-        }
-      }
-    }
-
-    // If ready, perform optimization
-    if (ready) {
-
-      // Iterate
-      auto startTime = std::chrono::high_resolution_clock::now();
-      iterate(true);
-      auto counter = std::chrono::high_resolution_clock::now() - startTime;
-      mIterationElapsedMs = (double) std::chrono::duration_cast<std::chrono::milliseconds>(counter).count();
-      mOptimizationRequested = false;
-
-      // First robot publish anchor
-      if (getID() == 0) publishAnchor();
-
-      // Publish status
-      publishStatus();
-
-      // Publish trajectory
-      if (mParamsROS.publishIterate) {
-        publishTrajectory();
-        publishLoopClosureMarkers();
-      }
-
-      // Log local iteration
-      if (mParams.logData) {
-        logIteration();
-      }
-
-      // Check termination condition OR notify next robot to update
-      if (shouldTerminate()) {
-        publishTerminateCommand();
-      } else {
-        // Notify next robot to update
-        publishUpdateCommand();
-      }
-    }
+  if (mParams.asynchronous) {
+    runOnceAsynchronous();
+  } else {
+    runOnceSynchronous();
   }
 
   if (mPublishPublicPosesRequested) {
@@ -172,6 +120,7 @@ void PGOAgentROS::reset() {
   publishTrajectory();
   publishLoopClosureMarkers();
   PGOAgent::reset();
+  mSynchronousOptimizationRequested = false;
   mInitStepsDone = 0;
   mTeamIterRequired.assign(mParams.numRobots, 0);
   mTeamIterReceived.assign(mParams.numRobots, 0);
@@ -264,6 +213,88 @@ bool PGOAgentROS::tryInitializeOptimization() {
   return ready;
 }
 
+void PGOAgentROS::runOnceAsynchronous() {
+  if (mPublishAsynchronousRequested) {
+    if (getID() == 0) publishAnchor();
+    publishStatus();
+    if (mParamsROS.publishIterate) {
+      publishTrajectory();
+      publishLoopClosureMarkers();
+    }
+    if (mParams.logData) {
+      logIteration();
+    }
+    mPublishAsynchronousRequested = false;
+  }
+
+  // Check for termination condition
+  if (getID() == 0 && shouldTerminate()) {
+    publishTerminateCommand();
+  }
+}
+
+void PGOAgentROS::runOnceSynchronous() {
+  CHECK(!mParams.asynchronous);
+
+  // Perform an optimization step
+  if (mSynchronousOptimizationRequested) {
+    // Terminate if this agent is not initialized
+    if (mState != PGOAgentState::INITIALIZED) {
+      publishTerminateCommand();
+    }
+
+    // Check if ready to perform iterate
+    bool ready = true;
+    for (unsigned neighbor : getNeighbors()) {
+      int requiredIter = (int) mTeamIterRequired[neighbor];
+      if (mParams.acceleration) requiredIter = (int) iteration_number() + 1;
+      requiredIter = requiredIter - mParamsROS.maxDelayedIterations;
+      if ((int) mTeamIterReceived[neighbor] < requiredIter) {
+        if (mParams.verbose) {
+          ROS_WARN("Robot %u iteration %u waits for neighbor %u iteration %u (last received iteration %u).",
+                   getID(), iteration_number() + 1, neighbor, requiredIter, mTeamIterReceived[neighbor]);
+        }
+        ready = false;
+      }
+    }
+
+    // Perform iterate with optimization if ready
+    if (ready) {
+      // Iterate
+      auto startTime = std::chrono::high_resolution_clock::now();
+      iterate(true);
+      auto counter = std::chrono::high_resolution_clock::now() - startTime;
+      mIterationElapsedMs = (double) std::chrono::duration_cast<std::chrono::milliseconds>(counter).count();
+      mSynchronousOptimizationRequested = false;
+
+      // First robot publish anchor
+      if (getID() == 0) publishAnchor();
+
+      // Publish status
+      publishStatus();
+
+      // Publish trajectory
+      if (mParamsROS.publishIterate) {
+        publishTrajectory();
+        publishLoopClosureMarkers();
+      }
+
+      // Log local iteration
+      if (mParams.logData) {
+        logIteration();
+      }
+
+      // Check termination condition OR notify next robot to update
+      if (shouldTerminate()) {
+        publishTerminateCommand();
+      } else {
+        // Notify next robot to update
+        publishUpdateCommand();
+      }
+    }
+  }
+}
+
 void PGOAgentROS::publishLiftingMatrix() {
   if (getID() != 0) {
     ROS_ERROR("Only robot 0 should publish lifting matrix!");
@@ -292,6 +323,7 @@ void PGOAgentROS::publishAnchor() {
 }
 
 void PGOAgentROS::publishUpdateCommand() {
+  CHECK(!mParams.asynchronous);
   Command msg;
 
   std::vector<unsigned> neighbors = getNeighbors();
@@ -503,7 +535,7 @@ bool PGOAgentROS::createIterationLog(const std::string &filename) {
   // Instance number, global iteration number, Number of poses, total bytes
   // received, iteration time (sec), total elapsed time (sec), relative change
   mIterationLog << "instance, iteration, num_poses, total_bytes_received, "
-              "iteration_time_sec, total_time_sec, relative_change \n";
+                   "iteration_time_sec, total_time_sec, relative_change \n";
   mIterationLog.flush();
   return true;
 }
@@ -616,16 +648,20 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
             return;
           }
         }
-        Command cmdMsg;
-        cmdMsg.command = Command::UPDATE;
-        cmdMsg.executing_robot = 0;
-        cmdMsg.executing_iteration = iteration_number() + 1;
-        mCommandPublisher.publish(cmdMsg);
+        // In the synchronous mode, kick off optimization by sending UPDATE command
+        if (!mParams.asynchronous) {
+          Command cmdMsg;
+          cmdMsg.command = Command::UPDATE;
+          cmdMsg.executing_robot = 0;
+          cmdMsg.executing_iteration = iteration_number() + 1;
+          mCommandPublisher.publish(cmdMsg);
+        }
       }
       break;
     }
 
     case Command::UPDATE: {
+      CHECK(!mParams.asynchronous);
       // Update local record
       mTeamIterRequired[msg->executing_robot] = msg->executing_iteration;
       if (msg->executing_iteration != iteration_number() + 1) {
@@ -633,9 +669,8 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
                  msg->executing_iteration,
                  iteration_number() + 1);
       }
-
       if (msg->executing_robot == getID()) {
-        mOptimizationRequested = true;
+        mSynchronousOptimizationRequested = true;
         if (mParams.verbose) ROS_INFO("Robot %u updates at iteration %u.", getID(), iteration_number());
       } else {
         // Agents that are not selected for optimization can iterate immediately
@@ -736,7 +771,6 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
 
 void PGOAgentROS::timerCallback(const ros::TimerEvent &event) {
   publishStatus();
-  // publishLoopClosures();
   if (mState == PGOAgentState::INITIALIZED) {
     publishPublicPoses(false);
     if (mParamsROS.acceleration) publishPublicPoses(true);
