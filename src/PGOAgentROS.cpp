@@ -753,12 +753,9 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
       continue;
     }
     if (otherID < getID()) {
-      RelativeSEMeasurement *mMeasurement = PoseGraph::findMeasurement(mPoseGraph->sharedLoopClosures(),
-                                                                       srcID, dstID);
-      if (mMeasurement) {
-        mMeasurement->weight = w;
+      if (setPublicMeasurementWeight(srcID, dstID, w))
         weights_updated = true;
-      } else
+      else
         ROS_ERROR("Cannot find specified shared loop closure (%u, %u) -> (%u, %u)",
                   robotSrc, poseSrc, robotDst, poseDst);
     }
