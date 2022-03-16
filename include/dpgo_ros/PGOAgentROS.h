@@ -73,6 +73,9 @@ class PGOAgentROS : public PGOAgent {
   // A copy of the parameter struct
   const PGOAgentROSParameters mParamsROS;
 
+  // Received request to iterate with optimization in synchronous mode
+  bool mSynchronousOptimizationRequested = false;
+
   // Handle to log file
   std::ofstream mIterationLog;
 
@@ -101,6 +104,12 @@ class PGOAgentROS : public PGOAgent {
 
   // Reset the pose graph. This function overrides the function from the base class.
   void reset() override;
+
+  // Tasks to run in synchronous mode at every ROS spin
+  void runOnceSynchronous();
+
+  // Tasks to run in asynchronous mode at every ROS spin
+  void runOnceAsynchronous();
 
   // Request latest local pose graph
   bool initializePoseGraph();

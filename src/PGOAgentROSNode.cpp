@@ -76,9 +76,15 @@ int main(int argc, char **argv) {
   Load optional options
   ###########################################
   */
+  // Run in asynchronous mode
+  ros::param::get("~asynchronous", params.asynchronous);
+
+  // Frequency of optimization loop in asynchronous mode
+  ros::param::get("~asynchronous_rate", params.asynchronousOptimizationRate);
+
   // Cross-robot initialization
-  ros::param::get("~multirobot_initialization", params.multirobot_initialization);
-  if (!params.multirobot_initialization) {
+  ros::param::get("~multirobot_initialization", params.multirobotInitialization);
+  if (!params.multirobotInitialization) {
     ROS_WARN("DPGO cross-robot initialization is OFF.");
   }
 
