@@ -465,7 +465,7 @@ void PGOAgentROS::publishLoopClosureMarkers() {
   visualization_msgs::Marker line_list;
   line_list.id = (int) getID();
   line_list.type = visualization_msgs::Marker::LINE_LIST;
-  line_list.scale.x = 0.3;
+  line_list.scale.x = 0.1;
   line_list.header.frame_id = "/world";
   line_list.color.b = 1.0;
   line_list.color.a = 1.0;
