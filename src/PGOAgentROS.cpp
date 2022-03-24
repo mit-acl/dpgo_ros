@@ -136,7 +136,7 @@ bool PGOAgentROS::initializePoseGraph() {
   pose_graph_tools::PoseGraphQuery query;
   query.request.robot_id = getID();
   std::string service_name = "/" + mRobotNames.at(getID()) +
-      "/distributed_pcm/request_pose_graph";
+      "/distributed_loop_closure/request_pose_graph";
   if (!ros::service::waitForService(service_name, ros::Duration(5.0))) {
     ROS_ERROR_STREAM("ROS service " << service_name << " does not exist!");
     return false;
@@ -185,7 +185,8 @@ bool PGOAgentROS::initializePoseGraph() {
   }
 
   mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
-  mTeamReceivedSharedLoopClosures[getID()] = true;
+  for (int robot_id = getID(); robot_id < mParams.numRobots; ++robot_id)
+    mTeamReceivedSharedLoopClosures[robot_id] = true;
   tryInitializeOptimization();
   return true;
 }
@@ -465,7 +466,7 @@ void PGOAgentROS::publishLoopClosureMarkers() {
   visualization_msgs::Marker line_list;
   line_list.id = (int) getID();
   line_list.type = visualization_msgs::Marker::LINE_LIST;
-  line_list.scale.x = 0.1;
+  line_list.scale.x = 0.05;
   line_list.header.frame_id = "/world";
   line_list.color.b = 1.0;
   line_list.color.a = 1.0;
