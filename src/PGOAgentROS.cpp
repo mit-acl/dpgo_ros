@@ -715,6 +715,9 @@ void PGOAgentROS::publicPosesCallback(const PublicPosesConstPtr &msg) {
 }
 
 void PGOAgentROS::publicMeasurementsCallback(const RelativeMeasurementListConstPtr &msg) {
+  // Ignore if does not have local odometry
+  if (mPoseGraph->numOdometry() == 0) 
+    return;
   // Ignore if already received inter-robot loop closures from this robot
   if (mTeamReceivedSharedLoopClosures[msg->from_robot])
     return;
