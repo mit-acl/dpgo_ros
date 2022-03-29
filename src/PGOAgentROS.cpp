@@ -136,7 +136,7 @@ bool PGOAgentROS::initializePoseGraph() {
   pose_graph_tools::PoseGraphQuery query;
   query.request.robot_id = getID();
   std::string service_name = "/" + mRobotNames.at(getID()) +
-      "/distributed_pcm/request_pose_graph";
+      "/distributed_loop_closure/request_pose_graph";
   if (!ros::service::waitForService(service_name, ros::Duration(5.0))) {
     ROS_ERROR_STREAM("ROS service " << service_name << " does not exist!");
     return false;
@@ -185,7 +185,8 @@ bool PGOAgentROS::initializePoseGraph() {
   }
 
   mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
-  mTeamReceivedSharedLoopClosures[getID()] = true;
+  for (size_t robot_id = getID(); robot_id < mParams.numRobots; ++robot_id)
+    mTeamReceivedSharedLoopClosures[robot_id] = true;
   tryInitializeOptimization();
   return true;
 }
@@ -238,10 +239,6 @@ void PGOAgentROS::runOnceSynchronous() {
 
   // Perform an optimization step
   if (mSynchronousOptimizationRequested) {
-    // Terminate if this agent is not initialized
-    if (mState != PGOAgentState::INITIALIZED) {
-      publishTerminateCommand();
-    }
 
     // Check if ready to perform iterate
     bool ready = true;
@@ -465,7 +462,7 @@ void PGOAgentROS::publishLoopClosureMarkers() {
   visualization_msgs::Marker line_list;
   line_list.id = (int) getID();
   line_list.type = visualization_msgs::Marker::LINE_LIST;
-  line_list.scale.x = 0.1;
+  line_list.scale.x = 0.05;
   line_list.header.frame_id = "/world";
   line_list.color.b = 1.0;
   line_list.color.a = 1.0;
@@ -662,6 +659,13 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
 
     case Command::UPDATE: {
       CHECK(!mParams.asynchronous);
+      // Handle edge case when robots are out of sync
+      if (mState != PGOAgentState::INITIALIZED) {
+        ROS_WARN_STREAM("Robot " << getID() << " receives UPDATE command but is not initialized. ");
+        ROS_WARN_STREAM("Robot " << getID() << " reset... ");
+        reset();
+        return;
+      }
       // Update local record
       mTeamIterRequired[msg->executing_robot] = msg->executing_iteration;
       if (msg->executing_iteration != iteration_number() + 1) {
@@ -671,7 +675,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       }
       if (msg->executing_robot == getID()) {
         mSynchronousOptimizationRequested = true;
-        if (mParams.verbose) ROS_INFO("Robot %u updates at iteration %u.", getID(), iteration_number());
+        if (mParams.verbose) ROS_INFO("Robot %u to update at iteration %u.", getID(), iteration_number());
       } else {
         // Agents that are not selected for optimization can iterate immediately
         iterate(false);
@@ -711,6 +715,9 @@ void PGOAgentROS::publicPosesCallback(const PublicPosesConstPtr &msg) {
 }
 
 void PGOAgentROS::publicMeasurementsCallback(const RelativeMeasurementListConstPtr &msg) {
+  // Ignore if does not have local odometry
+  if (mPoseGraph->numOdometry() == 0) 
+    return;
   // Ignore if already received inter-robot loop closures from this robot
   if (mTeamReceivedSharedLoopClosures[msg->from_robot])
     return;
