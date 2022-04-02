@@ -585,6 +585,11 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
   switch (msg->command) {
     case Command::REQUESTPOSEGRAPH: {
       ROS_INFO("Robot %u requesting pose graph for round %u", getID(), instance_number());
+      if (mState != PGOAgentState::WAIT_FOR_DATA) {
+        ROS_WARN_STREAM("Robot " << getID() << " receives REQUESTPOSEGRAPH command, but status is not WAIT_FOR_DATA. ");
+        ROS_WARN_STREAM("Robot " << getID() << " reset... ");
+        reset();
+      }
       // Request latest pose graph
       initializePoseGraph();
       // Create log file for new round
@@ -661,7 +666,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       CHECK(!mParams.asynchronous);
       // Handle edge case when robots are out of sync
       if (mState != PGOAgentState::INITIALIZED) {
-        ROS_WARN_STREAM("Robot " << getID() << " receives UPDATE command but is not initialized. ");
+        ROS_WARN_STREAM("Robot " << getID() << " receives UPDATE command, but status is not INITIALIZED. ");
         ROS_WARN_STREAM("Robot " << getID() << " reset... ");
         reset();
         return;
