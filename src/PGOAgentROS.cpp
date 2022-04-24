@@ -202,7 +202,7 @@ bool PGOAgentROS::tryInitializeOptimization() {
       initialize(&mInitPoses.value());
     else
       initialize();
-    ROS_INFO("Robot %u initializes optimization. "
+    ROS_INFO("Robot %u sets pose graph. "
              "num_poses:%u, odom:%u, local_lc:%u, shared_lc:%u, init_guess:%d",
              getID(),
              num_poses(),
