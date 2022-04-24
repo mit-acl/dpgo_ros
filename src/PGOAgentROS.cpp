@@ -584,7 +584,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
 
   switch (msg->command) {
     case Command::REQUESTPOSEGRAPH: {
-      ROS_INFO("Robot %u requesting pose graph for round %u", getID(), instance_number());
+      ROS_INFO("Robot %u received REQUESTPOSEGRAPH command.", getID());
       if (mState != PGOAgentState::WAIT_FOR_DATA) {
         ROS_WARN_STREAM("Robot " << getID() << " receives REQUESTPOSEGRAPH command, but status is not WAIT_FOR_DATA. ");
         ROS_WARN_STREAM("Robot " << getID() << " reset... ");
