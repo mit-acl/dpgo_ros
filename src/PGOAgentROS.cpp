@@ -127,6 +127,7 @@ void PGOAgentROS::reset() {
   mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
   mTotalBytesReceived = 0;
   mInitPoses.reset();
+  mTeamStatusMsg.clear();
   if (mIterationLog.is_open())
     mIterationLog.close();
 }
@@ -376,6 +377,7 @@ void PGOAgentROS::publishInitializeCommand() {
 
 void PGOAgentROS::publishStatus() {
   Status msg = statusToMsg(getStatus());
+  msg.header.stamp = ros::Time::now();
   mStatusPublisher.publish(msg);
 }
 
@@ -576,7 +578,18 @@ void PGOAgentROS::anchorCallback(const PublicPosesConstPtr &msg) {
 }
 
 void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
-  setNeighborStatus(statusFromMsg(*msg));
+  const auto &received_msg = *msg;
+  const auto &it = mTeamStatusMsg.find(msg->robot_id);
+  // Ignore message with outdated timestamp
+  if (it != mTeamStatusMsg.end()) {
+    const auto latest_msg = it->second;
+    if (latest_msg.header.stamp > received_msg.header.stamp) {
+      ROS_WARN("Received outdated status from robot %u.", msg->robot_id);
+      return;
+    }
+  }
+  mTeamStatusMsg[msg->robot_id] = received_msg;
+  setNeighborStatus(statusFromMsg(received_msg));
 }
 
 void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
@@ -635,18 +648,18 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
           const auto &it = mTeamStatus.find(robot_id);
           if (it == mTeamStatus.end()) {
             ROS_WARN("Robot %u status not available.", robot_id);
-            publishInitializeCommand();
+            mPublishInitializeCommandRequested = true;
             return;
           }
           const auto &status = it->second;
           if (status.state == PGOAgentState::WAIT_FOR_DATA) {
             ROS_WARN("Robot %u has not received pose graph.", status.agentID);
-            publishInitializeCommand();
+            mPublishInitializeCommandRequested = true;
             return;
           }
           if (status.state == PGOAgentState::WAIT_FOR_INITIALIZATION) {
             ROS_WARN("Robot %u has not initialized in global frame.", status.agentID);
-            publishInitializeCommand();
+            mPublishInitializeCommandRequested = true;
             return;
           }
         }
@@ -721,7 +734,7 @@ void PGOAgentROS::publicPosesCallback(const PublicPosesConstPtr &msg) {
 
 void PGOAgentROS::publicMeasurementsCallback(const RelativeMeasurementListConstPtr &msg) {
   // Ignore if does not have local odometry
-  if (mPoseGraph->numOdometry() == 0) 
+  if (mPoseGraph->numOdometry() == 0)
     return;
   // Ignore if already received inter-robot loop closures from this robot
   if (mTeamReceivedSharedLoopClosures[msg->from_robot])
@@ -780,6 +793,10 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
 
 void PGOAgentROS::timerCallback(const ros::TimerEvent &event) {
   publishStatus();
+  if (mPublishInitializeCommandRequested) {
+    publishInitializeCommand();
+    mPublishInitializeCommandRequested = false;
+  }
   if (mState == PGOAgentState::INITIALIZED) {
     publishPublicPoses(false);
     if (mParamsROS.acceleration) publishPublicPoses(true);

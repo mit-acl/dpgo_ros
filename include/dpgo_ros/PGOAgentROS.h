@@ -76,6 +76,9 @@ class PGOAgentROS : public PGOAgent {
   // Received request to iterate with optimization in synchronous mode
   bool mSynchronousOptimizationRequested = false;
 
+  // Flag to publish INITIALIZE command
+  bool mPublishInitializeCommandRequested = false;
+
   // Handle to log file
   std::ofstream mIterationLog;
 
@@ -93,6 +96,9 @@ class PGOAgentROS : public PGOAgent {
 
   // Map from robot ID to name
   std::map<unsigned, std::string> mRobotNames;
+
+  // Store latest status message from other robots
+  std::map<unsigned, dpgo_ros::Status> mTeamStatusMsg;
 
   // Data structures to enforce synchronization during iterations
   std::vector<unsigned> mTeamIterReceived;
