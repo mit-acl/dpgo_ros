@@ -73,7 +73,7 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
   mLoopClosureMarkerPublisher = nh.advertise<visualization_msgs::Marker>("loop_closures", 1);
 
   // ROS timer
-  timer = nh.createTimer(ros::Duration(1), &PGOAgentROS::timerCallback, this);
+  timer = nh.createTimer(ros::Duration(3.0), &PGOAgentROS::timerCallback, this);
 
   // First robot publishes lifting matrix
   if (getID() == 0) {
