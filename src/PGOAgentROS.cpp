@@ -341,9 +341,9 @@ void PGOAgentROS::publishUpdateCommand() {
     std::mt19937 gen(rd());
     msg.executing_robot = neighbors[distribution(gen)];
   }
-
   msg.command = Command::UPDATE;
   msg.executing_iteration = iteration_number() + 1;
+  ROS_INFO_STREAM("Send UPDATE to robot " << msg.executing_robot << " to perform iteration " << msg.executing_iteration);
   mCommandPublisher.publish(msg);
 }
 
@@ -693,7 +693,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       }
       if (msg->executing_robot == getID()) {
         mSynchronousOptimizationRequested = true;
-        if (mParams.verbose) ROS_INFO("Robot %u to update at iteration %u.", getID(), iteration_number());
+        if (mParams.verbose) ROS_INFO("Robot %u to update at iteration %u.", getID(), msg->executing_iteration);
       } else {
         // Agents that are not selected for optimization can iterate immediately
         iterate(false);
