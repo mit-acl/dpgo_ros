@@ -712,6 +712,10 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       break;
     }
 
+    case Command::NOOP: {
+      // Do nothing
+    }
+
     default:ROS_ERROR("Invalid command!");
   }
 }
