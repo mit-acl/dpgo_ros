@@ -323,7 +323,7 @@ void PGOAgentROS::publishAnchor() {
 void PGOAgentROS::publishUpdateCommand() {
   CHECK(!mParams.asynchronous);
   Command msg;
-
+  msg.header.stamp = ros::Time::now();
   std::vector<unsigned> neighbors = getNeighbors();
 
   if (neighbors.empty()) {
@@ -349,6 +349,7 @@ void PGOAgentROS::publishUpdateCommand() {
 
 void PGOAgentROS::publishTerminateCommand() {
   Command msg;
+  msg.header.stamp = ros::Time::now();
   msg.command = Command::TERMINATE;
   mCommandPublisher.publish(msg);
   ROS_INFO("Robot %u published TERMINATE command.", getID());
@@ -359,6 +360,7 @@ void PGOAgentROS::publishRequestPoseGraphCommand() {
     ROS_ERROR("Only robot 0 should send request pose graph command! ");
   }
   Command msg;
+  msg.header.stamp = ros::Time::now();
   msg.command = Command::REQUESTPOSEGRAPH;
   mCommandPublisher.publish(msg);
   ROS_INFO("Robot %u published REQUESTPOSEGRAPH command.", getID());
@@ -369,10 +371,18 @@ void PGOAgentROS::publishInitializeCommand() {
     ROS_ERROR("Only robot 0 should send INITIALIZE command!");
   }
   Command msg;
+  msg.header.stamp = ros::Time::now();
   msg.command = Command::INITIALIZE;
   mCommandPublisher.publish(msg);
   mInitStepsDone++;
   ROS_INFO("Robot %u published INITIALIZE command.", getID());
+}
+
+void PGOAgentROS::publishNoopCommand() {
+  Command msg;
+  msg.header.stamp = ros::Time::now();
+  msg.command = Command::NOOP;
+  mCommandPublisher.publish(msg);
 }
 
 void PGOAgentROS::publishStatus() {
@@ -792,6 +802,7 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
 }
 
 void PGOAgentROS::timerCallback(const ros::TimerEvent &event) {
+  publishNoopCommand();
   publishStatus();
   if (mPublishInitializeCommandRequested) {
     publishInitializeCommand();
