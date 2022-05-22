@@ -324,6 +324,7 @@ void PGOAgentROS::publishUpdateCommand() {
   CHECK(!mParams.asynchronous);
   Command msg;
   msg.header.stamp = ros::Time::now();
+  msg.publishing_robot = getID();
   std::vector<unsigned> neighbors = getNeighbors();
 
   if (neighbors.empty()) {
@@ -350,6 +351,7 @@ void PGOAgentROS::publishUpdateCommand() {
 void PGOAgentROS::publishTerminateCommand() {
   Command msg;
   msg.header.stamp = ros::Time::now();
+  msg.publishing_robot = getID();
   msg.command = Command::TERMINATE;
   mCommandPublisher.publish(msg);
   ROS_INFO("Robot %u published TERMINATE command.", getID());
@@ -361,6 +363,7 @@ void PGOAgentROS::publishRequestPoseGraphCommand() {
   }
   Command msg;
   msg.header.stamp = ros::Time::now();
+  msg.publishing_robot = getID();
   msg.command = Command::REQUESTPOSEGRAPH;
   mCommandPublisher.publish(msg);
   ROS_INFO("Robot %u published REQUESTPOSEGRAPH command.", getID());
@@ -372,6 +375,7 @@ void PGOAgentROS::publishInitializeCommand() {
   }
   Command msg;
   msg.header.stamp = ros::Time::now();
+  msg.publishing_robot = getID();
   msg.command = Command::INITIALIZE;
   mCommandPublisher.publish(msg);
   mInitStepsDone++;
@@ -381,6 +385,7 @@ void PGOAgentROS::publishInitializeCommand() {
 void PGOAgentROS::publishNoopCommand() {
   Command msg;
   msg.header.stamp = ros::Time::now();
+  msg.publishing_robot = getID();
   msg.command = Command::NOOP;
   mCommandPublisher.publish(msg);
 }
@@ -603,10 +608,10 @@ void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
 }
 
 void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
-  mLastCommandTime = std::chrono::high_resolution_clock::now();
 
   switch (msg->command) {
     case Command::REQUESTPOSEGRAPH: {
+      mLastCommandTime = std::chrono::high_resolution_clock::now();
       ROS_INFO("Robot %u received REQUESTPOSEGRAPH command.", getID());
       if (mState != PGOAgentState::WAIT_FOR_DATA) {
         ROS_WARN_STREAM("Robot " << getID() << " receives REQUESTPOSEGRAPH command, but status is not WAIT_FOR_DATA. ");
@@ -630,6 +635,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     }
 
     case Command::TERMINATE: {
+      mLastCommandTime = std::chrono::high_resolution_clock::now();
       ROS_INFO("Robot %u received TERMINATE command. ", getID());
       reset();
       // First robot initiates next optimization round
@@ -641,6 +647,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     }
 
     case Command::INITIALIZE: {
+      mLastCommandTime = std::chrono::high_resolution_clock::now();
       mGlobalStartTime = std::chrono::high_resolution_clock::now();
       publishPublicMeasurements();
       publishPublicPoses(false);
@@ -686,6 +693,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     }
 
     case Command::UPDATE: {
+      mLastCommandTime = std::chrono::high_resolution_clock::now();
       CHECK(!mParams.asynchronous);
       // Handle edge case when robots are out of sync
       if (mState != PGOAgentState::INITIALIZED) {
