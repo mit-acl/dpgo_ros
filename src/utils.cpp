@@ -141,7 +141,13 @@ RelativeSEMeasurement RelativeMeasurementFromMsg(const PoseGraphEdge &msg) {
   double kappa = 10000;
   double tau = 100;
 
-  return RelativeSEMeasurement(r1, r2, p1, p2, R, t, kappa, tau);
+  RelativeSEMeasurement m(r1, r2, p1, p2, R, t, kappa, tau);
+
+  // By default, odometry edge is inlier
+  if (r1 == r2 && p1 + 1 == p2)
+    m.isKnownInlier = true;
+
+  return m;
 }
 
 geometry_msgs::PoseArray TrajectoryToPoseArray(unsigned d, unsigned n, const Matrix &T) {
