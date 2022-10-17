@@ -26,7 +26,7 @@
   <arg name="robust_opt_warm_start"            default="true" />
   <arg name="robust_opt_min_convergence_ratio" default="0" />
   <arg name="robust_opt_inner_iters"           default="15" />
-  <arg name="robust_init_min_inliers"          default="2" />
+  <arg name="robust_init_min_inliers"          default="5" />
   <arg name="max_iteration_number"             default="1000" />
   <arg name="relative_change_tolerance"        default="1e-2" />
   <arg name="log_directory"                    default="$(find dpgo_ros)/logs/agent$(arg agent_id)/" />
