@@ -102,6 +102,9 @@ int main(int argc, char **argv) {
 
   // Maximum delayed iterations
   ros::param::get("~max_delayed_iterations", params.maxDelayedIterations);
+
+  // Inter update sleep time
+  ros::param::get("~inter_update_sleep_time", params.interUpdateSleepTime);
   
   // Stopping condition in terms of relative change
   ros::param::get("~relative_change_tolerance", params.relChangeTol);

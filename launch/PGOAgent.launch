@@ -15,7 +15,6 @@
   <arg name="verbose"                          default="false"/>
   <arg name="multirobot_initialization"        default="true"/>
   <arg name="acceleration"                     default="false"/>
-  <arg name="publish_iterate"                  default="false"/>
   <arg name="restart_interval"                 default="50" />
   <arg name="robust_cost_type"                 default="GNC_TLS" />
   <arg name="GNC_use_probability"              default="true" />
@@ -31,6 +30,8 @@
   <arg name="relative_change_tolerance"        default="1e-2" />
   <arg name="log_directory"                    default="$(find dpgo_ros)/logs/agent$(arg agent_id)/" />
   <arg name="robot_names_file"                 default="$(find kimera_distributed)/params/robot_names.yaml" />
+  <arg name="publish_iterate"                  default="false"/>
+  <arg name="inter_update_sleep_time"          default="0.1"/>
 
   <node launch-prefix="$(arg launch_prefix)" ns="dpgo_ros_node" name="agent" pkg="dpgo_ros" type="dpgo_ros_node" output="screen">
     <param name="~agent_id"                         type="int"    value="$(arg agent_id)" />
@@ -56,6 +57,7 @@
     <param name="~max_iteration_number"             type="int"    value="$(arg max_iteration_number)" />
     <param name="~relative_change_tolerance"        type="double" value="$(arg relative_change_tolerance)" />
     <param name="~publish_iterate"                  type="bool"   value="$(arg publish_iterate)" />
+    <param name="~inter_update_sleep_time"          type="double" value="$(arg inter_update_sleep_time)" />
     <param name="~log_output_path"                  type="str"    value="$(arg log_directory)" />
     <rosparam file="$(arg robot_names_file)" />
   </node>

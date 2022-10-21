@@ -148,7 +148,7 @@ bool PGOAgentROS::initializePoseGraph() {
   }
 
   pose_graph_tools::PoseGraph pose_graph = query.response.pose_graph;
-  if (pose_graph.edges.empty()) {
+  if (pose_graph.nodes.size() <= 1 || pose_graph.edges.empty()) {
     ROS_WARN("Received empty pose graph.");
     return false;
   }
@@ -199,10 +199,7 @@ bool PGOAgentROS::tryInitializeOptimization() {
     if (!b) ready = false;
   }
   if (ready) {
-    if (mInitPoses.has_value())
-      initialize(&mInitPoses.value());
-    else
-      initialize();
+    initialize();
     ROS_INFO("Robot %u sets pose graph. "
              "num_poses:%u, odom:%u, local_lc:%u, shared_lc:%u, init_guess:%d",
              getID(),
@@ -287,6 +284,8 @@ void PGOAgentROS::runOnceSynchronous() {
         publishTerminateCommand();
       } else {
         // Notify next robot to update
+        if (mParamsROS.interUpdateSleepTime > 1e-3)
+          ros::Duration(mParamsROS.interUpdateSleepTime).sleep();
         publishUpdateCommand();
       }
     }
@@ -656,7 +655,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       publishStatus();
       if (getID() == 0) {
         ros::Duration(0.1).sleep();
-        if (mInitStepsDone > 15) {
+        if (mInitStepsDone > 30) {
           ROS_WARN("Exceeded maximum number of initialization steps. Send TERMINATE command.");
           publishTerminateCommand();
           return;

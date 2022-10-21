@@ -36,11 +36,15 @@ class PGOAgentROSParameters : public PGOAgentParameters {
   // Maximum allowed delay from other robots (specified as number of iterations)
   int maxDelayedIterations;
 
+  // Sleep time before telling next robot to update during optimization
+  double interUpdateSleepTime;
+
   // Default constructor
   PGOAgentROSParameters(unsigned dIn, unsigned rIn, unsigned numRobotsIn)
       : PGOAgentParameters(dIn, rIn, numRobotsIn),
         publishIterate(false),
-        maxDelayedIterations(3) {}
+        maxDelayedIterations(3),
+        interUpdateSleepTime(0) {}
 
   inline friend std::ostream &operator<<(
       std::ostream &os, const PGOAgentROSParameters &params) {
@@ -50,6 +54,7 @@ class PGOAgentROSParameters : public PGOAgentParameters {
     os << "PGOAgentROS parameters: " << std::endl;
     os << "Publish iterate: " << params.publishIterate << std::endl;
     os << "Maximum delayed iterations: " << params.maxDelayedIterations << std::endl;
+    os << "Inter update sleep time: " << params.interUpdateSleepTime << std::endl;
     return os;
   }
 };
