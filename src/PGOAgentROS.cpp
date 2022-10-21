@@ -330,16 +330,16 @@ void PGOAgentROS::publishUpdateCommand() {
     ROS_WARN("Robot %u does not have any neighbor!", getID());
     msg.executing_robot = getID();
   } else {
-    // Uniform sampling of neighbors
-    std::vector<double> neighborWeights(neighbors.size());
-    for (size_t j = 0; j < neighbors.size(); ++j) {
+    // Uniform sampling of all robots
+    std::vector<double> neighborWeights(mParams.numRobots);
+    for (size_t j = 0; j < mParams.numRobots; ++j) {
       neighborWeights[j] = 1;
     }
     std::discrete_distribution<int> distribution(neighborWeights.begin(),
                                                  neighborWeights.end());
     std::random_device rd;
     std::mt19937 gen(rd());
-    msg.executing_robot = neighbors[distribution(gen)];
+    msg.executing_robot = distribution(gen);
   }
   msg.command = Command::UPDATE;
   msg.executing_iteration = iteration_number() + 1;
