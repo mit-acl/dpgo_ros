@@ -510,14 +510,17 @@ void PGOAgentROS::publishLoopClosureMarkers() {
     Matrix mT, nT;
     Matrix mt, nt;
     bool mb, nb;
+    size_t neighbor_id;
     if (measurement.r1 == getID()) {
+      neighbor_id = measurement.r2;
       mb = getPoseInGlobalFrame(measurement.p1, mT);
       nb = getNeighborPoseInGlobalFrame(measurement.r2, measurement.p2, nT);
     } else {
+      neighbor_id = measurement.r1;
       mb = getPoseInGlobalFrame(measurement.p2, mT);
       nb = getNeighborPoseInGlobalFrame(measurement.r1, measurement.p1, nT);
     }
-    if (mb && nb) {
+    if (mb && nb && getID() < neighbor_id) {
       mt = mT.block(0, d, d, 1);
       nt = nT.block(0, d, d, 1);
       geometry_msgs::Point mp, np;
