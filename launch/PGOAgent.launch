@@ -13,6 +13,9 @@
   <arg name="asynchronous"                     default="false"/>
   <arg name="asynchronous_rate"                default="10" />
   <arg name="verbose"                          default="false"/>
+  <arg name="RTR_iterations"                   default="3" />
+  <arg name="RTR_tCG_iterations"               default="50" />
+  <arg name="RTR_gradnorm_tol"                 default="1e-2" />
   <arg name="local_initialization_method"      default="Odometry"/>
   <arg name="multirobot_initialization"        default="true"/>
   <arg name="acceleration"                     default="false"/>
@@ -43,6 +46,9 @@
     <param name="~asynchronous_rate"                type="double" value="$(arg asynchronous_rate)" />
     <param name="~local_initialization_method"      type="str"    value="$(arg local_initialization_method)" />
     <param name="~multirobot_initialization"        type="bool"   value="$(arg multirobot_initialization)" />
+    <param name="~RTR_iterations"                   type="int"    value="$(arg RTR_iterations)" />
+    <param name="~RTR_tCG_iterations"               type="int"    value="$(arg RTR_tCG_iterations)" />
+    <param name="~RTR_gradnorm_tol"                 type="double" value="$(arg RTR_gradnorm_tol)" />
     <param name="~acceleration"                     type="bool"   value="$(arg acceleration)"/>
     <param name="~restart_interval"                 type="int"    value="$(arg restart_interval)" />
     <param name="~robust_cost_type"                 type="str"    value="$(arg robust_cost_type)" />

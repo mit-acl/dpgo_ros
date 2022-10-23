@@ -82,6 +82,11 @@ int main(int argc, char **argv) {
   // Frequency of optimization loop in asynchronous mode
   ros::param::get("~asynchronous_rate", params.asynchronousOptimizationRate);
 
+  // Local Riemannian optimization options
+  ros::param::get("~RTR_iterations", params.localOptimizationParams.RTR_iterations);
+  ros::param::get("~RTR_tCG_iterations", params.localOptimizationParams.RTR_tCG_iterations);
+  ros::param::get("~RTR_gradnorm_tol", params.localOptimizationParams.gradnorm_tol);
+
   // Local initialization
   std::string initMethodName;
   if (ros::param::get("~local_initialization_method", initMethodName)) {
