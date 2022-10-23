@@ -137,6 +137,9 @@ int main(int argc, char **argv) {
   // Publish iterate during optimization
   ros::param::get("~publish_iterate", params.publishIterate);
 
+  // Maximum multi-robot initialization attempts 
+  ros::param::get("~max_distributed_init_steps", params.maxDistributedInitSteps);
+
   // Logging
   params.logData = ros::param::get("~log_output_path", params.logDirectory);
   if (params.logDirectory.empty()) {

@@ -658,7 +658,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       publishStatus();
       if (getID() == 0) {
         ros::Duration(0.1).sleep();
-        if (mInitStepsDone > 30) {
+        if (mInitStepsDone > mParamsROS.maxDistributedInitSteps) {
           ROS_WARN("Exceeded maximum number of initialization steps. Send TERMINATE command.");
           publishTerminateCommand();
           return;

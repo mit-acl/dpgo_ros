@@ -33,6 +33,9 @@ class PGOAgentROSParameters : public PGOAgentParameters {
   // Publish intermediate iterates during optimization
   bool publishIterate;
 
+  // Maximum attempts for multi-robot initialization
+  int maxDistributedInitSteps;
+
   // Maximum allowed delay from other robots (specified as number of iterations)
   int maxDelayedIterations;
 
@@ -43,6 +46,7 @@ class PGOAgentROSParameters : public PGOAgentParameters {
   PGOAgentROSParameters(unsigned dIn, unsigned rIn, unsigned numRobotsIn)
       : PGOAgentParameters(dIn, rIn, numRobotsIn),
         publishIterate(false),
+        maxDistributedInitSteps(30),
         maxDelayedIterations(3),
         interUpdateSleepTime(0) {}
 
@@ -53,6 +57,7 @@ class PGOAgentROSParameters : public PGOAgentParameters {
     // Then print additional options defined in the derived class
     os << "PGOAgentROS parameters: " << std::endl;
     os << "Publish iterate: " << params.publishIterate << std::endl;
+    os << "Maximum distributed initialization attempts: " << params.maxDistributedInitSteps << std::endl;
     os << "Maximum delayed iterations: " << params.maxDelayedIterations << std::endl;
     os << "Inter update sleep time: " << params.interUpdateSleepTime << std::endl;
     return os;
@@ -88,7 +93,7 @@ class PGOAgentROS : public PGOAgent {
   std::ofstream mIterationLog;
 
   // Number of initialization steps performed
-  size_t mInitStepsDone;
+  int mInitStepsDone;
 
   // Total bytes of public poses received
   size_t mTotalBytesReceived;

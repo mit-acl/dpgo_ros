@@ -35,6 +35,7 @@
   <arg name="log_directory"                    default="$(find dpgo_ros)/logs/agent$(arg agent_id)/" />
   <arg name="robot_names_file"                 default="$(find kimera_distributed)/params/robot_names.yaml" />
   <arg name="publish_iterate"                  default="false"/>
+  <arg name="max_distributed_init_steps"       default="30" />
   <arg name="inter_update_sleep_time"          default="0.1"/>
 
   <node launch-prefix="$(arg launch_prefix)" ns="dpgo_ros_node" name="agent" pkg="dpgo_ros" type="dpgo_ros_node" output="screen">
@@ -65,6 +66,7 @@
     <param name="~max_iteration_number"             type="int"    value="$(arg max_iteration_number)" />
     <param name="~relative_change_tolerance"        type="double" value="$(arg relative_change_tolerance)" />
     <param name="~publish_iterate"                  type="bool"   value="$(arg publish_iterate)" />
+    <param name="~max_distributed_init_steps"       type="int"    value="$(arg max_distributed_init_steps)" />
     <param name="~inter_update_sleep_time"          type="double" value="$(arg inter_update_sleep_time)" />
     <param name="~log_output_path"                  type="str"    value="$(arg log_directory)" />
     <rosparam file="$(arg robot_names_file)" />
