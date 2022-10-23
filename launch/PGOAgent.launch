@@ -31,7 +31,7 @@
   <arg name="log_directory"                    default="$(find dpgo_ros)/logs/agent$(arg agent_id)/" />
   <arg name="robot_names_file"                 default="$(find kimera_distributed)/params/robot_names.yaml" />
   <arg name="publish_iterate"                  default="false"/>
-  <arg name="inter_update_sleep_time"          default="1.0"/>
+  <arg name="inter_update_sleep_time"          default="0.1"/>
 
   <node launch-prefix="$(arg launch_prefix)" ns="dpgo_ros_node" name="agent" pkg="dpgo_ros" type="dpgo_ros_node" output="screen">
     <param name="~agent_id"                         type="int"    value="$(arg agent_id)" />

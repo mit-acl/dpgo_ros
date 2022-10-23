@@ -22,8 +22,7 @@ using namespace DPGO;
 
 class DatasetPublisher {
  public:
-  DatasetPublisher(ros::NodeHandle nh_) : nh(nh_) {
-    int num_robots = 0;
+  DatasetPublisher(ros::NodeHandle nh_) : nh(nh_), num_robots(0) {
     if (!ros::param::get("~num_robots", num_robots)) {
       ROS_ERROR_STREAM("Failed to get number of robots!");
     }
@@ -36,10 +35,47 @@ class DatasetPublisher {
     }
 
     string filename;
-    if (!ros::param::get("~dataset", filename)) {
-      ROS_ERROR_STREAM("Failed to get dataset!");
+    if (ros::param::get("~g2o_file", filename)) {
+      // Load from single g2o file
+      loadFromG2O(filename);
+    } else {
+      // Load num_robots measurements.csv
+      loadFromMeasurements();
     }
 
+    for (size_t id = 0; id < (unsigned) num_robots; ++id) {
+      string service_name = "/" + robotNames.at(id) + "/distributed_loop_closure/request_pose_graph";
+      ros::ServiceServer server = nh.advertiseService(
+          service_name, &DatasetPublisher::queryPoseGraphCallback, this);
+      poseGraphServers.push_back(server);
+    }
+  }
+
+  ~DatasetPublisher() = default;
+
+ private:
+  ros::NodeHandle nh;
+  int num_robots;
+  vector<pose_graph_tools::PoseGraph> poseGraphs;
+  vector<ros::ServiceServer> poseGraphServers;
+  std::map<unsigned, std::string> robotNames;
+  bool queryPoseGraphCallback(
+      pose_graph_tools::PoseGraphQueryRequest &request,
+      pose_graph_tools::PoseGraphQueryResponse &response) {
+    if (request.robot_id >= poseGraphs.size()) {
+      ROS_ERROR("DatasetPublisher: requested robot does not exist!");
+      return false;
+    }
+    ROS_INFO("Received request from robot %zu.", request.robot_id);
+    response.pose_graph = poseGraphs[request.robot_id];
+    return true;
+  }
+
+  /**
+   * @brief Initialize from a single dataset in g2o format
+   * @param filename
+   */
+  void loadFromG2O(const std::string &filename) {
     size_t num_poses;
     vector<RelativeSEMeasurement> dataset = read_g2o_file(filename, num_poses);
     ROS_INFO_STREAM("Loaded dataset" << filename << " with " << num_poses
@@ -54,10 +90,10 @@ class DatasetPublisher {
     ROS_INFO_STREAM(
         "Creating mapping from global pose index to local pose index...");
     map<unsigned, PoseID> PoseMap;
-    for (unsigned robot = 0; robot < (unsigned)num_robots; ++robot) {
+    for (unsigned robot = 0; robot < (unsigned) num_robots; ++robot) {
       unsigned startIdx = robot * num_poses_per_robot;
       unsigned endIdx = (robot + 1) * num_poses_per_robot;  // non-inclusive
-      if (robot == (unsigned)num_robots - 1) endIdx = n;
+      if (robot == (unsigned) num_robots - 1) endIdx = n;
       for (unsigned idx = startIdx; idx < endIdx; ++idx) {
         unsigned localIdx =
             idx - startIdx;  // this is the local ID of this pose
@@ -120,35 +156,28 @@ class DatasetPublisher {
       }
       poseGraphs.push_back(pose_graph);
     }
-
-    for (size_t id = 0; id < (unsigned) num_robots; ++id) {
-      string service_name = "/" + robotNames.at(id) + "/distributed_loop_closure/request_pose_graph";
-      ros::ServiceServer server = nh.advertiseService(
-          service_name, &DatasetPublisher::queryPoseGraphCallback, this);
-      poseGraphServers.push_back(server);
-    }
   }
 
-  ~DatasetPublisher() = default;
-
- private:
-  ros::NodeHandle nh;
-  vector<pose_graph_tools::PoseGraph> poseGraphs;
-  vector<ros::ServiceServer> poseGraphServers;
-  std::map<unsigned, std::string> robotNames;
-  bool queryPoseGraphCallback(
-      pose_graph_tools::PoseGraphQueryRequest& request,
-      pose_graph_tools::PoseGraphQueryResponse& response) {
-    if (request.robot_id >= poseGraphs.size()) {
-      ROS_ERROR("DatasetPublisher: requested robot does not exist!");
-      return false;
+  void loadFromMeasurements() {
+    for (size_t robot_id = 0; robot_id < (unsigned) num_robots; ++robot_id) {
+      pose_graph_tools::PoseGraph pose_graph;
+      std::string measurement_file;
+      if (!ros::param::get("~robot" + std::to_string(robot_id) + "_measurements", measurement_file)) {
+        ROS_ERROR("No measurement file specified for robot %zu!", robot_id);
+      }
+      std::vector<RelativeSEMeasurement> measurements = PGOLogger::loadMeasurements(measurement_file,
+                                                                                    false);
+      for (const auto &m : measurements) {
+        pose_graph_tools::PoseGraphEdge edge =
+            dpgo_ros::RelativeMeasurementToMsg(m);
+        pose_graph.edges.push_back(edge);
+      }
+      poseGraphs.push_back(pose_graph);
     }
-    response.pose_graph = poseGraphs[request.robot_id];
-    return true;
   }
 };
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   ros::init(argc, argv, "dataset_publisher_node");
   ros::NodeHandle nh;
   DatasetPublisher dataset_publisher(nh);

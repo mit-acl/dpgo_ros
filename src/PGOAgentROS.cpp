@@ -107,8 +107,8 @@ void PGOAgentROS::runOnce() {
     // Terminate if quiet for long time (possible message drop)
     auto counter = std::chrono::high_resolution_clock::now() - mLastCommandTime;
     double elapsedSecond = (double) std::chrono::duration_cast<std::chrono::milliseconds>(counter).count() / 1e3;
-    if (elapsedSecond > 30) {
-      ROS_WARN("Agent %u terminate: last command was 30 sec ago.", getID());
+    if (elapsedSecond > 60) {
+      ROS_WARN("Agent %u terminate: last command was 60 sec ago.", getID());
       reset();
       if (getID() == 0) publishTerminateCommand();
     }
@@ -148,7 +148,7 @@ bool PGOAgentROS::initializePoseGraph() {
   }
 
   pose_graph_tools::PoseGraph pose_graph = query.response.pose_graph;
-  if (pose_graph.nodes.size() <= 1 || pose_graph.edges.empty()) {
+  if (pose_graph.edges.size() <= 1) {
     ROS_WARN("Received empty pose graph.");
     return false;
   }
@@ -478,7 +478,7 @@ void PGOAgentROS::publishLoopClosureMarkers() {
   visualization_msgs::Marker line_list;
   line_list.id = (int) getID();
   line_list.type = visualization_msgs::Marker::LINE_LIST;
-  line_list.scale.x = 0.05;
+  line_list.scale.x = 0.1;
   line_list.header.frame_id = "/world";
   line_list.color.b = 1.0;
   line_list.color.a = 1.0;

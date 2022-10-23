@@ -1,0 +1,5 @@
+robot0_measurements: /home/yulun/git/arl_ws/src/kimera_distributed/post_processing/mit_5_robots/kimera0/measurements.csv
+robot1_measurements: /home/yulun/git/arl_ws/src/kimera_distributed/post_processing/mit_5_robots/kimera1/measurements.csv
+robot2_measurements: /home/yulun/git/arl_ws/src/kimera_distributed/post_processing/mit_5_robots/kimera2/measurements.csv
+robot3_measurements: /home/yulun/git/arl_ws/src/kimera_distributed/post_processing/mit_5_robots/kimera3/measurements.csv
+robot4_measurements: /home/yulun/git/arl_ws/src/kimera_distributed/post_processing/mit_5_robots/kimera4/measurements.csv
