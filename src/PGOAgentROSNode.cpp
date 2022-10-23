@@ -82,6 +82,23 @@ int main(int argc, char **argv) {
   // Frequency of optimization loop in asynchronous mode
   ros::param::get("~asynchronous_rate", params.asynchronousOptimizationRate);
 
+  // Local initialization
+  std::string initMethodName;
+  if (ros::param::get("~local_initialization_method", initMethodName)) {
+    if (initMethodName == "Odometry") {
+      params.localInitializationMethod = InitializationMethod::Odometry;
+    }
+    else if (initMethodName == "Chordal") {
+      params.localInitializationMethod = InitializationMethod::Chordal;
+    }
+    else if (initMethodName == "GNC_TLS") {
+      params.localInitializationMethod = InitializationMethod::GNC_TLS;
+    }
+    else {
+      ROS_ERROR_STREAM("Invalid local initialization method: " << initMethodName);
+    }
+  }
+
   // Cross-robot initialization
   ros::param::get("~multirobot_initialization", params.multirobotInitialization);
   if (!params.multirobotInitialization) {
@@ -105,7 +122,7 @@ int main(int argc, char **argv) {
 
   // Inter update sleep time
   ros::param::get("~inter_update_sleep_time", params.interUpdateSleepTime);
-  
+
   // Stopping condition in terms of relative change
   ros::param::get("~relative_change_tolerance", params.relChangeTol);
 
@@ -126,23 +143,17 @@ int main(int argc, char **argv) {
   if (ros::param::get("~robust_cost_type", costName)) {
     if (costName == "L2") {
       params.robustCostParams.costType = RobustCostParameters::Type::L2;
-    }
-    else if (costName == "L1") {
+    } else if (costName == "L1") {
       params.robustCostParams.costType = RobustCostParameters::Type::L1;
-    }
-    else if (costName == "Huber") {
+    } else if (costName == "Huber") {
       params.robustCostParams.costType = RobustCostParameters::Type::Huber;
-    }
-    else if(costName == "TLS") {
+    } else if (costName == "TLS") {
       params.robustCostParams.costType = RobustCostParameters::Type::TLS;
-    }
-    else if (costName == "GM") {
+    } else if (costName == "GM") {
       params.robustCostParams.costType = RobustCostParameters::Type::GM;
-    }
-    else if (costName == "GNC_TLS") {
+    } else if (costName == "GNC_TLS") {
       params.robustCostParams.costType = RobustCostParameters::Type::GNC_TLS;
-    }
-    else {
+    } else {
       ROS_ERROR_STREAM("Unknown robust cost type: " << costName);
       ros::shutdown();
     }

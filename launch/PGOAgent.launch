@@ -13,6 +13,7 @@
   <arg name="asynchronous"                     default="false"/>
   <arg name="asynchronous_rate"                default="10" />
   <arg name="verbose"                          default="false"/>
+  <arg name="local_initialization_method"      default="Odometry"/>
   <arg name="multirobot_initialization"        default="true"/>
   <arg name="acceleration"                     default="false"/>
   <arg name="restart_interval"                 default="50" />
@@ -40,6 +41,7 @@
     <param name="~relaxation_rank"                  type="int"    value="$(arg relaxation_rank)" />
     <param name="~asynchronous"                     type="bool"   value="$(arg asynchronous)" />
     <param name="~asynchronous_rate"                type="double" value="$(arg asynchronous_rate)" />
+    <param name="~local_initialization_method"      type="str"    value="$(arg local_initialization_method)" />
     <param name="~multirobot_initialization"        type="bool"   value="$(arg multirobot_initialization)" />
     <param name="~acceleration"                     type="bool"   value="$(arg acceleration)"/>
     <param name="~restart_interval"                 type="int"    value="$(arg restart_interval)" />
