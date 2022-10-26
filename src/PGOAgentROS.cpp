@@ -110,15 +110,13 @@ void PGOAgentROS::runOnce() {
     if (elapsedSecond > 60) {
       ROS_WARN("Agent %u terminate: last command was 60 sec ago.", getID());
       reset();
-      if (getID() == 0) publishTerminateCommand();
+      if (getID() == 0) publishHardTerminateCommand();
     }
   }
 
 }
 
 void PGOAgentROS::reset() {
-  publishTrajectory();
-  publishLoopClosureMarkers();
   PGOAgent::reset();
   mSynchronousOptimizationRequested = false;
   mInitStepsDone = 0;
@@ -354,6 +352,15 @@ void PGOAgentROS::publishTerminateCommand() {
   msg.command = Command::TERMINATE;
   mCommandPublisher.publish(msg);
   ROS_INFO("Robot %u published TERMINATE command.", getID());
+}
+
+void PGOAgentROS::publishHardTerminateCommand() {
+  Command msg;
+  msg.header.stamp = ros::Time::now();
+  msg.publishing_robot = getID();
+  msg.command = Command::HARD_TERMINATE;
+  mCommandPublisher.publish(msg);
+  ROS_INFO("Robot %u published HARD TERMINATE command.", getID());
 }
 
 void PGOAgentROS::publishRequestPoseGraphCommand() {
@@ -639,6 +646,29 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     case Command::TERMINATE: {
       mLastCommandTime = std::chrono::high_resolution_clock::now();
       ROS_INFO("Robot %u received TERMINATE command. ", getID());
+      // Publish optimized trajectory
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_real_distribution<double> distribution(0.0, 5.0);
+      double sleep_time = distribution(gen);
+      ROS_INFO("Sleep %f sec before publishing optimized trajectory.", sleep_time);
+      ros::Duration(sleep_time).sleep();
+      publishTrajectory();
+      ros::Duration(sleep_time).sleep();
+      publishLoopClosureMarkers();
+      
+      reset();
+      // First robot initiates next optimization round
+      if (getID() == 0) {
+        ros::Duration(10).sleep();
+        publishRequestPoseGraphCommand();
+      }
+      break;
+    }
+
+    case Command::HARD_TERMINATE: {
+      mLastCommandTime = std::chrono::high_resolution_clock::now();
+      ROS_INFO("Robot %u received HARD TERMINATE command. ", getID());
       reset();
       // First robot initiates next optimization round
       if (getID() == 0) {
@@ -660,7 +690,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
         ros::Duration(0.1).sleep();
         if (mInitStepsDone > mParamsROS.maxDistributedInitSteps) {
           ROS_WARN("Exceeded maximum number of initialization steps. Send TERMINATE command.");
-          publishTerminateCommand();
+          publishHardTerminateCommand();
           return;
         }
         for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {

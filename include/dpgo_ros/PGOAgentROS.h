@@ -148,6 +148,9 @@ class PGOAgentROS : public PGOAgent {
   // Publish termination command
   void publishTerminateCommand();
 
+  // Publish hard termination command
+  void publishHardTerminateCommand();
+
   // Publish No op command (for debugging)
   void publishNoopCommand();
 
