@@ -117,11 +117,6 @@ int main(int argc, char **argv) {
     params.restartInterval = (unsigned) restart_interval_int;
   }
 
-  // Maximum number of iterations
-  int max_iters_int;
-  if (ros::param::get("~max_iteration_number", max_iters_int))
-    params.maxNumIters = (unsigned) max_iters_int;
-
   // Maximum delayed iterations
   ros::param::get("~max_delayed_iterations", params.maxDelayedIterations);
 
@@ -168,6 +163,7 @@ int main(int argc, char **argv) {
   }
 
   // GNC parameters
+  int gnc_num_updates = 5;
   bool gnc_use_quantile = false;
   ros::param::get("~GNC_use_probability", gnc_use_quantile);
   if (gnc_use_quantile) {
@@ -184,15 +180,37 @@ int main(int argc, char **argv) {
   }
   ros::param::get("~GNC_mu_step", params.robustCostParams.GNCMuStep);
   ros::param::get("~GNC_init_mu", params.robustCostParams.GNCInitMu);
+  ros::param::get("~GNC_num_updates", gnc_num_updates);
   ros::param::get("~robust_opt_warm_start", params.robustOptWarmStart);
   ros::param::get("~robust_opt_min_convergence_ratio", params.robustOptMinConvergenceRatio);
-  int robust_opt_inner_iters;
-  if (ros::param::get("~robust_opt_inner_iters", robust_opt_inner_iters)) {
-    params.robustOptInnerIters = (unsigned) robust_opt_inner_iters;
-  }
+  int robust_opt_inner_iters_per_robot = 10;
+  ros::param::get("~robust_opt_inner_iters_per_robot", robust_opt_inner_iters_per_robot);
+  params.robustOptInnerIters = (unsigned) num_robots * robust_opt_inner_iters_per_robot;
   int robust_init_min_inliers;
   if (ros::param::get("~robust_init_min_inliers", robust_init_min_inliers)) {
     params.robustInitMinInliers = (unsigned) robust_init_min_inliers;
+  }
+
+  // Maximum number of iterations
+  int max_iters_int;
+  if (ros::param::get("~max_iteration_number", max_iters_int))
+    params.maxNumIters = (unsigned) max_iters_int;
+  // When using GNC, we set the number of iterations based on the number of GNC iterations
+  if (costName == "GNC_TLS") {
+    params.maxNumIters = gnc_num_updates * params.robustOptInnerIters;
+  }
+
+  // Update rule
+  std::string update_rule_str;
+  if (ros::param::get("~update_rule", update_rule_str)) {
+    if (update_rule_str == "Uniform") {
+      params.updateRule = dpgo_ros::PGOAgentROSParameters::UpdateRule::Uniform;
+    } else if (update_rule_str == "RoundRobin") {
+      params.updateRule = dpgo_ros::PGOAgentROSParameters::UpdateRule::RoundRobin;
+    } else {
+      ROS_ERROR_STREAM("Unknown update rule: " << update_rule_str);
+      ros::shutdown();
+    }
   }
 
   // Print params

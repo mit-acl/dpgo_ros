@@ -17,6 +17,7 @@
   <arg name="RTR_tCG_iterations"               default="50" />
   <arg name="RTR_gradnorm_tol"                 default="1e-2" />
   <arg name="local_initialization_method"      default="Odometry"/>
+  <arg name="update_rule"                      default="Uniform" />
   <arg name="multirobot_initialization"        default="true"/>
   <arg name="acceleration"                     default="false"/>
   <arg name="restart_interval"                 default="50" />
@@ -26,9 +27,10 @@
   <arg name="GNC_barc"                         default="5.0" />
   <arg name="GNC_mu_step"                      default="2.0" />
   <arg name="GNC_init_mu"                      default="1e-5" />
+  <arg name="GNC_num_updates"                  default="4" />
   <arg name="robust_opt_warm_start"            default="true" />
   <arg name="robust_opt_min_convergence_ratio" default="0" />
-  <arg name="robust_opt_inner_iters"           default="15" />
+  <arg name="robust_opt_inner_iters_per_robot" default="10" />
   <arg name="robust_init_min_inliers"          default="5" />
   <arg name="max_iteration_number"             default="1000" />
   <arg name="relative_change_tolerance"        default="1e-2" />
@@ -45,6 +47,7 @@
     <param name="~relaxation_rank"                  type="int"    value="$(arg relaxation_rank)" />
     <param name="~asynchronous"                     type="bool"   value="$(arg asynchronous)" />
     <param name="~asynchronous_rate"                type="double" value="$(arg asynchronous_rate)" />
+    <param name="~update_rule"                      type="str"    value="$(arg update_rule)" />
     <param name="~local_initialization_method"      type="str"    value="$(arg local_initialization_method)" />
     <param name="~multirobot_initialization"        type="bool"   value="$(arg multirobot_initialization)" />
     <param name="~RTR_iterations"                   type="int"    value="$(arg RTR_iterations)" />
@@ -58,9 +61,10 @@
     <param name="~GNC_barc"                         type="double" value="$(arg GNC_barc)" />
     <param name="~GNC_mu_step"                      type="double" value="$(arg GNC_mu_step)" />
     <param name="~GNC_init_mu"                      type="double" value="$(arg GNC_init_mu)" />
+    <param name="~GNC_num_updates"                  type="int"    value="$(arg GNC_num_updates)" />
     <param name="~robust_opt_warm_start"            type="bool"   value="$(arg robust_opt_warm_start)" />
     <param name="~robust_opt_min_convergence_ratio" type="double" value="$(arg robust_opt_min_convergence_ratio)" />
-    <param name="~robust_opt_inner_iters"           type="int"    value="$(arg robust_opt_inner_iters)" />
+    <param name="~robust_opt_inner_iters_per_robot" type="int"    value="$(arg robust_opt_inner_iters_per_robot)" />
     <param name="~robust_init_min_inliers"          type="int"    value="$(arg robust_init_min_inliers)" />
     <param name="~verbose"                          type="bool"   value="$(arg verbose)" />
     <param name="~max_iteration_number"             type="int"    value="$(arg max_iteration_number)" />

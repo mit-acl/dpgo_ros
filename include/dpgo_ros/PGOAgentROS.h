@@ -30,6 +30,14 @@ typedef std::vector<ros::Subscriber> SubscriberVector;
  */
 class PGOAgentROSParameters : public PGOAgentParameters {
  public:
+  enum class UpdateRule {
+    Uniform, // Uniform sampling 
+    RoundRobin  // Round robin
+  };
+
+  // Rule to select the next robot for update
+  UpdateRule updateRule;
+
   // Publish intermediate iterates during optimization
   bool publishIterate;
 
@@ -45,6 +53,7 @@ class PGOAgentROSParameters : public PGOAgentParameters {
   // Default constructor
   PGOAgentROSParameters(unsigned dIn, unsigned rIn, unsigned numRobotsIn)
       : PGOAgentParameters(dIn, rIn, numRobotsIn),
+        updateRule(UpdateRule::Uniform),
         publishIterate(false),
         maxDistributedInitSteps(30),
         maxDelayedIterations(3),
@@ -56,11 +65,24 @@ class PGOAgentROSParameters : public PGOAgentParameters {
     os << (const PGOAgentParameters &) params;
     // Then print additional options defined in the derived class
     os << "PGOAgentROS parameters: " << std::endl;
+    os << "Update rule: " << updateRuleToString(params.updateRule) << std::endl; 
     os << "Publish iterate: " << params.publishIterate << std::endl;
     os << "Maximum distributed initialization attempts: " << params.maxDistributedInitSteps << std::endl;
     os << "Maximum delayed iterations: " << params.maxDelayedIterations << std::endl;
     os << "Inter update sleep time: " << params.interUpdateSleepTime << std::endl;
     return os;
+  }
+
+  inline static std::string updateRuleToString(UpdateRule rule) {
+    switch (rule) {
+      case UpdateRule::Uniform: {
+        return "Uniform";
+      }
+      case UpdateRule::RoundRobin: {
+        return "RoundRobin";
+      }
+    }
+    return "";
   }
 };
 

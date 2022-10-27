@@ -322,22 +322,26 @@ void PGOAgentROS::publishUpdateCommand() {
   Command msg;
   msg.header.stamp = ros::Time::now();
   msg.publishing_robot = getID();
-  std::vector<unsigned> neighbors = getNeighbors();
 
-  if (neighbors.empty()) {
-    ROS_WARN("Robot %u does not have any neighbor!", getID());
-    msg.executing_robot = getID();
-  } else {
-    // Uniform sampling of all robots
-    std::vector<double> neighborWeights(mParams.numRobots);
-    for (size_t j = 0; j < mParams.numRobots; ++j) {
-      neighborWeights[j] = 1;
+  switch(mParamsROS.updateRule) {
+    case PGOAgentROSParameters::UpdateRule::Uniform: {
+      // Uniform sampling of all robots
+      std::vector<double> neighborWeights(mParams.numRobots);
+      for (size_t j = 0; j < mParams.numRobots; ++j) {
+        neighborWeights[j] = 1;
+      }
+      std::discrete_distribution<int> distribution(neighborWeights.begin(),
+                                                   neighborWeights.end());
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      msg.executing_robot = distribution(gen);
+      break;
     }
-    std::discrete_distribution<int> distribution(neighborWeights.begin(),
-                                                 neighborWeights.end());
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    msg.executing_robot = distribution(gen);
+    case PGOAgentROSParameters::UpdateRule::RoundRobin: {
+      // Round robin updates
+      msg.executing_robot = (getID() + 1) % mParams.numRobots;
+      break;
+    }
   }
   msg.command = Command::UPDATE;
   msg.executing_iteration = iteration_number() + 1;
