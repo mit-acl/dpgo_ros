@@ -201,6 +201,9 @@ class PGOAgentROS : public PGOAgent {
   bool createIterationLog(const std::string &filename);
   bool logIteration();
 
+  // Sleep for a randomly generated between (0, sec)
+  void randomSleep(double sec);
+
   // ROS callbacks
   void liftingMatrixCallback(const MatrixMsgConstPtr &msg);
   void anchorCallback(const PublicPosesConstPtr &msg);

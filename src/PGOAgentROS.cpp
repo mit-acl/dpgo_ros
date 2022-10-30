@@ -55,6 +55,10 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
         nh.subscribe(topic_prefix + "public_poses", 100, &PGOAgentROS::publicPosesCallback, this));
     mSharedLoopClosureSubscriber.push_back(
         nh.subscribe(topic_prefix + "public_measurements", 100, &PGOAgentROS::publicMeasurementsCallback, this));
+  }
+
+  for (size_t robot_id = 0; robot_id < getID(); ++robot_id) {
+    std::string topic_prefix = "/" + mRobotNames.at(robot_id) + "/dpgo_ros_node/";
     mMeasurementWeightsSubscriber.push_back(
         nh.subscribe(topic_prefix + "measurement_weights", 100, &PGOAgentROS::measurementWeightsCallback, this));
   }
@@ -411,6 +415,7 @@ bool PGOAgentROS::publishTrajectory() {
   if (!getTrajectoryInGlobalFrame(T)) {
     return false;
   }
+  randomSleep(5.0);
 
   // Publish as pose array
   geometry_msgs::PoseArray pose_array =
@@ -480,12 +485,16 @@ void PGOAgentROS::publishMeasurementWeights() {
     }
   }
   if (!msg.weights.empty()) {
+    randomSleep(2.0);
     mMeasurementWeightsPublisher.publish(msg);
   }
 }
 
 void PGOAgentROS::publishLoopClosureMarkers() {
   if (mState != PGOAgentState::INITIALIZED) return;
+
+  randomSleep(5.0);
+
   visualization_msgs::Marker line_list;
   line_list.id = (int) getID();
   line_list.type = visualization_msgs::Marker::LINE_LIST;
@@ -651,14 +660,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       mLastCommandTime = std::chrono::high_resolution_clock::now();
       ROS_INFO("Robot %u received TERMINATE command. ", getID());
       // Publish optimized trajectory
-      std::random_device rd;
-      std::mt19937 gen(rd());
-      std::uniform_real_distribution<double> distribution(0.0, 5.0);
-      double sleep_time = distribution(gen);
-      ROS_INFO("Sleep %f sec before publishing optimized trajectory.", sleep_time);
-      ros::Duration(sleep_time).sleep();
       publishTrajectory();
-      ros::Duration(sleep_time).sleep();
       publishLoopClosureMarkers();
       
       reset();
@@ -863,4 +865,14 @@ void PGOAgentROS::timerCallback(const ros::TimerEvent &event) {
   }
 }
 
+void PGOAgentROS::randomSleep(double sec) {
+  if (sec < 1e-3)
+    return;
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<double> distribution(0.0, sec);
+  double sleep_time = distribution(gen);
+  ROS_INFO("Sleep %f sec...", sleep_time);
+  ros::Duration(sleep_time).sleep();
+}
 }  // namespace dpgo_ros
