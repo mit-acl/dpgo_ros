@@ -841,9 +841,11 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
     if (otherID < getID()) {
       if (setPublicMeasurementWeight(srcID, dstID, w))
         weights_updated = true;
-      else
+      else {
         ROS_ERROR("Cannot find specified shared loop closure (%u, %u) -> (%u, %u)",
                   robotSrc, poseSrc, robotDst, poseDst);
+        publishHardTerminateCommand();
+      }
     }
   }
   if (weights_updated) {
