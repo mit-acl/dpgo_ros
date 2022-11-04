@@ -470,7 +470,7 @@ void PGOAgentROS::publishPublicMeasurements() {
     RelativeMeasurementList msg;
     msg.from_robot = getID();
     msg.to_robot = robot_id;
-    msg_map[to_robot] = msg;
+    msg_map[robot_id] = msg;
   }
   for (const auto &m : mPoseGraph->sharedLoopClosures()) {
     unsigned otherID = 0;
