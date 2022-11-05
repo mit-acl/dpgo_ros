@@ -67,10 +67,10 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
   mLiftingMatrixPublisher = nh.advertise<MatrixMsg>("lifting_matrix", 1);
   mAnchorPublisher = nh.advertise<PublicPoses>("anchor", 1);
   mStatusPublisher = nh.advertise<Status>("status", 1);
-  mCommandPublisher = nh.advertise<Command>("command", 1);
-  mPublicPosesPublisher = nh.advertise<PublicPoses>("public_poses", 1);
-  mPublicMeasurementsPublisher = nh.advertise<RelativeMeasurementList>("public_measurements", 1);
-  mMeasurementWeightsPublisher = nh.advertise<RelativeMeasurementWeights>("measurement_weights", 5);
+  mCommandPublisher = nh.advertise<Command>("command", 20);
+  mPublicPosesPublisher = nh.advertise<PublicPoses>("public_poses", 20);
+  mPublicMeasurementsPublisher = nh.advertise<RelativeMeasurementList>("public_measurements", 20);
+  mMeasurementWeightsPublisher = nh.advertise<RelativeMeasurementWeights>("measurement_weights", 20);
   mPoseArrayPublisher = nh.advertise<geometry_msgs::PoseArray>("trajectory", 1);
   mPathPublisher = nh.advertise<nav_msgs::Path>("path", 1);
   mPoseGraphPublisher = nh.advertise<pose_graph_tools::PoseGraph>("optimized_pose_graph", 1);
@@ -456,7 +456,7 @@ void PGOAgentROS::publishPublicPoses(bool aux) {
     for (const auto &sharedPose : map) {
       const PoseID nID = sharedPose.first;
       const auto &matrix = sharedPose.second.getData();
-      assert(nID.robot_id == getID());
+      CHECK_EQ(nID.robot_id, getID());
       msg.pose_ids.push_back(nID.frame_id);
       msg.poses.push_back(MatrixToMsg(matrix));
     }
@@ -512,7 +512,12 @@ void PGOAgentROS::publishMeasurementWeights() {
   for (const auto& it: msg_map) {
     const auto &msg = it.second;
     if (!msg.weights.empty()) {
-      mMeasurementWeightsPublisher.publish(msg);
+      if (msg.destination_robot_id <= getID()) {
+        ROS_ERROR("Attempt to send measurement weights to robot %i.", 
+                  msg.destination_robot_id);
+      } else {
+        mMeasurementWeightsPublisher.publish(msg);
+      }
     }
   }
 }
