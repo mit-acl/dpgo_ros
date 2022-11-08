@@ -309,6 +309,7 @@ void PGOAgentROS::publishLiftingMatrix() {
 }
 
 void PGOAgentROS::publishAnchor() {
+  if (mState != PGOAgentState::INITIALIZED) return;
   Matrix T0;
   getSharedPose(0, T0);
 
@@ -683,7 +684,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       publishStatus();
       // Enter initialization round
       if (getID() == 0) {
-        if (mState == PGOAgentState::INITIALIZED) publishAnchor();
+        publishAnchor();
         ros::Duration(1).sleep();
         publishInitializeCommand();
       }
@@ -899,6 +900,7 @@ void PGOAgentROS::timerCallback(const ros::TimerEvent &event) {
     publishPublicPoses(false);
     if (mParamsROS.acceleration) publishPublicPoses(true);
     publishMeasurementWeights();
+    if (getID() == 0) publishAnchor();
   }
 }
 
