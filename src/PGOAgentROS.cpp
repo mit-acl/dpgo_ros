@@ -488,6 +488,8 @@ void PGOAgentROS::publishPublicMeasurements() {
 }
 
 void PGOAgentROS::publishMeasurementWeights() {
+  if (mState != PGOAgentState::INITIALIZED) return;
+
   std::map<unsigned, RelativeMeasurementWeights> msg_map;
   for (const auto &m : mPoseGraph->sharedLoopClosures()) {
     unsigned otherID = 0;
@@ -896,6 +898,7 @@ void PGOAgentROS::timerCallback(const ros::TimerEvent &event) {
   if (mState == PGOAgentState::INITIALIZED) {
     publishPublicPoses(false);
     if (mParamsROS.acceleration) publishPublicPoses(true);
+    publishMeasurementWeights();
   }
 }
 
