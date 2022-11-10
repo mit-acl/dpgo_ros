@@ -67,10 +67,10 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
   mLiftingMatrixPublisher = nh.advertise<MatrixMsg>("lifting_matrix", 1);
   mAnchorPublisher = nh.advertise<PublicPoses>("anchor", 1);
   mStatusPublisher = nh.advertise<Status>("status", 1);
-  mCommandPublisher = nh.advertise<Command>("command", 1);
-  mPublicPosesPublisher = nh.advertise<PublicPoses>("public_poses", 1);
-  mPublicMeasurementsPublisher = nh.advertise<RelativeMeasurementList>("public_measurements", 1);
-  mMeasurementWeightsPublisher = nh.advertise<RelativeMeasurementWeights>("measurement_weights", 5);
+  mCommandPublisher = nh.advertise<Command>("command", 20);
+  mPublicPosesPublisher = nh.advertise<PublicPoses>("public_poses", 20);
+  mPublicMeasurementsPublisher = nh.advertise<RelativeMeasurementList>("public_measurements", 20);
+  mMeasurementWeightsPublisher = nh.advertise<RelativeMeasurementWeights>("measurement_weights", 20);
   mPoseArrayPublisher = nh.advertise<geometry_msgs::PoseArray>("trajectory", 1);
   mPathPublisher = nh.advertise<nav_msgs::Path>("path", 1);
   mPoseGraphPublisher = nh.advertise<pose_graph_tools::PoseGraph>("optimized_pose_graph", 1);
@@ -154,6 +154,8 @@ bool PGOAgentROS::initializePoseGraph() {
     ROS_WARN("Received empty pose graph.");
     return false;
   }
+
+  ROS_INFO("Received pose graph from ROS service.");
 
   // Process edges
   for (const auto &edge : pose_graph.edges) {
@@ -307,6 +309,7 @@ void PGOAgentROS::publishLiftingMatrix() {
 }
 
 void PGOAgentROS::publishAnchor() {
+  if (mState != PGOAgentState::INITIALIZED) return;
   Matrix T0;
   getSharedPose(0, T0);
 
@@ -434,41 +437,61 @@ bool PGOAgentROS::publishTrajectory() {
 }
 
 void PGOAgentROS::publishPublicPoses(bool aux) {
-  PoseDict map;
-  if (aux) {
-    if (!getAuxSharedPoseDict(map)) return;
-  } else {
-    if (!getSharedPoseDict(map)) return;
-  }
+  for (unsigned neighbor: getNeighbors()) {
+    PoseDict map;
+    if (aux) {
+      if (!getAuxSharedPoseDictWithNeighbor(map, neighbor)) return;
+    } else {
+      if (!getSharedPoseDictWithNeighbor(map, neighbor)) return;
+    }
+    if (map.empty())
+      continue;
 
-  PublicPoses msg;
-  msg.robot_id = getID();
-  msg.instance_number = instance_number();
-  msg.iteration_number = iteration_number();
-  msg.is_auxiliary = aux;
+    PublicPoses msg;
+    msg.robot_id = getID();
+    msg.destination_robot_id = neighbor;
+    msg.instance_number = instance_number();
+    msg.iteration_number = iteration_number();
+    msg.is_auxiliary = aux;
 
-  for (const auto &sharedPose : map) {
-    const PoseID nID = sharedPose.first;
-    const auto &matrix = sharedPose.second.getData();
-    assert(nID.robot_id == getID());
-    msg.pose_ids.push_back(nID.frame_id);
-    msg.poses.push_back(MatrixToMsg(matrix));
-  }
-  mPublicPosesPublisher.publish(msg);
+    for (const auto &sharedPose : map) {
+      const PoseID nID = sharedPose.first;
+      const auto &matrix = sharedPose.second.getData();
+      CHECK_EQ(nID.robot_id, getID());
+      msg.pose_ids.push_back(nID.frame_id);
+      msg.poses.push_back(MatrixToMsg(matrix));
+    }
+    mPublicPosesPublisher.publish(msg);
+  }  
 }
 
 void PGOAgentROS::publishPublicMeasurements() {
-  RelativeMeasurementList msg;
-  msg.from_robot = getID();
-  for (const auto &m : mPoseGraph->sharedLoopClosures()) {
-    const auto edge = RelativeMeasurementToMsg(m);
-    msg.edges.push_back(edge);
+  std::map<unsigned, RelativeMeasurementList> msg_map;
+  for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
+    RelativeMeasurementList msg;
+    msg.from_robot = getID();
+    msg.to_robot = robot_id;
+    msg_map[robot_id] = msg;
   }
-  mPublicMeasurementsPublisher.publish(msg);
+  for (const auto &m : mPoseGraph->sharedLoopClosures()) {
+    unsigned otherID = 0;
+    if (m.r1 == getID()) {
+      otherID = m.r2;
+    } else {
+      otherID = m.r1;
+    }
+    CHECK(msg_map.find(otherID) != msg_map.end());
+    const auto edge = RelativeMeasurementToMsg(m);
+    msg_map[otherID].edges.push_back(edge);
+  }
+  for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id)
+    mPublicMeasurementsPublisher.publish(msg_map[robot_id]);
 }
 
 void PGOAgentROS::publishMeasurementWeights() {
-  RelativeMeasurementWeights msg;
+  if (mState != PGOAgentState::INITIALIZED) return;
+
+  std::map<unsigned, RelativeMeasurementWeights> msg_map;
   for (const auto &m : mPoseGraph->sharedLoopClosures()) {
     unsigned otherID = 0;
     if (m.r1 == getID()) {
@@ -477,16 +500,28 @@ void PGOAgentROS::publishMeasurementWeights() {
       otherID = m.r1;
     }
     if (otherID > getID()) {
-      msg.src_robot_ids.push_back(m.r1);
-      msg.dst_robot_ids.push_back(m.r2);
-      msg.src_pose_ids.push_back(m.p1);
-      msg.dst_pose_ids.push_back(m.p2);
-      msg.weights.push_back(m.weight);
+      if (msg_map.find(otherID) == msg_map.end()) {
+        RelativeMeasurementWeights msg;
+        msg.destination_robot_id = otherID;
+        msg_map[otherID] = msg;
+      }
+      msg_map[otherID].src_robot_ids.push_back(m.r1);
+      msg_map[otherID].dst_robot_ids.push_back(m.r2);
+      msg_map[otherID].src_pose_ids.push_back(m.p1);
+      msg_map[otherID].dst_pose_ids.push_back(m.p2);
+      msg_map[otherID].weights.push_back(m.weight);
     }
   }
-  if (!msg.weights.empty()) {
-    randomSleep(2.0);
-    mMeasurementWeightsPublisher.publish(msg);
+  for (const auto& it: msg_map) {
+    const auto &msg = it.second;
+    if (!msg.weights.empty()) {
+      if (msg.destination_robot_id <= getID()) {
+        ROS_ERROR("Attempt to send measurement weights to robot %i.", 
+                  msg.destination_robot_id);
+      } else {
+        mMeasurementWeightsPublisher.publish(msg);
+      }
+    }
   }
 }
 
@@ -649,7 +684,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       publishStatus();
       // Enter initialization round
       if (getID() == 0) {
-        if (mState == PGOAgentState::INITIALIZED) publishAnchor();
+        publishAnchor();
         ros::Duration(1).sleep();
         publishInitializeCommand();
       }
@@ -864,6 +899,8 @@ void PGOAgentROS::timerCallback(const ros::TimerEvent &event) {
   if (mState == PGOAgentState::INITIALIZED) {
     publishPublicPoses(false);
     if (mParamsROS.acceleration) publishPublicPoses(true);
+    publishMeasurementWeights();
+    if (getID() == 0) publishAnchor();
   }
 }
 
