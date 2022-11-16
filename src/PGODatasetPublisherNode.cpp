@@ -66,7 +66,7 @@ class DatasetPublisher {
       ROS_ERROR("DatasetPublisher: requested robot does not exist!");
       return false;
     }
-    ROS_INFO("Received request from robot %zu.", request.robot_id);
+    ROS_INFO("Received request from robot %i.", request.robot_id);
     response.pose_graph = poseGraphs[request.robot_id];
     return true;
   }
