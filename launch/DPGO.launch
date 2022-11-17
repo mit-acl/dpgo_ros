@@ -1,20 +1,20 @@
 <launch>
-  <arg name="num_robots"                  value="6" />
-  <arg name="debug"                       default="false" />
-  <arg name="verbose"                     default="true" />
-  <arg name="robust_cost_type"            default="GNC_TLS" />
-  <arg name="acceleration"                default="false"/>
-  <arg name="publish_iterate"             default="true"/>
-  <arg name="GNC_barc"                    default="3.0" />
-  <arg name="max_iterations"              default="240"/>
-  <arg name="robust_opt_inner_iters"      default="60" />
-  <arg name="local_initialization_method" default="Odometry"/>
-  <arg name="RTR_iterations"              default="3" />
-  <arg name="RTR_tCG_iterations"          default="50" />
-  <arg name="RTR_gradnorm_tol"            default="1e-2" />
-  <arg name="robust_opt_warm_start"       default="false" />
-  <arg name="robot_names_file"            default="$(find dpgo_ros)/params/robot_names.yaml"/>
-  <arg name="robot_measurements_file"     default="$(find dpgo_ros)/params/robot_measurements.yaml"/>
+  <arg name="num_robots"                            value="6" />
+  <arg name="debug"                                 default="false" />
+  <arg name="verbose"                               default="true" />
+  <arg name="robust_cost_type"                      default="GNC_TLS" />
+  <arg name="acceleration"                          default="false"/>
+  <arg name="publish_iterate"                       default="true"/>
+  <arg name="GNC_barc"                              default="3.0" />
+  <arg name="GNC_num_updates"                       default="4"/>
+  <arg name="robust_opt_inner_iters_per_robot"      default="5" />
+  <arg name="local_initialization_method"           default="Odometry"/>
+  <arg name="RTR_iterations"                        default="3" />
+  <arg name="RTR_tCG_iterations"                    default="50" />
+  <arg name="RTR_gradnorm_tol"                      default="1e-2" />
+  <arg name="robust_opt_warm_start"                 default="false" />
+  <arg name="robot_names_file"                      default="$(find dpgo_ros)/params/robot_names.yaml"/>
+  <arg name="robot_measurements_file"               default="$(find dpgo_ros)/params/robot_measurements.yaml"/>
 
   <!-- Launch ROS node to publish pose graph -->
   <node name="dataset_publisher"   pkg="dpgo_ros" type="dpgo_ros_dataset_publisher_node" output="screen">
@@ -34,6 +34,7 @@
       <arg name="publish_iterate"                  value="$(arg publish_iterate)"/>
       <arg name="verbose"                          value="$(arg verbose)" />
       <arg name="debug"                            value="$(arg debug)" />
+      <arg name="update_rule"                      value="RoundRobin"/>
       <arg name="local_initialization_method"      value="$(arg local_initialization_method)"/>
       <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="$(arg RTR_iterations)" />
@@ -47,9 +48,9 @@
       <arg name="GNC_init_mu"                      value="1e-5" />
       <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
-      <arg name="robust_opt_inner_iters"           value="$(arg robust_opt_inner_iters)" />
+      <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
       <arg name="robust_init_min_inliers"          value="3" />
-      <arg name="max_iteration_number"             value="$(arg max_iterations)" />
+      <arg name="GNC_num_updates"                  value="$(arg GNC_num_updates)" />
       <arg name="inter_update_sleep_time"          value="0.1" />
     </include>
   </group>
@@ -63,6 +64,7 @@
       <arg name="publish_iterate"                  value="$(arg publish_iterate)"/>
       <arg name="verbose"                          value="$(arg verbose)" />
       <arg name="debug"                            value="$(arg debug)" />
+      <arg name="update_rule"                      value="RoundRobin"/>
       <arg name="local_initialization_method"      value="$(arg local_initialization_method)"/>
       <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="$(arg RTR_iterations)" />
@@ -76,9 +78,9 @@
       <arg name="GNC_init_mu"                      value="1e-5" />
       <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
-      <arg name="robust_opt_inner_iters"           value="$(arg robust_opt_inner_iters)" />
+      <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
       <arg name="robust_init_min_inliers"          value="3" />
-      <arg name="max_iteration_number"             value="$(arg max_iterations)" />
+      <arg name="GNC_num_updates"                  value="$(arg GNC_num_updates)" />
       <arg name="inter_update_sleep_time"          value="0.1" />
     </include>
   </group>
@@ -92,6 +94,7 @@
       <arg name="publish_iterate"                  value="$(arg publish_iterate)"/>
       <arg name="verbose"                          value="$(arg verbose)" />
       <arg name="debug"                            value="$(arg debug)" />
+      <arg name="update_rule"                      value="RoundRobin"/>
       <arg name="local_initialization_method"      value="$(arg local_initialization_method)"/>
       <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="$(arg RTR_iterations)" />
@@ -105,9 +108,9 @@
       <arg name="GNC_init_mu"                      value="1e-5" />
       <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
-      <arg name="robust_opt_inner_iters"           value="$(arg robust_opt_inner_iters)" />
+      <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
       <arg name="robust_init_min_inliers"          value="3" />
-      <arg name="max_iteration_number"             value="$(arg max_iterations)" />
+      <arg name="GNC_num_updates"                  value="$(arg GNC_num_updates)" />
       <arg name="inter_update_sleep_time"          value="0.1" />
     </include>
   </group>
@@ -121,6 +124,7 @@
       <arg name="publish_iterate"                  value="$(arg publish_iterate)"/>
       <arg name="verbose"                          value="$(arg verbose)" />
       <arg name="debug"                            value="$(arg debug)" />
+      <arg name="update_rule"                      value="RoundRobin"/>
       <arg name="local_initialization_method"      value="$(arg local_initialization_method)"/>
       <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="$(arg RTR_iterations)" />
@@ -134,9 +138,9 @@
       <arg name="GNC_init_mu"                      value="1e-5" />
       <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
-      <arg name="robust_opt_inner_iters"           value="$(arg robust_opt_inner_iters)" />
+      <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
       <arg name="robust_init_min_inliers"          value="3" />
-      <arg name="max_iteration_number"             value="$(arg max_iterations)" />
+      <arg name="GNC_num_updates"                  value="$(arg GNC_num_updates)" />
       <arg name="inter_update_sleep_time"          value="0.1" />
     </include>
   </group>
@@ -150,6 +154,7 @@
       <arg name="publish_iterate"                  value="$(arg publish_iterate)"/>
       <arg name="verbose"                          value="$(arg verbose)" />
       <arg name="debug"                            value="$(arg debug)" />
+      <arg name="update_rule"                      value="RoundRobin"/>
       <arg name="local_initialization_method"      value="$(arg local_initialization_method)"/>
       <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="$(arg RTR_iterations)" />
@@ -163,9 +168,9 @@
       <arg name="GNC_init_mu"                      value="1e-5" />
       <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
-      <arg name="robust_opt_inner_iters"           value="$(arg robust_opt_inner_iters)" />
+      <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
       <arg name="robust_init_min_inliers"          value="3" />
-      <arg name="max_iteration_number"             value="$(arg max_iterations)" />
+      <arg name="GNC_num_updates"                  value="$(arg GNC_num_updates)" />
       <arg name="inter_update_sleep_time"          value="0.1" />
     </include>
   </group>
@@ -179,6 +184,7 @@
       <arg name="publish_iterate"                  value="$(arg publish_iterate)"/>
       <arg name="verbose"                          value="$(arg verbose)" />
       <arg name="debug"                            value="$(arg debug)" />
+      <arg name="update_rule"                      value="RoundRobin"/>
       <arg name="local_initialization_method"      value="$(arg local_initialization_method)"/>
       <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="$(arg RTR_iterations)" />
@@ -192,9 +198,9 @@
       <arg name="GNC_init_mu"                      value="1e-5" />
       <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
-      <arg name="robust_opt_inner_iters"           value="$(arg robust_opt_inner_iters)" />
+      <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
       <arg name="robust_init_min_inliers"          value="3" />
-      <arg name="max_iteration_number"             value="$(arg max_iterations)" />
+      <arg name="GNC_num_updates"                  value="$(arg GNC_num_updates)" />
       <arg name="inter_update_sleep_time"          value="0.1" />
     </include>
   </group>
