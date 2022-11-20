@@ -7,8 +7,11 @@
   <arg name="publish_iterate"                       default="true"/>
   <arg name="GNC_barc"                              default="3.0" />
   <arg name="GNC_num_updates"                       default="4"/>
-  <arg name="robust_opt_inner_iters_per_robot"      default="5" />
+  <arg name="GNC_mu_step"                           default="2.0" />
+  <arg name="GNC_init_mu"                           default="1e-5" />
+  <arg name="robust_opt_inner_iters_per_robot"      default="10" />
   <arg name="local_initialization_method"           default="Odometry"/>
+  <arg name="update_rule"                           default="RoundRobin" />
   <arg name="RTR_iterations"                        default="3" />
   <arg name="RTR_tCG_iterations"                    default="50" />
   <arg name="RTR_gradnorm_tol"                      default="1e-2" />
@@ -34,7 +37,7 @@
       <arg name="publish_iterate"                  value="$(arg publish_iterate)"/>
       <arg name="verbose"                          value="$(arg verbose)" />
       <arg name="debug"                            value="$(arg debug)" />
-      <arg name="update_rule"                      value="RoundRobin"/>
+      <arg name="update_rule"                      value="$(arg update_rule)"/>
       <arg name="local_initialization_method"      value="$(arg local_initialization_method)"/>
       <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="$(arg RTR_iterations)" />
@@ -44,8 +47,8 @@
       <arg name="GNC_use_probability"              value="false" />
       <arg name="GNC_quantile"                     value="0.9" />
       <arg name="GNC_barc"                         value="$(arg GNC_barc)" />
-      <arg name="GNC_mu_step"                      value="2.0" />
-      <arg name="GNC_init_mu"                      value="1e-5" />
+      <arg name="GNC_mu_step"                      value="$(arg GNC_mu_step)" />
+      <arg name="GNC_init_mu"                      value="$(arg GNC_init_mu)" />
       <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
@@ -64,7 +67,7 @@
       <arg name="publish_iterate"                  value="$(arg publish_iterate)"/>
       <arg name="verbose"                          value="$(arg verbose)" />
       <arg name="debug"                            value="$(arg debug)" />
-      <arg name="update_rule"                      value="RoundRobin"/>
+      <arg name="update_rule"                      value="$(arg update_rule)"/>
       <arg name="local_initialization_method"      value="$(arg local_initialization_method)"/>
       <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="$(arg RTR_iterations)" />
@@ -74,8 +77,8 @@
       <arg name="GNC_use_probability"              value="false" />
       <arg name="GNC_quantile"                     value="0.9" />
       <arg name="GNC_barc"                         value="$(arg GNC_barc)" />
-      <arg name="GNC_mu_step"                      value="2.0" />
-      <arg name="GNC_init_mu"                      value="1e-5" />
+      <arg name="GNC_mu_step"                      value="$(arg GNC_mu_step)" />
+      <arg name="GNC_init_mu"                      value="$(arg GNC_init_mu)" />
       <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
@@ -94,7 +97,7 @@
       <arg name="publish_iterate"                  value="$(arg publish_iterate)"/>
       <arg name="verbose"                          value="$(arg verbose)" />
       <arg name="debug"                            value="$(arg debug)" />
-      <arg name="update_rule"                      value="RoundRobin"/>
+      <arg name="update_rule"                      value="$(arg update_rule)"/>
       <arg name="local_initialization_method"      value="$(arg local_initialization_method)"/>
       <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="$(arg RTR_iterations)" />
@@ -104,8 +107,8 @@
       <arg name="GNC_use_probability"              value="false" />
       <arg name="GNC_quantile"                     value="0.9" />
       <arg name="GNC_barc"                         value="$(arg GNC_barc)" />
-      <arg name="GNC_mu_step"                      value="2.0" />
-      <arg name="GNC_init_mu"                      value="1e-5" />
+      <arg name="GNC_mu_step"                      value="$(arg GNC_mu_step)" />
+      <arg name="GNC_init_mu"                      value="$(arg GNC_init_mu)" />
       <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
@@ -124,7 +127,7 @@
       <arg name="publish_iterate"                  value="$(arg publish_iterate)"/>
       <arg name="verbose"                          value="$(arg verbose)" />
       <arg name="debug"                            value="$(arg debug)" />
-      <arg name="update_rule"                      value="RoundRobin"/>
+      <arg name="update_rule"                      value="$(arg update_rule)"/>
       <arg name="local_initialization_method"      value="$(arg local_initialization_method)"/>
       <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="$(arg RTR_iterations)" />
@@ -134,8 +137,8 @@
       <arg name="GNC_use_probability"              value="false" />
       <arg name="GNC_quantile"                     value="0.9" />
       <arg name="GNC_barc"                         value="$(arg GNC_barc)" />
-      <arg name="GNC_mu_step"                      value="2.0" />
-      <arg name="GNC_init_mu"                      value="1e-5" />
+      <arg name="GNC_mu_step"                      value="$(arg GNC_mu_step)" />
+      <arg name="GNC_init_mu"                      value="$(arg GNC_init_mu)" />
       <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
@@ -154,7 +157,7 @@
       <arg name="publish_iterate"                  value="$(arg publish_iterate)"/>
       <arg name="verbose"                          value="$(arg verbose)" />
       <arg name="debug"                            value="$(arg debug)" />
-      <arg name="update_rule"                      value="RoundRobin"/>
+      <arg name="update_rule"                      value="$(arg update_rule)"/>
       <arg name="local_initialization_method"      value="$(arg local_initialization_method)"/>
       <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="$(arg RTR_iterations)" />
@@ -164,8 +167,8 @@
       <arg name="GNC_use_probability"              value="false" />
       <arg name="GNC_quantile"                     value="0.9" />
       <arg name="GNC_barc"                         value="$(arg GNC_barc)" />
-      <arg name="GNC_mu_step"                      value="2.0" />
-      <arg name="GNC_init_mu"                      value="1e-5" />
+      <arg name="GNC_mu_step"                      value="$(arg GNC_mu_step)" />
+      <arg name="GNC_init_mu"                      value="$(arg GNC_init_mu)" />
       <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
@@ -184,7 +187,7 @@
       <arg name="publish_iterate"                  value="$(arg publish_iterate)"/>
       <arg name="verbose"                          value="$(arg verbose)" />
       <arg name="debug"                            value="$(arg debug)" />
-      <arg name="update_rule"                      value="RoundRobin"/>
+      <arg name="update_rule"                      value="$(arg update_rule)"/>
       <arg name="local_initialization_method"      value="$(arg local_initialization_method)"/>
       <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="$(arg RTR_iterations)" />
@@ -194,8 +197,8 @@
       <arg name="GNC_use_probability"              value="false" />
       <arg name="GNC_quantile"                     value="0.9" />
       <arg name="GNC_barc"                         value="$(arg GNC_barc)" />
-      <arg name="GNC_mu_step"                      value="2.0" />
-      <arg name="GNC_init_mu"                      value="1e-5" />
+      <arg name="GNC_mu_step"                      value="$(arg GNC_mu_step)" />
+      <arg name="GNC_init_mu"                      value="$(arg GNC_init_mu)" />
       <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
