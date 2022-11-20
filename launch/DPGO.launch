@@ -6,10 +6,10 @@
   <arg name="publish_iterate"                       default="true"/>
   <arg name="robust_cost_type"                      default="GNC_TLS" />
   <arg name="GNC_barc"                              default="3.0" />
-  <arg name="GNC_num_updates"                       default="10"/>
+  <arg name="GNC_num_updates"                       default="6"/>
   <arg name="GNC_mu_step"                           default="2.0" />
   <arg name="GNC_init_mu"                           default="1e-5" />
-  <arg name="robust_opt_inner_iters_per_robot"      default="5" />
+  <arg name="robust_opt_inner_iters_per_robot"      default="8" />
   <arg name="local_initialization_method"           default="Odometry"/>
   <arg name="update_rule"                           default="RoundRobin" />
   <arg name="RTR_iterations"                        default="3" />
