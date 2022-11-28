@@ -16,6 +16,7 @@
 #include <dpgo_ros/QueryLiftingMatrix.h>
 #include <dpgo_ros/Status.h>
 #include <pose_graph_tools/PoseGraph.h>
+#include <visualization_msgs/Marker.h>
 #include <ros/console.h>
 #include <ros/ros.h>
 
@@ -137,8 +138,9 @@ class PGOAgentROS : public PGOAgent {
   std::vector<unsigned> mTeamIterRequired;
   std::vector<bool> mTeamReceivedSharedLoopClosures;
 
-  // Optional initial pose estimates (can be in arbitrary local frame)
-  std::optional<PoseArray> mInitPoses;
+  // Store the latest optimized trajectory and loop closures for visualization
+  std::optional<PoseArray> mCachedPoses;
+  std::optional<visualization_msgs::Marker> mCachedLoopClosureMarkers;
 
   // Reset the pose graph. This function overrides the function from the base class.
   void reset() override;
@@ -183,7 +185,9 @@ class PGOAgentROS : public PGOAgent {
   void publishAnchor();
 
   // Publish trajectory
-  bool publishTrajectory();
+  void storeOptimizedTrajectory();
+  void publishStoredTrajectory();
+  void publishLatestTrajectory();
 
   // Publish latest public poses
   void publishPublicPoses(bool aux = false);
@@ -195,7 +199,9 @@ class PGOAgentROS : public PGOAgent {
   void publishMeasurementWeights();
 
   // Publish loop closures for visualization
-  void publishLoopClosureMarkers();
+  void storeLoopClosureMarkers();
+  void publishStoredLoopClosureMarkers();
+  void publishLatestLoopClosureMarkers();
 
   // Log iteration
   bool createIterationLog(const std::string &filename);
@@ -213,6 +219,7 @@ class PGOAgentROS : public PGOAgent {
   void publicMeasurementsCallback(const RelativeMeasurementListConstPtr &msg);
   void measurementWeightsCallback(const RelativeMeasurementWeightsConstPtr &msg);
   void timerCallback(const ros::TimerEvent &event);
+  void visualizationTimerCallback(const ros::TimerEvent &event);
 
   // ROS publisher
   ros::Publisher mLiftingMatrixPublisher;
@@ -238,6 +245,7 @@ class PGOAgentROS : public PGOAgent {
 
   // ROS timer
   ros::Timer timer;
+  ros::Timer mVisualizationTimer;
 };
 
 }  // namespace dpgo_ros

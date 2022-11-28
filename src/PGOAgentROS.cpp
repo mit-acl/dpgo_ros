@@ -9,7 +9,6 @@
 #include <dpgo_ros/utils.h>
 #include <geometry_msgs/PoseArray.h>
 #include <nav_msgs/Path.h>
-#include <visualization_msgs/Marker.h>
 #include <tf/tf.h>
 #include <pose_graph_tools/PoseGraphQuery.h>
 #include <pose_graph_tools/utils.h>
@@ -78,6 +77,7 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
 
   // ROS timer
   timer = nh.createTimer(ros::Duration(3.0), &PGOAgentROS::timerCallback, this);
+  mVisualizationTimer = nh.createTimer(ros::Duration(30.0), &PGOAgentROS::visualizationTimerCallback, this);
 
   // First robot publishes lifting matrix
   if (getID() == 0) {
@@ -128,7 +128,6 @@ void PGOAgentROS::reset() {
   mTeamIterReceived.assign(mParams.numRobots, 0);
   mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
   mTotalBytesReceived = 0;
-  mInitPoses.reset();
   mTeamStatusMsg.clear();
   if (mIterationLog.is_open())
     mIterationLog.close();
@@ -167,7 +166,6 @@ bool PGOAgentROS::initializePoseGraph() {
   }
 
   // Process nodes
-  mInitPoses.reset();
   PoseArray initial_poses(dimension(), num_poses());
   if (!pose_graph.nodes.empty()) {
     // Filter nodes that do not belong to this robot
@@ -185,7 +183,6 @@ bool PGOAgentROS::initializePoseGraph() {
         initial_poses.rotation(index) = RotationFromPoseMsg(node.pose);
         initial_poses.translation(index) = TranslationFromPoseMsg(node.pose);
       }
-      mInitPoses.emplace(initial_poses);
     }
   }
 
@@ -205,13 +202,12 @@ bool PGOAgentROS::tryInitializeOptimization() {
   if (ready) {
     initialize();
     ROS_INFO("Robot %u sets pose graph. "
-             "num_poses:%u, odom:%u, local_lc:%u, shared_lc:%u, init_guess:%d",
+             "num_poses:%u, odom:%u, local_lc:%u, shared_lc:%u.",
              getID(),
              num_poses(),
              mPoseGraph->numOdometry(),
              mPoseGraph->numPrivateLoopClosures(),
-             mPoseGraph->numSharedLoopClosures(),
-             mInitPoses.has_value());
+             mPoseGraph->numSharedLoopClosures());
   }
   return ready;
 }
@@ -221,8 +217,8 @@ void PGOAgentROS::runOnceAsynchronous() {
     if (getID() == 0) publishAnchor();
     publishStatus();
     if (mParamsROS.publishIterate) {
-      publishTrajectory();
-      publishLoopClosureMarkers();
+      publishLatestTrajectory();
+      publishLatestLoopClosureMarkers();
     }
     if (mParams.logData) {
       logIteration();
@@ -274,8 +270,8 @@ void PGOAgentROS::runOnceSynchronous() {
 
       // Publish trajectory
       if (mParamsROS.publishIterate) {
-        publishTrajectory();
-        publishLoopClosureMarkers();
+        publishLatestTrajectory();
+        publishLatestLoopClosureMarkers();
       }
 
       // Log local iteration
@@ -413,27 +409,35 @@ void PGOAgentROS::publishStatus() {
   mStatusPublisher.publish(msg);
 }
 
-bool PGOAgentROS::publishTrajectory() {
-  Matrix T;
-  if (!getTrajectoryInGlobalFrame(T)) {
-    return false;
+void PGOAgentROS::storeOptimizedTrajectory() {
+  PoseArray T(dimension(), num_poses());
+  if (getTrajectoryInGlobalFrame(T)) {
+    mCachedPoses.emplace(T);
   }
-  randomSleep(5.0);
+}
+
+void PGOAgentROS::publishStoredTrajectory() {
+  if (!mCachedPoses.has_value()) 
+    return;
+  PoseArray T = mCachedPoses.value();
 
   // Publish as pose array
   geometry_msgs::PoseArray pose_array =
-      TrajectoryToPoseArray(dimension(), num_poses(), T);
+      TrajectoryToPoseArray(T.d(), T.n(), T.getData());
   mPoseArrayPublisher.publish(pose_array);
 
   // Publish as path
-  nav_msgs::Path path = TrajectoryToPath(dimension(), num_poses(), T);
+  nav_msgs::Path path = TrajectoryToPath(T.d(), T.n(), T.getData());
   mPathPublisher.publish(path);
 
   // Publish as optimized pose graph
-  pose_graph_tools::PoseGraph pose_graph = TrajectoryToPoseGraphMsg(getID(), dimension(), num_poses(), T);
+  pose_graph_tools::PoseGraph pose_graph = TrajectoryToPoseGraphMsg(getID(), T.d(), T.n(), T.getData());
   mPoseGraphPublisher.publish(pose_graph);
+}
 
-  return true;
+void PGOAgentROS::publishLatestTrajectory() {
+  storeOptimizedTrajectory();
+  publishStoredTrajectory();
 }
 
 void PGOAgentROS::publishPublicPoses(bool aux) {
@@ -525,10 +529,8 @@ void PGOAgentROS::publishMeasurementWeights() {
   }
 }
 
-void PGOAgentROS::publishLoopClosureMarkers() {
+void PGOAgentROS::storeLoopClosureMarkers() {
   if (mState != PGOAgentState::INITIALIZED) return;
-
-  randomSleep(5.0);
 
   visualization_msgs::Marker line_list;
   line_list.id = (int) getID();
@@ -592,7 +594,18 @@ void PGOAgentROS::publishLoopClosureMarkers() {
       //         getID(), measurement.r1, measurement.p1, measurement.r2, measurement.p2);
     }
   }
-  if (!line_list.points.empty()) mLoopClosureMarkerPublisher.publish(line_list);
+  if (!line_list.points.empty()) 
+    mCachedLoopClosureMarkers.emplace(line_list);
+}
+
+void PGOAgentROS::publishStoredLoopClosureMarkers() {
+  if (mCachedLoopClosureMarkers.has_value())
+    mLoopClosureMarkerPublisher.publish(mCachedLoopClosureMarkers.value());
+}
+
+void PGOAgentROS::publishLatestLoopClosureMarkers() {
+  storeLoopClosureMarkers();
+  publishStoredLoopClosureMarkers();
 }
 
 bool PGOAgentROS::createIterationLog(const std::string &filename) {
@@ -695,8 +708,8 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       mLastCommandTime = std::chrono::high_resolution_clock::now();
       ROS_INFO("Robot %u received TERMINATE command. ", getID());
       // Publish optimized trajectory
-      publishTrajectory();
-      publishLoopClosureMarkers();
+      publishLatestTrajectory();
+      publishLatestLoopClosureMarkers();
       
       reset();
       // First robot initiates next optimization round
@@ -902,6 +915,11 @@ void PGOAgentROS::timerCallback(const ros::TimerEvent &event) {
     publishMeasurementWeights();
     if (getID() == 0) publishAnchor();
   }
+}
+
+void PGOAgentROS::visualizationTimerCallback(const ros::TimerEvent &event) {
+  publishStoredTrajectory();
+  publishStoredLoopClosureMarkers();
 }
 
 void PGOAgentROS::randomSleep(double sec) {
