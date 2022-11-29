@@ -876,6 +876,7 @@ void PGOAgentROS::publicMeasurementsCallback(const RelativeMeasurementListConstP
 
 void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsConstPtr &msg) {
   if (mState != PGOAgentState::INITIALIZED) return;
+  if (msg->destination_robot_id != getID()) return;
   bool weights_updated = false;
   for (size_t k = 0; k < msg->weights.size(); ++k) {
     const unsigned robotSrc = msg->src_robot_ids[k];
@@ -887,15 +888,16 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
     double w = msg->weights[k];
 
     unsigned otherID;
-    if (robotSrc == getID()) {
+    if (robotSrc == getID() && robotDst != getID()) {
       otherID = robotDst;
-    } else if (robotDst == getID()) {
+    } else if (robotDst == getID() && robotSrc != getID()) {
       otherID = robotSrc;
     } else {
+      ROS_ERROR("Received weight for irrelevant measurement!");
       continue;
     }
     if (otherID < getID()) {
-      if (setPublicMeasurementWeight(srcID, dstID, w))
+      if (setMeasurementWeight(srcID, dstID, w))
         weights_updated = true;
       else {
         ROS_ERROR("Cannot find specified shared loop closure (%u, %u) -> (%u, %u)",
