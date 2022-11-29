@@ -9,13 +9,13 @@
   <arg name="GNC_num_updates"                       default="6"/>
   <arg name="GNC_mu_step"                           default="2.0" />
   <arg name="GNC_init_mu"                           default="1e-5" />
-  <arg name="robust_opt_inner_iters_per_robot"      default="8" />
+  <arg name="robust_opt_inner_iters_per_robot"      default="10" />
   <arg name="local_initialization_method"           default="Odometry"/>
   <arg name="update_rule"                           default="RoundRobin" />
   <arg name="RTR_iterations"                        default="3" />
   <arg name="RTR_tCG_iterations"                    default="50" />
   <arg name="RTR_gradnorm_tol"                      default="1e-2" />
-  <arg name="robust_opt_warm_start"                 default="true" />
+  <arg name="robust_opt_num_resets"                 default="4" />
   <arg name="robot_names_file"                      default="$(find dpgo_ros)/params/robot_names.yaml"/>
   <arg name="robot_measurements_file"               default="$(find dpgo_ros)/params/robot_measurements.yaml"/>
 
@@ -49,7 +49,7 @@
       <arg name="GNC_barc"                         value="$(arg GNC_barc)" />
       <arg name="GNC_mu_step"                      value="$(arg GNC_mu_step)" />
       <arg name="GNC_init_mu"                      value="$(arg GNC_init_mu)" />
-      <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
+      <arg name="robust_opt_num_resets"            value="$(arg robust_opt_num_resets)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
       <arg name="robust_init_min_inliers"          value="3" />
@@ -79,7 +79,7 @@
       <arg name="GNC_barc"                         value="$(arg GNC_barc)" />
       <arg name="GNC_mu_step"                      value="$(arg GNC_mu_step)" />
       <arg name="GNC_init_mu"                      value="$(arg GNC_init_mu)" />
-      <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
+      <arg name="robust_opt_num_resets"            value="$(arg robust_opt_num_resets)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
       <arg name="robust_init_min_inliers"          value="3" />
@@ -109,7 +109,7 @@
       <arg name="GNC_barc"                         value="$(arg GNC_barc)" />
       <arg name="GNC_mu_step"                      value="$(arg GNC_mu_step)" />
       <arg name="GNC_init_mu"                      value="$(arg GNC_init_mu)" />
-      <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
+      <arg name="robust_opt_num_resets"            value="$(arg robust_opt_num_resets)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
       <arg name="robust_init_min_inliers"          value="3" />
@@ -139,7 +139,7 @@
       <arg name="GNC_barc"                         value="$(arg GNC_barc)" />
       <arg name="GNC_mu_step"                      value="$(arg GNC_mu_step)" />
       <arg name="GNC_init_mu"                      value="$(arg GNC_init_mu)" />
-      <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
+      <arg name="robust_opt_num_resets"            value="$(arg robust_opt_num_resets)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
       <arg name="robust_init_min_inliers"          value="3" />
@@ -169,7 +169,7 @@
       <arg name="GNC_barc"                         value="$(arg GNC_barc)" />
       <arg name="GNC_mu_step"                      value="$(arg GNC_mu_step)" />
       <arg name="GNC_init_mu"                      value="$(arg GNC_init_mu)" />
-      <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
+      <arg name="robust_opt_num_resets"            value="$(arg robust_opt_num_resets)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
       <arg name="robust_init_min_inliers"          value="3" />
@@ -199,7 +199,7 @@
       <arg name="GNC_barc"                         value="$(arg GNC_barc)" />
       <arg name="GNC_mu_step"                      value="$(arg GNC_mu_step)" />
       <arg name="GNC_init_mu"                      value="$(arg GNC_init_mu)" />
-      <arg name="robust_opt_warm_start"            value="$(arg robust_opt_warm_start)" />
+      <arg name="robust_opt_num_resets"            value="$(arg robust_opt_num_resets)" />
       <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="$(arg robust_opt_inner_iters_per_robot)" />
       <arg name="robust_init_min_inliers"          value="3" />
