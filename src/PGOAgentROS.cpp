@@ -96,6 +96,14 @@ void PGOAgentROS::runOnce() {
     runOnceSynchronous();
   }
 
+  if (mLatestIterationRequested) {
+    ROS_WARN("Require latest iteration %d from all neighbors.", iteration_number());
+    for (const auto& neighbor: getNeighbors()) {
+      mTeamIterRequired[neighbor] = iteration_number();
+    }
+    mLatestIterationRequested = false;
+  }
+
   if (mPublishPublicPosesRequested) {
     publishPublicPoses(false);
     if (mParams.acceleration) publishPublicPoses(true);

@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
   ros::param::get("~GNC_mu_step", params.robustCostParams.GNCMuStep);
   ros::param::get("~GNC_init_mu", params.robustCostParams.GNCInitMu);
   ros::param::get("~GNC_num_updates", gnc_num_updates);
-  ros::param::get("~robust_opt_warm_start", params.robustOptWarmStart);
+  ros::param::get("~robust_opt_num_resets", params.robustOptNumResets);
   ros::param::get("~robust_opt_min_convergence_ratio", params.robustOptMinConvergenceRatio);
   int robust_opt_inner_iters_per_robot = 10;
   ros::param::get("~robust_opt_inner_iters_per_robot", robust_opt_inner_iters_per_robot);
