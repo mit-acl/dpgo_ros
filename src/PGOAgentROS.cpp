@@ -31,6 +31,7 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
   mTeamIterRequired.assign(mParams.numRobots, 0);
   mTeamIterReceived.assign(mParams.numRobots, 0);
   mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
+  mTeamRobotActive.assign(mParams.numRobots, true);
 
   // Load robot names
   for (size_t id = 0; id < mParams.numRobots; id++) {
@@ -135,6 +136,7 @@ void PGOAgentROS::reset() {
   mTeamIterRequired.assign(mParams.numRobots, 0);
   mTeamIterReceived.assign(mParams.numRobots, 0);
   mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
+  mTeamRobotActive.assign(mParams.numRobots, true);
   mTotalBytesReceived = 0;
   mTeamStatusMsg.clear();
   if (mIterationLog.is_open())
@@ -336,21 +338,29 @@ void PGOAgentROS::publishUpdateCommand() {
 
   switch(mParamsROS.updateRule) {
     case PGOAgentROSParameters::UpdateRule::Uniform: {
-      // Uniform sampling of all robots
-      std::vector<double> neighborWeights(mParams.numRobots);
-      for (size_t j = 0; j < mParams.numRobots; ++j) {
-        neighborWeights[j] = 1;
+      // Uniform sampling of all active robots
+      std::vector<unsigned> active_robots;
+      for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
+        if (mTeamRobotActive[robot_id]) {
+          active_robots.push_back(robot_id);
+        }
       }
-      std::discrete_distribution<int> distribution(neighborWeights.begin(),
-                                                   neighborWeights.end());
+      size_t num_active_robots = active_robots.size();
+      std::vector<double> weights(num_active_robots, 1.0);
+      std::discrete_distribution<int> distribution(weights.begin(),
+                                                   weights.end());
       std::random_device rd;
       std::mt19937 gen(rd());
-      msg.executing_robot = distribution(gen);
+      msg.executing_robot = active_robots[distribution(gen)];
       break;
     }
     case PGOAgentROSParameters::UpdateRule::RoundRobin: {
       // Round robin updates
-      msg.executing_robot = (getID() + 1) % mParams.numRobots;
+      unsigned next_robot_id = (getID() + 1) % mParams.numRobots;
+      while (!mTeamRobotActive[next_robot_id]) {
+        next_robot_id = (next_robot_id + 1) % mParams.numRobots;
+      }
+      msg.executing_robot = next_robot_id;
       break;
     }
   }
@@ -401,6 +411,24 @@ void PGOAgentROS::publishInitializeCommand() {
   mCommandPublisher.publish(msg);
   mInitStepsDone++;
   ROS_INFO("Robot %u published INITIALIZE command.", getID());
+}
+
+void PGOAgentROS::publishActiveRobotsCommand() {
+  if (getID() != 0) {
+    ROS_ERROR("Only robot 0 should publish active robots!");
+    return;
+  }
+  Command msg;
+  msg.header.stamp = ros::Time::now();
+  msg.publishing_robot = getID();
+  msg.command = Command::SET_ACTIVE_ROBOTS;
+  for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
+    if (mTeamRobotActive[robot_id]) {
+      msg.active_robots.push_back(robot_id);
+    }
+  }
+
+  mCommandPublisher.publish(msg);
 }
 
 void PGOAgentROS::publishNoopCommand() {
@@ -751,18 +779,53 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       if (getID() == 0) {
         ros::Duration(0.1).sleep();
         if (mInitStepsDone > mParamsROS.maxDistributedInitSteps) {
-          ROS_WARN("Exceeded maximum number of initialization steps. Send TERMINATE command.");
-          publishHardTerminateCommand();
+          ROS_WARN("Exceeded maximum number of initialization steps.");
+          
+          // Check the number of initialized robots
+          int num_initialized_robots = 0;
+          for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
+            if (hasNeighborStatus(robot_id) && 
+                getNeighborStatus(robot_id).state == PGOAgentState::INITIALIZED) {
+              mTeamRobotActive[robot_id] = true;
+              num_initialized_robots++; 
+            } else {
+              ROS_WARN("Robot %u is not initialized.", robot_id);
+              mTeamRobotActive[robot_id] = false;
+            }
+          }
+
+          // Attempt partial participation
+          if (mTeamRobotActive[0] && num_initialized_robots > 1) {
+            ROS_WARN("Attempt distributed optimization with %i/%i robots.", 
+                     num_initialized_robots, mParams.numRobots);
+            
+            // Publish active robots
+            publishActiveRobotsCommand();
+            
+            // Kick off optimization 
+            if (!mParams.asynchronous) {
+              Command cmdMsg;
+              cmdMsg.command = Command::UPDATE;
+              cmdMsg.executing_robot = 0;
+              cmdMsg.executing_iteration = iteration_number() + 1;
+              mCommandPublisher.publish(cmdMsg);
+            }
+            
+          } else {
+            ROS_WARN("Only %i robots are initialized. Send TERMINATE command.", 
+                     num_initialized_robots);
+            publishHardTerminateCommand();
+          }
           return;
         }
+
         for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
-          const auto &it = mTeamStatus.find(robot_id);
-          if (it == mTeamStatus.end()) {
+          if (!hasNeighborStatus(robot_id)) {
             ROS_WARN("Robot %u status not available.", robot_id);
             mPublishInitializeCommandRequested = true;
             return;
           }
-          const auto &status = it->second;
+          const auto status = getNeighborStatus(robot_id);
           if (status.state == PGOAgentState::WAIT_FOR_DATA) {
             ROS_WARN("Robot %u has not received pose graph.", status.agentID);
             mPublishInitializeCommandRequested = true;
@@ -774,6 +837,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
             return;
           }
         }
+        
         // In the synchronous mode, kick off optimization by sending UPDATE command
         if (!mParams.asynchronous) {
           Command cmdMsg;
@@ -789,6 +853,11 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     case Command::UPDATE: {
       mLastCommandTime = std::chrono::high_resolution_clock::now();
       CHECK(!mParams.asynchronous);
+      // Handle case when this robot is not active
+      if (!mTeamRobotActive[getID()]) {
+        ROS_WARN_STREAM("Robot " << getID() << " is deactivated. Ignore update command... ");
+        return;
+      }
       // Handle edge case when robots are out of sync
       if (mState != PGOAgentState::INITIALIZED) {
         ROS_WARN_STREAM("Robot " << getID() << " receives UPDATE command, but status is not INITIALIZED. ");
@@ -811,6 +880,30 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
         iterate(false);
         publishStatus();
       }
+      break;
+    }
+
+    case Command::SET_ACTIVE_ROBOTS: {
+      // Update local record of currently active robots
+      mTeamRobotActive.assign(mParams.numRobots, false);
+      for (const unsigned active_robot_id: msg->active_robots) {
+        mTeamRobotActive[active_robot_id] = true;
+      }
+
+      // Handle case when this robot is deactivated
+      if (!mTeamRobotActive[getID()]) {
+        ROS_WARN("Robot %u is deactivated!", getID());
+        return;
+      }
+
+      // Remove deactivated neighbor if needed
+      for (const unsigned neighborID: getNeighbors()) {
+        if (!mTeamRobotActive[neighborID]) {
+          ROS_WARN("Robot %u removed deactivated neighbor %u.", getID(), neighborID);
+          removeNeighbor(neighborID);
+        }
+      }
+
       break;
     }
 
@@ -921,9 +1014,13 @@ void PGOAgentROS::timerCallback(const ros::TimerEvent &event) {
   }
   if (mState == PGOAgentState::INITIALIZED) {
     publishPublicPoses(false);
-    if (mParamsROS.acceleration) publishPublicPoses(true);
+    if (mParamsROS.acceleration) 
+      publishPublicPoses(true);
     publishMeasurementWeights();
-    if (getID() == 0) publishAnchor();
+    if (getID() == 0) {
+      publishAnchor();
+      publishActiveRobotsCommand();
+    }
   }
 }
 

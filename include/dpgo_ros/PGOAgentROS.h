@@ -137,6 +137,7 @@ class PGOAgentROS : public PGOAgent {
   std::vector<unsigned> mTeamIterReceived;
   std::vector<unsigned> mTeamIterRequired;
   std::vector<bool> mTeamReceivedSharedLoopClosures;
+  std::vector<bool> mTeamRobotActive;
 
   // Store the latest optimized trajectory and loop closures for visualization
   std::optional<PoseArray> mCachedPoses;
@@ -174,6 +175,9 @@ class PGOAgentROS : public PGOAgent {
 
   // Publish hard termination command
   void publishHardTerminateCommand();
+
+  // Publish the list of active robots
+  void publishActiveRobotsCommand();
 
   // Publish No op command (for debugging)
   void publishNoopCommand();
