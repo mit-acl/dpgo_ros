@@ -211,7 +211,7 @@ bool PGOAgentROS::tryInitialize() {
   bool ready = true;
   for (unsigned robot_id = 0; robot_id < getID(); ++robot_id) {
     // Skip if this preceeding robot is excluded from optimization
-    if (!mTeamRobotActive[robot_id]) {
+    if (!isRobotActive(robot_id)) {
       continue;
     }
     if (!mTeamReceivedSharedLoopClosures[robot_id]) {
@@ -251,6 +251,22 @@ bool PGOAgentROS::isRobotConnected(unsigned robot_id) const {
   ROS_WARN("Robot %u is disconnected (%f sec > %f sec).", 
             robot_id, elapsed_second, mParamsROS.timeoutThreshold);
   return false;
+}
+
+bool PGOAgentROS::isRobotInitialized(unsigned robot_id) const {
+  if (robot_id == getID()) 
+    return mState == PGOAgentState::INITIALIZED;
+
+  if (!hasNeighborStatus(robot_id))
+    return false;
+
+  return getNeighborStatus(robot_id).state == PGOAgentState::INITIALIZED;
+}
+
+bool PGOAgentROS::isRobotActive(unsigned robot_id) const {
+  if (robot_id >= mParams.numRobots)
+    return false;
+  return mTeamRobotActive[robot_id];
 }
 
 void PGOAgentROS::updateActiveRobots() {
@@ -382,7 +398,7 @@ void PGOAgentROS::publishUpdateCommand() {
       // Uniform sampling of all active robots
       std::vector<unsigned> active_robots;
       for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
-        if (mTeamRobotActive[robot_id]) {
+        if (isRobotActive(robot_id) && isRobotInitialized(robot_id)) {
           active_robots.push_back(robot_id);
         }
       }
@@ -398,7 +414,8 @@ void PGOAgentROS::publishUpdateCommand() {
     case PGOAgentROSParameters::UpdateRule::RoundRobin: {
       // Round robin updates
       unsigned next_robot_id = (getID() + 1) % mParams.numRobots;
-      while (!mTeamRobotActive[next_robot_id]) {
+      while (!isRobotActive(next_robot_id) || 
+             !isRobotInitialized(next_robot_id)) {
         next_robot_id = (next_robot_id + 1) % mParams.numRobots;
       }
       msg.executing_robot = next_robot_id;
@@ -468,7 +485,7 @@ void PGOAgentROS::publishActiveRobotsCommand() {
   msg.publishing_robot = getID();
   msg.command = Command::SET_ACTIVE_ROBOTS;
   for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
-    if (mTeamRobotActive[robot_id]) {
+    if (isRobotActive(robot_id)) {
       msg.active_robots.push_back(robot_id);
     }
   }
@@ -498,7 +515,7 @@ void PGOAgentROS::storeOptimizedTrajectory() {
 }
 
 void PGOAgentROS::publishStoredTrajectory() {
-  if (!mTeamRobotActive[getID()])
+  if (!isRobotActive(getID()))
     return;
   if (!mCachedPoses.has_value()) 
     return;
@@ -835,7 +852,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
           int num_initialized_robots = 0;
           for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
             // Skip if robot already not active
-            if (!mTeamRobotActive[robot_id]) {
+            if (!isRobotActive(robot_id)) {
               continue;
             }
 
@@ -850,7 +867,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
           }
 
           // Attempt partial participation
-          if (mTeamRobotActive[0] && num_initialized_robots > 1) {
+          if (isRobotActive(0) && num_initialized_robots > 1) {
             ROS_WARN("Attempt distributed optimization with %i/%i robots.", 
                      num_initialized_robots, mParams.numRobots);
             
@@ -875,7 +892,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
         }
 
         for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
-          if (!mTeamRobotActive[robot_id]) {
+          if (!isRobotActive(robot_id)) {
             continue;
           }
           if (!hasNeighborStatus(robot_id)) {
@@ -912,7 +929,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       mLastCommandTime = std::chrono::high_resolution_clock::now();
       CHECK(!mParams.asynchronous);
       // Handle case when this robot is not active
-      if (!mTeamRobotActive[getID()]) {
+      if (!isRobotActive(getID())) {
         ROS_WARN_STREAM("Robot " << getID() << " is deactivated. Ignore update command... ");
         return;
       }
@@ -947,13 +964,13 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       }
 
       // Handle case when this robot is deactivated
-      if (!mTeamRobotActive[getID()]) {
+      if (!isRobotActive(getID())) {
         return;
       }
 
       // Remove deactivated neighbor if needed
       for (unsigned neighborID: getNeighbors()) {
-        if (!mTeamRobotActive[neighborID]) {
+        if (!isRobotActive(neighborID)) {
           ROS_WARN("Robot %u removed deactivated neighbor %u.", getID(), neighborID);
           removeNeighbor(neighborID);
         }
