@@ -248,7 +248,7 @@ bool PGOAgentROS::isRobotConnected(unsigned robot_id) const {
              robot_id, elapsed_second, mParamsROS.timeoutThreshold);
     return true;
   } 
-  ROS_WARN("Robot %u is disconnected (%f sec < %f sec).", 
+  ROS_WARN("Robot %u is disconnected (%f sec > %f sec).", 
             robot_id, elapsed_second, mParamsROS.timeoutThreshold);
   return false;
 }
