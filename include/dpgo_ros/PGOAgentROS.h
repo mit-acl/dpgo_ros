@@ -51,6 +51,9 @@ class PGOAgentROSParameters : public PGOAgentParameters {
   // Sleep time before telling next robot to update during optimization
   double interUpdateSleepTime;
 
+  // Maximum time in seconds before considering a robot disconnected
+  double timeoutThreshold;
+
   // Default constructor
   PGOAgentROSParameters(unsigned dIn, unsigned rIn, unsigned numRobotsIn)
       : PGOAgentParameters(dIn, rIn, numRobotsIn),
@@ -58,7 +61,8 @@ class PGOAgentROSParameters : public PGOAgentParameters {
         publishIterate(false),
         maxDistributedInitSteps(30),
         maxDelayedIterations(3),
-        interUpdateSleepTime(0) {}
+        interUpdateSleepTime(0),
+        timeoutThreshold(15) {}
 
   inline friend std::ostream &operator<<(
       std::ostream &os, const PGOAgentROSParameters &params) {
@@ -71,6 +75,7 @@ class PGOAgentROSParameters : public PGOAgentParameters {
     os << "Maximum distributed initialization attempts: " << params.maxDistributedInitSteps << std::endl;
     os << "Maximum delayed iterations: " << params.maxDelayedIterations << std::endl;
     os << "Inter update sleep time: " << params.interUpdateSleepTime << std::endl;
+    os << "Timeout threshold: " << params.timeoutThreshold << std::endl;
     return os;
   }
 
@@ -112,6 +117,9 @@ class PGOAgentROS : public PGOAgent {
   // Flag to publish INITIALIZE command
   bool mPublishInitializeCommandRequested = false;
 
+  // Flag to attempt initialization
+  bool mTryInitializeRequested = false;
+
   // Handle to log file
   std::ofstream mIterationLog;
 
@@ -138,6 +146,7 @@ class PGOAgentROS : public PGOAgent {
   std::vector<unsigned> mTeamIterRequired;
   std::vector<bool> mTeamReceivedSharedLoopClosures;
   std::vector<bool> mTeamRobotActive;
+  std::vector<ros::Time> mTeamLatestStatusTime;
 
   // Store the latest optimized trajectory and loop closures for visualization
   std::optional<PoseArray> mCachedPoses;
@@ -153,10 +162,16 @@ class PGOAgentROS : public PGOAgent {
   void runOnceAsynchronous();
 
   // Request latest local pose graph
-  bool initializePoseGraph();
+  bool requestPoseGraph();
 
   // Attempt to initialize optimization
-  bool tryInitializeOptimization();
+  bool tryInitialize();
+
+  // Return true if the robot is connected
+  bool isRobotConnected(unsigned robot_id) const;
+
+  // Update the set of active robots based on connectivity
+  void updateActiveRobots();
 
   // Publish status
   void publishStatus();

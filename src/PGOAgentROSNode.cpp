@@ -123,6 +123,9 @@ int main(int argc, char **argv) {
   // Inter update sleep time
   ros::param::get("~inter_update_sleep_time", params.interUpdateSleepTime);
 
+  // Timeout threshold for considering a robot disconnected
+  ros::param::get("~timeout_threshold", params.timeoutThreshold);
+
   // Stopping condition in terms of relative change
   ros::param::get("~relative_change_tolerance", params.relChangeTol);
 

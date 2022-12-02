@@ -40,6 +40,7 @@
   <arg name="max_distributed_init_steps"       default="30" />
   <arg name="inter_update_sleep_time"          default="0.1"/>
   <arg name="max_delayed_iterations"           default="0" />
+  <arg name="timeout_threshold"                default="30" />
 
   <node launch-prefix="$(arg launch_prefix)" ns="dpgo_ros_node" name="agent" pkg="dpgo_ros" type="dpgo_ros_node" output="screen">
     <param name="~agent_id"                         type="int"    value="$(arg agent_id)" />
@@ -74,6 +75,7 @@
     <param name="~max_distributed_init_steps"       type="int"    value="$(arg max_distributed_init_steps)" />
     <param name="~inter_update_sleep_time"          type="double" value="$(arg inter_update_sleep_time)" />
     <param name="~max_delayed_iterations"           type="int"    value="$(arg max_delayed_iterations)" />
+    <param name="~timeout_threshold"                type="double" value="$(arg timeout_threshold)" />
     <param name="~log_output_path"                  type="str"    value="$(arg log_directory)" />
     <rosparam file="$(arg robot_names_file)" />
   </node>
