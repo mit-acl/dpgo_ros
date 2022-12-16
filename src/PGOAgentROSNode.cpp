@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
     params.maxNumIters = (unsigned) max_iters_int;
   // For robust optimization, we set the number of iterations based on the number of GNC iterations
   if (costName != "L2") {
-    max_iters_int = params.robustOptNumWeightUpdates * params.robustOptInnerIters - 2;
+    max_iters_int = (params.robustOptNumWeightUpdates + 1) * params.robustOptInnerIters - 2;
     max_iters_int = std::max(max_iters_int, 0);
     params.maxNumIters = (unsigned) max_iters_int;
   }
