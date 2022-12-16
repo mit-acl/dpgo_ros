@@ -234,6 +234,7 @@ class PGOAgentROS : public PGOAgent {
   // Log iteration
   bool createIterationLog(const std::string &filename);
   bool logIteration();
+  bool logWeightUpdate();
 
   // Sleep for a randomly generated between (0, sec)
   void randomSleep(double sec);

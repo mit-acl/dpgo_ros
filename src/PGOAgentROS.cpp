@@ -98,23 +98,10 @@ void PGOAgentROS::runOnce() {
     runOnceSynchronous();
   }
 
-  if (mLatestIterationRequested) {
-    ROS_WARN("Require latest iteration %d from all neighbors.", iteration_number());
-    for (const auto &neighbor : getNeighbors()) {
-      mTeamIterRequired[neighbor] = iteration_number();
-    }
-    mLatestIterationRequested = false;
-  }
-
   if (mPublishPublicPosesRequested) {
     publishPublicPoses(false);
     if (mParams.acceleration) publishPublicPoses(true);
     mPublishPublicPosesRequested = false;
-  }
-
-  if (mPublishWeightsRequested) {
-    publishMeasurementWeights();
-    mPublishWeightsRequested = false;
   }
 
   if (mState == PGOAgentState::INITIALIZED) {
@@ -179,6 +166,12 @@ void PGOAgentROS::runOnceSynchronous() {
       auto counter = std::chrono::high_resolution_clock::now() - startTime;
       mIterationElapsedMs = (double) std::chrono::duration_cast<std::chrono::milliseconds>(counter).count();
       mSynchronousOptimizationRequested = false;
+      ROS_INFO("Robot %u iteration %u: func_decr=%.1e, grad_init=%.1e, grad_opt=%.1e.", 
+               getID(), 
+               iteration_number(),
+               mLocalOptResult.fInit - mLocalOptResult.fOpt,
+               mLocalOptResult.gradNormInit, 
+               mLocalOptResult.gradNormOpt);
 
       // First robot publish anchor
       if (getID() == 0) publishAnchor();
@@ -198,8 +191,8 @@ void PGOAgentROS::runOnceSynchronous() {
       }
 
       // Print information
-      if (getID() == 0) {
-        ROS_INFO("Number of weight updates done: %i.", mWeightUpdateCount);
+      if (getID() == 0 && mParams.verbose) {
+        ROS_INFO("Num weight updates: %i, num inner iters: %i.", mWeightUpdateCount, mRobustOptInnerIter);
         for (size_t robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
           const auto &it = mTeamStatus.find(robot_id);
           if (it != mTeamStatus.end()) {
@@ -439,7 +432,7 @@ void PGOAgentROS::publishUpdateCommand() {
   msg.command = Command::UPDATE;
   msg.executing_iteration = iteration_number() + 1;
   ROS_INFO_STREAM(
-      "Send UPDATE to robot " << msg.executing_robot << " to perform iteration " << msg.executing_iteration);
+      "Send UPDATE to robot " << msg.executing_robot << " to perform iteration " << msg.executing_iteration << ".");
   mCommandPublisher.publish(msg);
 }
 
@@ -467,7 +460,8 @@ void PGOAgentROS::publishUpdateWeightCommand() {
   msg.publishing_robot = getID();
   msg.command = Command::UPDATE_WEIGHT;
   mCommandPublisher.publish(msg);
-  ROS_INFO("Robot %u published UPDATE_WEIGHT command.", getID());
+  ROS_INFO("Robot %u published UPDATE_WEIGHT command (num inner iters %i).", 
+           getID(), mRobustOptInnerIter);
 }
 
 void PGOAgentROS::publishRequestPoseGraphCommand() {
@@ -480,9 +474,9 @@ void PGOAgentROS::publishRequestPoseGraphCommand() {
   Command msg;
   msg.header.stamp = ros::Time::now();
   msg.publishing_robot = getID();
-  msg.command = Command::REQUESTPOSEGRAPH;
+  msg.command = Command::REQUEST_POSE_GRAPH;
   mCommandPublisher.publish(msg);
-  ROS_INFO("Robot %u published REQUESTPOSEGRAPH command.", getID());
+  ROS_INFO("Robot %u published REQUEST_POSE_GRAPH command.", getID());
 }
 
 void PGOAgentROS::publishInitializeCommand() {
@@ -771,6 +765,16 @@ bool PGOAgentROS::logIteration() {
   return true;
 }
 
+bool PGOAgentROS::logWeightUpdate() {
+  if (!mIterationLog.is_open()) {
+    ROS_ERROR_STREAM("No iteration log file!");
+    return false;
+  }
+  mIterationLog << "UPDATE_WEIGHT\n";
+  mIterationLog.flush();
+  return true;
+}
+
 void PGOAgentROS::liftingMatrixCallback(const MatrixMsgConstPtr &msg) {
   // if (mParams.verbose) {
   //   ROS_INFO("Robot %u receives lifting matrix.", getID());
@@ -805,11 +809,11 @@ void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
 void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
 
   switch (msg->command) {
-    case Command::REQUESTPOSEGRAPH: {
+    case Command::REQUEST_POSE_GRAPH: {
       mLastCommandTime = std::chrono::high_resolution_clock::now();
-      ROS_INFO("Robot %u received REQUESTPOSEGRAPH command.", getID());
+      ROS_INFO("Robot %u received REQUEST_POSE_GRAPH command.", getID());
       if (mState != PGOAgentState::WAIT_FOR_DATA) {
-        ROS_WARN_STREAM("Robot " << getID() << " receives REQUESTPOSEGRAPH command, but status is not WAIT_FOR_DATA. ");
+        ROS_WARN_STREAM("Robot " << getID() << " receives REQUEST_POSE_GRAPH command, but status is not WAIT_FOR_DATA. ");
         ROS_WARN_STREAM("Robot " << getID() << " reset... ");
         reset();
       }
@@ -983,7 +987,21 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     case Command::UPDATE_WEIGHT: {
       mLastCommandTime = std::chrono::high_resolution_clock::now();
       CHECK(!mParams.asynchronous);
+      // Publish intermediate GNC results
+      if (mWeightUpdateCount >= 1) {
+        publishLatestTrajectory();
+        publishLatestLoopClosureMarkers();
+      }
       updateMeasurementWeights();
+      logWeightUpdate();
+      // Require latest iterations from all neighbor robots
+      ROS_WARN("Require latest iteration %d from all neighbors.", iteration_number());
+      for (const auto &neighbor : getNeighbors()) {
+        mTeamIterRequired[neighbor] = iteration_number();
+      }
+      publishMeasurementWeights();
+      publishPublicPoses(false);
+      if (mParams.acceleration) publishPublicPoses(true);
       // The first resumes optimization by sending UPDATE command
       if (getID() == 0) {
         publishUpdateCommand();

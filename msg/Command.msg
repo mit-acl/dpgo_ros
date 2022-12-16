@@ -1,4 +1,4 @@
-uint8 REQUESTPOSEGRAPH=0      # Request pose graph
+uint8 REQUEST_POSE_GRAPH=0    # Request pose graph for distributed optimization
 uint8 UPDATE=1                # Perform update / iteration
 uint8 TERMINATE=2             # Nominal termination (after successful optimization)
 uint8 HARD_TERMINATE=3        # Hard termination (e.g., after communication loss)
