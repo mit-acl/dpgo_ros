@@ -197,6 +197,9 @@ class PGOAgentROS : public PGOAgent {
   // Publish hard termination command
   void publishHardTerminateCommand();
 
+  // Publish weight update command
+  void publishUpdateWeightCommand();
+
   // Publish the list of active robots
   void publishActiveRobotsCommand();
 

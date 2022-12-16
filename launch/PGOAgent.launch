@@ -27,13 +27,13 @@
   <arg name="GNC_barc"                         default="5.0" />
   <arg name="GNC_mu_step"                      default="2.0" />
   <arg name="GNC_init_mu"                      default="1e-5" />
-  <arg name="GNC_num_updates"                  default="4" />
+  <arg name="robust_opt_num_weight_updates"    default="4" />
   <arg name="robust_opt_num_resets"            default="0" />
   <arg name="robust_opt_min_convergence_ratio" default="0" />
   <arg name="robust_opt_inner_iters_per_robot" default="10" />
   <arg name="robust_init_min_inliers"          default="5" />
   <arg name="max_iteration_number"             default="1000" />
-  <arg name="relative_change_tolerance"        default="1e-2" />
+  <arg name="relative_change_tolerance"        default="0.1" />
   <arg name="log_directory"                    default="$(find dpgo_ros)/logs/agent$(arg agent_id)/" />
   <arg name="robot_names_file"                 default="$(find kimera_distributed)/params/robot_names.yaml" />
   <arg name="publish_iterate"                  default="false"/>
@@ -63,7 +63,7 @@
     <param name="~GNC_barc"                         type="double" value="$(arg GNC_barc)" />
     <param name="~GNC_mu_step"                      type="double" value="$(arg GNC_mu_step)" />
     <param name="~GNC_init_mu"                      type="double" value="$(arg GNC_init_mu)" />
-    <param name="~GNC_num_updates"                  type="int"    value="$(arg GNC_num_updates)" />
+    <param name="~robust_opt_num_weight_updates"    type="int"    value="$(arg robust_opt_num_weight_updates)" />
     <param name="~robust_opt_num_resets"            type="int"    value="$(arg robust_opt_num_resets)" />
     <param name="~robust_opt_min_convergence_ratio" type="double" value="$(arg robust_opt_min_convergence_ratio)" />
     <param name="~robust_opt_inner_iters_per_robot" type="int"    value="$(arg robust_opt_inner_iters_per_robot)" />

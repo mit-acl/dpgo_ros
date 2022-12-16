@@ -166,7 +166,6 @@ int main(int argc, char **argv) {
   }
 
   // GNC parameters
-  int gnc_num_updates = 5;
   bool gnc_use_quantile = false;
   ros::param::get("~GNC_use_probability", gnc_use_quantile);
   if (gnc_use_quantile) {
@@ -183,12 +182,12 @@ int main(int argc, char **argv) {
   }
   ros::param::get("~GNC_mu_step", params.robustCostParams.GNCMuStep);
   ros::param::get("~GNC_init_mu", params.robustCostParams.GNCInitMu);
-  ros::param::get("~GNC_num_updates", gnc_num_updates);
+  ros::param::get("~robust_opt_num_weight_updates", params.robustOptNumWeightUpdates);
   ros::param::get("~robust_opt_num_resets", params.robustOptNumResets);
   ros::param::get("~robust_opt_min_convergence_ratio", params.robustOptMinConvergenceRatio);
   int robust_opt_inner_iters_per_robot = 10;
   ros::param::get("~robust_opt_inner_iters_per_robot", robust_opt_inner_iters_per_robot);
-  params.robustOptInnerIters = (unsigned) num_robots * robust_opt_inner_iters_per_robot;
+  params.robustOptInnerIters = num_robots * robust_opt_inner_iters_per_robot;
   int robust_init_min_inliers;
   if (ros::param::get("~robust_init_min_inliers", robust_init_min_inliers)) {
     params.robustInitMinInliers = (unsigned) robust_init_min_inliers;
@@ -198,9 +197,9 @@ int main(int argc, char **argv) {
   int max_iters_int;
   if (ros::param::get("~max_iteration_number", max_iters_int))
     params.maxNumIters = (unsigned) max_iters_int;
-  // When using GNC, we set the number of iterations based on the number of GNC iterations
-  if (costName == "GNC_TLS") {
-    max_iters_int = gnc_num_updates * params.robustOptInnerIters - 2;
+  // For robust optimization, we set the number of iterations based on the number of GNC iterations
+  if (costName != "L2") {
+    max_iters_int = params.robustOptNumWeightUpdates * params.robustOptInnerIters - 2;
     max_iters_int = std::max(max_iters_int, 0);
     params.maxNumIters = (unsigned) max_iters_int;
   }
