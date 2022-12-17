@@ -145,7 +145,6 @@ class PGOAgentROS : public PGOAgent {
   std::vector<unsigned> mTeamIterReceived;
   std::vector<unsigned> mTeamIterRequired;
   std::vector<bool> mTeamReceivedSharedLoopClosures;
-  std::vector<bool> mTeamRobotActive;
   std::vector<ros::Time> mTeamLatestStatusTime;
 
   // Store the latest optimized trajectory and loop closures for visualization
@@ -169,12 +168,6 @@ class PGOAgentROS : public PGOAgent {
 
   // Return true if the robot is connected
   bool isRobotConnected(unsigned robot_id) const;
-
-  // Return true if the robot is initialized in global frame
-  bool isRobotInitialized(unsigned robot_id) const;
-
-  // Return true if the robot is currently active
-  bool isRobotActive(unsigned robot_id) const;
 
   // Update the set of active robots based on connectivity
   void updateActiveRobots();

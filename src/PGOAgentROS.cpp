@@ -31,7 +31,6 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
   mTeamIterRequired.assign(mParams.numRobots, 0);
   mTeamIterReceived.assign(mParams.numRobots, 0);
   mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
-  mTeamRobotActive.assign(mParams.numRobots, true);
   mTeamLatestStatusTime.assign(mParams.numRobots, ros::Time::now());
 
   // Load robot names
@@ -223,7 +222,6 @@ void PGOAgentROS::reset() {
   mTeamIterRequired.assign(mParams.numRobots, 0);
   mTeamIterReceived.assign(mParams.numRobots, 0);
   mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
-  mTeamRobotActive.assign(mParams.numRobots, true);
   mTotalBytesReceived = 0;
   mTeamStatusMsg.clear();
   if (mIterationLog.is_open())
@@ -338,28 +336,12 @@ bool PGOAgentROS::isRobotConnected(unsigned robot_id) const {
   return false;
 }
 
-bool PGOAgentROS::isRobotInitialized(unsigned robot_id) const {
-  if (robot_id == getID())
-    return mState == PGOAgentState::INITIALIZED;
-
-  if (!hasNeighborStatus(robot_id))
-    return false;
-
-  return getNeighborStatus(robot_id).state == PGOAgentState::INITIALIZED;
-}
-
-bool PGOAgentROS::isRobotActive(unsigned robot_id) const {
-  if (robot_id >= mParams.numRobots)
-    return false;
-  return mTeamRobotActive[robot_id];
-}
-
 void PGOAgentROS::updateActiveRobots() {
   // Update set of active robots based on connectivity
   for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
     if (!isRobotConnected(robot_id)) {
       ROS_WARN("Robot %u is not connected and is deactivated.", robot_id);
-      mTeamRobotActive[robot_id] = false;
+      setRobotActive(robot_id, false);
     }
   }
 }
@@ -886,11 +868,11 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
 
             if (hasNeighborStatus(robot_id) &&
                 getNeighborStatus(robot_id).state == PGOAgentState::INITIALIZED) {
-              mTeamRobotActive[robot_id] = true;
+              setRobotActive(robot_id, true);
               num_initialized_robots++;
             } else {
               ROS_WARN("Robot %u is not initialized.", robot_id);
-              mTeamRobotActive[robot_id] = false;
+              setRobotActive(robot_id, false);
             }
           }
 
@@ -1013,7 +995,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       // Update local record of currently active robots
       mTeamRobotActive.assign(mParams.numRobots, false);
       for (unsigned active_robot_id : msg->active_robots) {
-        mTeamRobotActive[active_robot_id] = true;
+        setRobotActive(active_robot_id, true);
       }
 
       // Handle case when this robot is deactivated
