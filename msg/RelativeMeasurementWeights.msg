@@ -4,3 +4,4 @@ uint16[] dst_robot_ids
 uint32[] src_pose_ids
 uint32[] dst_pose_ids
 float32[] weights
+bool[] fixed_weights

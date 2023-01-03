@@ -7,6 +7,7 @@
 
 #include <dpgo_ros/PGOAgentROS.h>
 #include <dpgo_ros/utils.h>
+#include <DPGO/DPGO_solver.h>
 #include <geometry_msgs/PoseArray.h>
 #include <nav_msgs/Path.h>
 #include <tf/tf.h>
@@ -191,7 +192,7 @@ void PGOAgentROS::runOnceSynchronous() {
 
       // Print information
       if (getID() == 0 && mParams.verbose) {
-        ROS_INFO("Num weight updates: %i, num inner iters: %i.", mWeightUpdateCount, mRobustOptInnerIter);
+        ROS_INFO("Num weight updates done: %i, num inner iters: %i.", mWeightUpdateCount, mRobustOptInnerIter);
         for (size_t robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
           const auto &it = mTeamStatus.find(robot_id);
           if (it != mTeamStatus.end()) {
@@ -224,8 +225,15 @@ void PGOAgentROS::reset() {
   mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
   mTotalBytesReceived = 0;
   mTeamStatusMsg.clear();
-  if (mIterationLog.is_open())
+  if (mIterationLog.is_open()) {
     mIterationLog.close();
+  }
+  if (mParamsROS.completeReset) {
+    ROS_WARN("Reset DPGO completely.");
+    mPoseGraph = std::make_shared<PoseGraph>(mID, r, d);  // Reset pose graph
+    mCachedPoses.reset();  // Reset stored trajectory estimate
+    mCachedLoopClosureMarkers.reset();
+  }
 }
 
 bool PGOAgentROS::requestPoseGraph() {
@@ -249,9 +257,8 @@ bool PGOAgentROS::requestPoseGraph() {
     return false;
   }
 
-  ROS_INFO("Received pose graph from ROS service.");
-
   // Process edges
+  unsigned int num_measurements_before = mPoseGraph->numMeasurements();
   for (const auto &edge : pose_graph.edges) {
     RelativeSEMeasurement m = RelativeMeasurementFromMsg(edge);
     if (m.r1 != getID() && m.r2 != getID()) {
@@ -259,6 +266,9 @@ bool PGOAgentROS::requestPoseGraph() {
     }
     addMeasurement(m);
   }
+  unsigned int num_measurements_after = mPoseGraph->numMeasurements();
+  ROS_INFO("Received pose graph from ROS service (%u new measurements).",
+           num_measurements_after - num_measurements_before);
 
   // Process nodes
   PoseArray initial_poses(dimension(), num_poses());
@@ -305,8 +315,6 @@ bool PGOAgentROS::tryInitialize() {
     }
   }
   if (ready) {
-    initialize();
-    mTryInitializeRequested = false;
     ROS_INFO("Robot %u sets pose graph. "
              "num_poses:%u, odom:%u, local_lc:%u, shared_lc:%u.",
              getID(),
@@ -314,6 +322,20 @@ bool PGOAgentROS::tryInitialize() {
              mPoseGraph->numOdometry(),
              mPoseGraph->numPrivateLoopClosures(),
              mPoseGraph->numSharedLoopClosures());
+    if (mCachedPoses.has_value()) {
+      // Result from previous round is available, and we use it to directly
+      // initialize in global frame
+      ROS_INFO("Initialize in global frame using result from previous round.");
+      const auto TPrev = mCachedPoses.value();
+      const auto TInit = odometryInitialization(mPoseGraph->odometry(), &TPrev);
+      initialize(&TInit);
+      initializeInGlobalFrame(Pose(d));
+    } else {
+      // No result is available so far, we will attempt to initialize with
+      // robust initialization
+      initialize();
+    }
+    mTryInitializeRequested = false;
   }
   return ready;
 }
@@ -593,7 +615,7 @@ void PGOAgentROS::publishPublicMeasurements() {
 }
 
 void PGOAgentROS::publishMeasurementWeights() {
-  if (mState != PGOAgentState::INITIALIZED) return;
+  // if (mState != PGOAgentState::INITIALIZED) return;
 
   std::map<unsigned, RelativeMeasurementWeights> msg_map;
   for (const auto &m : mPoseGraph->sharedLoopClosures()) {
@@ -614,30 +636,25 @@ void PGOAgentROS::publishMeasurementWeights() {
       msg_map[otherID].src_pose_ids.push_back(m.p1);
       msg_map[otherID].dst_pose_ids.push_back(m.p2);
       msg_map[otherID].weights.push_back(m.weight);
+      msg_map[otherID].fixed_weights.push_back(m.fixedWeight);
     }
   }
   for (const auto &it : msg_map) {
     const auto &msg = it.second;
     if (!msg.weights.empty()) {
-      if (msg.destination_robot_id <= getID()) {
-        ROS_ERROR("Attempt to send measurement weights to robot %i.",
-                  msg.destination_robot_id);
-      } else {
-        mMeasurementWeightsPublisher.publish(msg);
-      }
+      mMeasurementWeightsPublisher.publish(msg);
     }
   }
 }
 
 void PGOAgentROS::storeLoopClosureMarkers() {
   if (mState != PGOAgentState::INITIALIZED) return;
-
+  double weight_tol = mParamsROS.weightConvergenceThreshold;
   visualization_msgs::Marker line_list;
   line_list.id = (int) getID();
   line_list.type = visualization_msgs::Marker::LINE_LIST;
   line_list.scale.x = 0.1;
   line_list.header.frame_id = "/world";
-  line_list.color.b = 1.0;
   line_list.color.a = 1.0;
   line_list.pose.orientation.x = 0.0;
   line_list.pose.orientation.y = 0.0;
@@ -661,6 +678,17 @@ void PGOAgentROS::storeLoopClosureMarkers() {
       p2.z = t2(2);
       line_list.points.push_back(p1);
       line_list.points.push_back(p2);
+      std_msgs::ColorRGBA line_color;
+      line_color.a = 1;
+      if (measurement.weight > 1 - weight_tol) {
+        line_color.g = 1;
+      } else if (measurement.weight < weight_tol) {
+        line_color.r = 1;
+      } else {
+        line_color.b = 1;
+      }
+      line_list.colors.push_back(line_color);
+      line_list.colors.push_back(line_color);
     }
   }
   for (const auto &measurement : mPoseGraph->sharedLoopClosures()) {
@@ -689,10 +717,18 @@ void PGOAgentROS::storeLoopClosureMarkers() {
       np.z = nt(2);
       line_list.points.push_back(mp);
       line_list.points.push_back(np);
-    } else {
-      // ROS_WARN("Robot %u cannot publish loop closure: (%zu,%zu) -> (%zu,%zu)",
-      //         getID(), measurement.r1, measurement.p1, measurement.r2, measurement.p2);
-    }
+      std_msgs::ColorRGBA line_color;
+      line_color.a = 1;
+      if (measurement.weight > 1 - weight_tol) {
+        line_color.g = 1;
+      } else if (measurement.weight < weight_tol) {
+        line_color.r = 1;
+      } else {
+        line_color.b = 1;
+      }
+      line_list.colors.push_back(line_color);
+      line_list.colors.push_back(line_color);
+    } 
   }
   if (!line_list.points.empty())
     mCachedLoopClosureMarkers.emplace(line_list);
@@ -818,10 +854,49 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     case Command::TERMINATE: {
       mLastCommandTime = std::chrono::high_resolution_clock::now();
       ROS_INFO("Robot %u received TERMINATE command. ", getID());
-      // Publish optimized trajectory
+      // Store and publish optimized trajectory in global frame
       publishLatestTrajectory();
       publishLatestLoopClosureMarkers();
-
+      
+      // When running distributed GNC, fix loop closures that have converged
+      if (mParams.robustCostParams.costType ==
+          RobustCostParameters::Type::GNC_TLS) {
+        double residual = 0;
+        double weight = 0;
+        for (auto &m : mPoseGraph->writableLoopClosures()) {
+          if (!m->fixedWeight && computeMeasurementResidual(*m, &residual)) {
+            weight = mRobustCost.weight(residual);
+            if (residual < mParams.robustCostParams.GNCBarc) {
+              m->weight = 1;
+              m->fixedWeight = true;
+            } else if (weight < mParamsROS.weightConvergenceThreshold) {
+              ROS_INFO("Reject measurement with residual %f and weight %f.", residual, weight);
+              m->weight = 0;
+              m->fixedWeight = true;
+            } 
+          }
+        }
+        publishLatestLoopClosureMarkers();
+        const auto stat = mPoseGraph->statistics();
+        ROS_INFO(
+            "Robot %u loop closure statistics:\n "
+            "accepted: %f\n "
+            "rejected: %f\n "
+            "undecided: %f\n",
+            mID, 
+            stat.accept_loop_closures, 
+            stat.reject_loop_closures, 
+            stat.undecided_loop_closures);
+        // Set undecided measurement weights to 1 again
+        // to prepare for the next round of distributed GNC
+        for (auto &m : mPoseGraph->writableLoopClosures()) {
+          if (!m->fixedWeight) {
+            m->weight = 1;
+          }
+        }
+        publishMeasurementWeights();
+      }
+      
       reset();
       // First robot initiates next optimization round
       if (getID() == 0) {
@@ -855,11 +930,10 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       publishStatus();
       if (getID() == 0) {
         ros::Duration(0.1).sleep();
+        // Check the number of initialized robots
+        int num_initialized_robots = 0;
         if (mInitStepsDone > mParamsROS.maxDistributedInitSteps) {
           ROS_WARN("Exceeded maximum number of initialization steps.");
-
-          // Check the number of initialized robots
-          int num_initialized_robots = 0;
           for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
             // Skip if robot already not active
             if (!isRobotActive(robot_id)) {
@@ -877,26 +951,23 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
           }
 
           // Attempt partial participation
-          if (isRobotActive(0) && num_initialized_robots > 1) {
-            ROS_WARN("Attempt distributed optimization with %i/%i robots.",
-                     num_initialized_robots, mParams.numRobots);
-
-            // Publish active robots
-            publishActiveRobotsCommand();
-
-            // Kick off optimization
-            if (!mParams.asynchronous) {
+          if (!mParams.asynchronous) {
+            if (num_initialized_robots > 1) {
+              ROS_WARN("Attempt distributed optimization with %i/%i robots.",
+                      num_initialized_robots, mParams.numRobots);
+              // Publish active robots
+              publishActiveRobotsCommand();
+              // Kick off optimization
               Command cmdMsg;
               cmdMsg.command = Command::UPDATE;
               cmdMsg.executing_robot = 0;
               cmdMsg.executing_iteration = iteration_number() + 1;
               mCommandPublisher.publish(cmdMsg);
+            } else {
+              ROS_WARN("Only %i robots are initialized. Send TERMINATE command.",
+                      num_initialized_robots);
+              publishHardTerminateCommand();
             }
-
-          } else {
-            ROS_WARN("Only %i robots are initialized. Send TERMINATE command.",
-                     num_initialized_robots);
-            publishHardTerminateCommand();
           }
           return;
         }
@@ -921,15 +992,22 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
             mPublishInitializeCommandRequested = true;
             return;
           }
+          num_initialized_robots++;
         }
 
         // In the synchronous mode, kick off optimization by sending UPDATE command
         if (!mParams.asynchronous) {
-          Command cmdMsg;
-          cmdMsg.command = Command::UPDATE;
-          cmdMsg.executing_robot = 0;
-          cmdMsg.executing_iteration = iteration_number() + 1;
-          mCommandPublisher.publish(cmdMsg);
+          if (num_initialized_robots > 1) {
+            Command cmdMsg;
+            cmdMsg.command = Command::UPDATE;
+            cmdMsg.executing_robot = 0;
+            cmdMsg.executing_iteration = iteration_number() + 1;
+            mCommandPublisher.publish(cmdMsg);
+          } else {
+            ROS_WARN("Only %i robots are initialized. Send TERMINATE command.",
+                     num_initialized_robots);
+            publishHardTerminateCommand();
+          }
         }
       }
       break;
@@ -969,11 +1047,6 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     case Command::UPDATE_WEIGHT: {
       mLastCommandTime = std::chrono::high_resolution_clock::now();
       CHECK(!mParams.asynchronous);
-      // Publish intermediate GNC results
-      if (mWeightUpdateCount >= 1) {
-        publishLatestTrajectory();
-        publishLatestLoopClosureMarkers();
-      }
       updateMeasurementWeights();
       logWeightUpdate();
       // Require latest iterations from all neighbor robots
@@ -993,6 +1066,8 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
 
     case Command::SET_ACTIVE_ROBOTS: {
       // Update local record of currently active robots
+      
+      // TODO: use setRobotActive() here
       mTeamRobotActive.assign(mParams.numRobots, false);
       for (unsigned active_robot_id : msg->active_robots) {
         setRobotActive(active_robot_id, true);
@@ -1072,7 +1147,7 @@ void PGOAgentROS::publicMeasurementsCallback(const RelativeMeasurementListConstP
 }
 
 void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsConstPtr &msg) {
-  if (mState != PGOAgentState::INITIALIZED) return;
+  // if (mState != PGOAgentState::INITIALIZED) return;
   if (msg->destination_robot_id != getID()) return;
   bool weights_updated = false;
   for (size_t k = 0; k < msg->weights.size(); ++k) {
@@ -1083,6 +1158,7 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
     const PoseID srcID(robotSrc, poseSrc);
     const PoseID dstID(robotDst, poseDst);
     double w = msg->weights[k];
+    bool fixed = msg->fixed_weights[k];
 
     unsigned otherID;
     if (robotSrc == getID() && robotDst != getID()) {
@@ -1094,12 +1170,11 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
       continue;
     }
     if (otherID < getID()) {
-      if (setMeasurementWeight(srcID, dstID, w))
+      if (setMeasurementWeight(srcID, dstID, w, fixed))
         weights_updated = true;
       else {
         ROS_ERROR("Cannot find specified shared loop closure (%u, %u) -> (%u, %u)",
                   robotSrc, poseSrc, robotDst, poseDst);
-        publishHardTerminateCommand();
       }
     }
   }

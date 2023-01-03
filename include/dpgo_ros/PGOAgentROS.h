@@ -42,11 +42,17 @@ class PGOAgentROSParameters : public PGOAgentParameters {
   // Publish intermediate iterates during optimization
   bool publishIterate;
 
+  // Completely reset dpgo after each distributed optimization round
+  bool completeReset;
+
   // Maximum attempts for multi-robot initialization
   int maxDistributedInitSteps;
 
   // Maximum allowed delay from other robots (specified as number of iterations)
   int maxDelayedIterations;
+
+  // Threshold used when determining if loop closure weight converged
+  double weightConvergenceThreshold;
 
   // Sleep time before telling next robot to update during optimization
   double interUpdateSleepTime;
@@ -59,8 +65,10 @@ class PGOAgentROSParameters : public PGOAgentParameters {
       : PGOAgentParameters(dIn, rIn, numRobotsIn),
         updateRule(UpdateRule::Uniform),
         publishIterate(false),
+        completeReset(false),
         maxDistributedInitSteps(30),
         maxDelayedIterations(3),
+        weightConvergenceThreshold(1e-6),
         interUpdateSleepTime(0),
         timeoutThreshold(15) {}
 
@@ -72,8 +80,10 @@ class PGOAgentROSParameters : public PGOAgentParameters {
     os << "PGOAgentROS parameters: " << std::endl;
     os << "Update rule: " << updateRuleToString(params.updateRule) << std::endl; 
     os << "Publish iterate: " << params.publishIterate << std::endl;
+    os << "Complete reset: " << params.completeReset << std::endl;
     os << "Maximum distributed initialization attempts: " << params.maxDistributedInitSteps << std::endl;
     os << "Maximum delayed iterations: " << params.maxDelayedIterations << std::endl;
+    os << "Measurement weight convergence threshold: " << params.weightConvergenceThreshold << std::endl;
     os << "Inter update sleep time: " << params.interUpdateSleepTime << std::endl;
     os << "Timeout threshold: " << params.timeoutThreshold << std::endl;
     return os;

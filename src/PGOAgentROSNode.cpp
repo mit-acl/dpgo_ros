@@ -123,6 +123,9 @@ int main(int argc, char **argv) {
   // Inter update sleep time
   ros::param::get("~inter_update_sleep_time", params.interUpdateSleepTime);
 
+  // Threshold for determining measurement weight convergence
+  ros::param::get("~weight_convergence_threshold", params.weightConvergenceThreshold);
+
   // Timeout threshold for considering a robot disconnected
   ros::param::get("~timeout_threshold", params.timeoutThreshold);
 
@@ -134,6 +137,9 @@ int main(int argc, char **argv) {
 
   // Publish iterate during optimization
   ros::param::get("~publish_iterate", params.publishIterate);
+
+  // Completely reset dpgo after each distributed optimization round
+  ros::param::get("~complete_reset", params.completeReset);
 
   // Maximum multi-robot initialization attempts 
   ros::param::get("~max_distributed_init_steps", params.maxDistributedInitSteps);
