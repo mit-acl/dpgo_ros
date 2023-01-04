@@ -146,6 +146,7 @@ void PGOAgentROS::runOnceSynchronous() {
     // Check if ready to perform iterate
     bool ready = true;
     for (unsigned neighbor : getNeighbors()) {
+      if (!isRobotActive(neighbor)) continue;
       int requiredIter = (int) mTeamIterRequired[neighbor];
       if (mParams.acceleration) requiredIter = (int) iteration_number() + 1;
       requiredIter = requiredIter - mParamsROS.maxDelayedIterations;
@@ -863,7 +864,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
           RobustCostParameters::Type::GNC_TLS) {
         double residual = 0;
         double weight = 0;
-        for (auto &m : mPoseGraph->writableLoopClosures()) {
+        for (auto &m : mPoseGraph->activeLoopClosures()) {
           if (!m->fixedWeight && computeMeasurementResidual(*m, &residual)) {
             weight = mRobustCost.weight(residual);
             if (residual < mParams.robustCostParams.GNCBarc) {
@@ -889,7 +890,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
             stat.undecided_loop_closures);
         // Set undecided measurement weights to 1 again
         // to prepare for the next round of distributed GNC
-        for (auto &m : mPoseGraph->writableLoopClosures()) {
+        for (auto &m : mPoseGraph->allLoopClosures()) {
           if (!m->fixedWeight) {
             m->weight = 1;
           }
@@ -1066,26 +1067,12 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
 
     case Command::SET_ACTIVE_ROBOTS: {
       // Update local record of currently active robots
-      
-      // TODO: use setRobotActive() here
-      mTeamRobotActive.assign(mParams.numRobots, false);
+      for (unsigned int robot_id = 0; robot_id < mParams.numRobots; robot_id++) {
+        setRobotActive(robot_id, false);
+      }
       for (unsigned active_robot_id : msg->active_robots) {
         setRobotActive(active_robot_id, true);
       }
-
-      // Handle case when this robot is deactivated
-      if (!isRobotActive(getID())) {
-        return;
-      }
-
-      // Remove deactivated neighbor if needed
-      for (unsigned neighborID : getNeighbors()) {
-        if (!isRobotActive(neighborID)) {
-          ROS_WARN("Robot %u removed deactivated neighbor %u.", getID(), neighborID);
-          removeNeighbor(neighborID);
-        }
-      }
-
       break;
     }
 
@@ -1173,7 +1160,7 @@ void PGOAgentROS::measurementWeightsCallback(const RelativeMeasurementWeightsCon
       if (setMeasurementWeight(srcID, dstID, w, fixed))
         weights_updated = true;
       else {
-        ROS_ERROR("Cannot find specified shared loop closure (%u, %u) -> (%u, %u)",
+        ROS_WARN("Cannot find specified shared loop closure (%u, %u) -> (%u, %u)",
                   robotSrc, poseSrc, robotDst, poseDst);
       }
     }
