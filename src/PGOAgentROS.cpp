@@ -861,7 +861,8 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       
       // When running distributed GNC, fix loop closures that have converged
       if (mParams.robustCostParams.costType ==
-          RobustCostParameters::Type::GNC_TLS) {
+          RobustCostParameters::Type::GNC_TLS && 
+          isRobotActive(getID())) {
         double residual = 0;
         double weight = 0;
         for (auto &m : mPoseGraph->activeLoopClosures()) {
@@ -1048,6 +1049,10 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     case Command::UPDATE_WEIGHT: {
       mLastCommandTime = std::chrono::high_resolution_clock::now();
       CHECK(!mParams.asynchronous);
+      if (!isRobotActive(getID())) {
+        ROS_WARN_STREAM("Robot " << getID() << " is deactivated. Ignore UPDATE_WEIGHT command... ");
+        return;
+      }
       updateMeasurementWeights();
       logWeightUpdate();
       // Require latest iterations from all neighbor robots
