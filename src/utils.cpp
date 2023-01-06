@@ -145,7 +145,7 @@ RelativeSEMeasurement RelativeMeasurementFromMsg(const PoseGraphEdge &msg) {
 
   // By default, odometry edge is inlier
   if (r1 == r2 && p1 + 1 == p2) {
-    m.isKnownInlier = true;
+    m.fixedWeight = true;
   }
 
   return m;

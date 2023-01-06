@@ -1,10 +1,11 @@
-uint8 REQUESTPOSEGRAPH=0      # Request pose graph
+uint8 REQUEST_POSE_GRAPH=0    # Request pose graph for distributed optimization
 uint8 UPDATE=1                # Perform update / iteration
 uint8 TERMINATE=2             # Nominal termination (after successful optimization)
 uint8 HARD_TERMINATE=3        # Hard termination (e.g., after communication loss)
 uint8 INITIALIZE=4            # Perform initialization
-uint8 SET_ACTIVE_ROBOTS=5     # Set the list of active robots that will participate in distributed optimization
-uint8 NOOP=6                  # NoOp (used for debugging)
+uint8 UPDATE_WEIGHT = 5       # Update measurement weights (for robust optimization)
+uint8 SET_ACTIVE_ROBOTS=6     # Set the list of active robots that will participate in distributed optimization
+uint8 NOOP=7                  # NoOp (used for debugging)
 
 std_msgs/Header header
 uint8 command

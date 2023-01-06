@@ -42,11 +42,17 @@ class PGOAgentROSParameters : public PGOAgentParameters {
   // Publish intermediate iterates during optimization
   bool publishIterate;
 
+  // Completely reset dpgo after each distributed optimization round
+  bool completeReset;
+
   // Maximum attempts for multi-robot initialization
   int maxDistributedInitSteps;
 
   // Maximum allowed delay from other robots (specified as number of iterations)
   int maxDelayedIterations;
+
+  // Threshold used when determining if loop closure weight converged
+  double weightConvergenceThreshold;
 
   // Sleep time before telling next robot to update during optimization
   double interUpdateSleepTime;
@@ -59,8 +65,10 @@ class PGOAgentROSParameters : public PGOAgentParameters {
       : PGOAgentParameters(dIn, rIn, numRobotsIn),
         updateRule(UpdateRule::Uniform),
         publishIterate(false),
+        completeReset(false),
         maxDistributedInitSteps(30),
         maxDelayedIterations(3),
+        weightConvergenceThreshold(1e-6),
         interUpdateSleepTime(0),
         timeoutThreshold(15) {}
 
@@ -72,8 +80,10 @@ class PGOAgentROSParameters : public PGOAgentParameters {
     os << "PGOAgentROS parameters: " << std::endl;
     os << "Update rule: " << updateRuleToString(params.updateRule) << std::endl; 
     os << "Publish iterate: " << params.publishIterate << std::endl;
+    os << "Complete reset: " << params.completeReset << std::endl;
     os << "Maximum distributed initialization attempts: " << params.maxDistributedInitSteps << std::endl;
     os << "Maximum delayed iterations: " << params.maxDelayedIterations << std::endl;
+    os << "Measurement weight convergence threshold: " << params.weightConvergenceThreshold << std::endl;
     os << "Inter update sleep time: " << params.interUpdateSleepTime << std::endl;
     os << "Timeout threshold: " << params.timeoutThreshold << std::endl;
     return os;
@@ -145,7 +155,6 @@ class PGOAgentROS : public PGOAgent {
   std::vector<unsigned> mTeamIterReceived;
   std::vector<unsigned> mTeamIterRequired;
   std::vector<bool> mTeamReceivedSharedLoopClosures;
-  std::vector<bool> mTeamRobotActive;
   std::vector<ros::Time> mTeamLatestStatusTime;
 
   // Store the latest optimized trajectory and loop closures for visualization
@@ -170,12 +179,6 @@ class PGOAgentROS : public PGOAgent {
   // Return true if the robot is connected
   bool isRobotConnected(unsigned robot_id) const;
 
-  // Return true if the robot is initialized in global frame
-  bool isRobotInitialized(unsigned robot_id) const;
-
-  // Return true if the robot is currently active
-  bool isRobotActive(unsigned robot_id) const;
-
   // Update the set of active robots based on connectivity
   void updateActiveRobots();
 
@@ -196,6 +199,9 @@ class PGOAgentROS : public PGOAgent {
 
   // Publish hard termination command
   void publishHardTerminateCommand();
+
+  // Publish weight update command
+  void publishUpdateWeightCommand();
 
   // Publish the list of active robots
   void publishActiveRobotsCommand();
@@ -231,6 +237,7 @@ class PGOAgentROS : public PGOAgent {
   // Log iteration
   bool createIterationLog(const std::string &filename);
   bool logIteration();
+  bool logWeightUpdate();
 
   // Sleep for a randomly generated between (0, sec)
   void randomSleep(double sec);

@@ -27,18 +27,20 @@
   <arg name="GNC_barc"                         default="5.0" />
   <arg name="GNC_mu_step"                      default="2.0" />
   <arg name="GNC_init_mu"                      default="1e-5" />
-  <arg name="GNC_num_updates"                  default="4" />
+  <arg name="robust_opt_num_weight_updates"    default="4" />
   <arg name="robust_opt_num_resets"            default="0" />
   <arg name="robust_opt_min_convergence_ratio" default="0" />
   <arg name="robust_opt_inner_iters_per_robot" default="10" />
   <arg name="robust_init_min_inliers"          default="5" />
   <arg name="max_iteration_number"             default="1000" />
-  <arg name="relative_change_tolerance"        default="1e-2" />
+  <arg name="relative_change_tolerance"        default="0.1" />
   <arg name="log_directory"                    default="$(find dpgo_ros)/logs/agent$(arg agent_id)/" />
-  <arg name="robot_names_file"                 default="$(find kimera_distributed)/params/robot_names.yaml" />
+  <arg name="robot_names_file"                 default="$(find dpgo_ros)/params/robot_names.yaml" />
   <arg name="publish_iterate"                  default="false"/>
+  <arg name="complete_reset"                   default="false"/>
   <arg name="max_distributed_init_steps"       default="30" />
   <arg name="inter_update_sleep_time"          default="0.1"/>
+  <arg name="weight_convergence_threshold"     default="1e-6"/>
   <arg name="max_delayed_iterations"           default="0" />
   <arg name="timeout_threshold"                default="40" />
 
@@ -63,7 +65,7 @@
     <param name="~GNC_barc"                         type="double" value="$(arg GNC_barc)" />
     <param name="~GNC_mu_step"                      type="double" value="$(arg GNC_mu_step)" />
     <param name="~GNC_init_mu"                      type="double" value="$(arg GNC_init_mu)" />
-    <param name="~GNC_num_updates"                  type="int"    value="$(arg GNC_num_updates)" />
+    <param name="~robust_opt_num_weight_updates"    type="int"    value="$(arg robust_opt_num_weight_updates)" />
     <param name="~robust_opt_num_resets"            type="int"    value="$(arg robust_opt_num_resets)" />
     <param name="~robust_opt_min_convergence_ratio" type="double" value="$(arg robust_opt_min_convergence_ratio)" />
     <param name="~robust_opt_inner_iters_per_robot" type="int"    value="$(arg robust_opt_inner_iters_per_robot)" />
@@ -72,8 +74,10 @@
     <param name="~max_iteration_number"             type="int"    value="$(arg max_iteration_number)" />
     <param name="~relative_change_tolerance"        type="double" value="$(arg relative_change_tolerance)" />
     <param name="~publish_iterate"                  type="bool"   value="$(arg publish_iterate)" />
+    <param name="~complete_reset"                   type="bool"   value="$(arg complete_reset)" />
     <param name="~max_distributed_init_steps"       type="int"    value="$(arg max_distributed_init_steps)" />
     <param name="~inter_update_sleep_time"          type="double" value="$(arg inter_update_sleep_time)" />
+    <param name="~weight_convergence_threshold"     type="double" value="$(arg weight_convergence_threshold)" />
     <param name="~max_delayed_iterations"           type="int"    value="$(arg max_delayed_iterations)" />
     <param name="~timeout_threshold"                type="double" value="$(arg timeout_threshold)" />
     <param name="~log_output_path"                  type="str"    value="$(arg log_directory)" />
