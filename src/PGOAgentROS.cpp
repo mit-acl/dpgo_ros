@@ -32,7 +32,7 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
   mTeamIterRequired.assign(mParams.numRobots, 0);
   mTeamIterReceived.assign(mParams.numRobots, 0);
   mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
-  mTeamLatestStatusTime.assign(mParams.numRobots, ros::Time::now());
+  mTeamConnected.assign(mParams.numRobots, true);
 
   // Load robot names
   for (size_t id = 0; id < mParams.numRobots; id++) {
@@ -57,6 +57,9 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
     mSharedLoopClosureSubscriber.push_back(
         nh.subscribe(topic_prefix + "public_measurements", 100, &PGOAgentROS::publicMeasurementsCallback, this));
   }
+  mConnectivitySubscriber =
+      nh.subscribe("/" + mRobotNames.at(mID) + "/connected_peer_ids", 5,
+                   &PGOAgentROS::connectivityCallback, this);
 
   for (size_t robot_id = 0; robot_id < getID(); ++robot_id) {
     std::string topic_prefix = "/" + mRobotNames.at(robot_id) + "/dpgo_ros_node/";
@@ -87,6 +90,8 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
       publishLiftingMatrix();
       ros::Duration(0.1).sleep();
     }
+    publishNoopCommand();
+    ros::Duration(10.0).sleep();
     publishRequestPoseGraphCommand();
   }
 }
@@ -342,21 +347,13 @@ bool PGOAgentROS::tryInitialize() {
 }
 
 bool PGOAgentROS::isRobotConnected(unsigned robot_id) const {
-  if (robot_id == getID())
-    return true;
-  if (robot_id >= mParams.numRobots)
+  if (robot_id >= mParams.numRobots) {
     return false;
-  const auto connection_time = mTeamLatestStatusTime[robot_id];
-  const auto current_time = ros::Time::now();
-  const auto elapsed_second = (current_time - connection_time).toSec();
-  if (elapsed_second < mParamsROS.timeoutThreshold) {
-    ROS_INFO("Robot %u is connected (%f sec < %f sec).",
-             robot_id, elapsed_second, mParamsROS.timeoutThreshold);
+  }
+  if (robot_id == getID()) {
     return true;
   }
-  ROS_WARN("Robot %u is disconnected (%f sec > %f sec).",
-           robot_id, elapsed_second, mParamsROS.timeoutThreshold);
-  return false;
+  return mTeamConnected[robot_id];
 }
 
 void PGOAgentROS::updateActiveRobots() {
@@ -365,6 +362,9 @@ void PGOAgentROS::updateActiveRobots() {
     if (!isRobotConnected(robot_id)) {
       ROS_WARN("Robot %u is not connected and is deactivated.", robot_id);
       setRobotActive(robot_id, false);
+    } else {
+      ROS_INFO("Robot %u is connected.", robot_id);
+      setRobotActive(robot_id, true);
     }
   }
 }
@@ -794,6 +794,21 @@ bool PGOAgentROS::logWeightUpdate() {
   return true;
 }
 
+void PGOAgentROS::connectivityCallback(
+    const std_msgs::UInt16MultiArrayConstPtr &msg) {
+  std::set<unsigned> connected_ids(msg->data.begin(), msg->data.end());
+  for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
+    if (robot_id == getID()) {
+      mTeamConnected[robot_id] = true;
+    } else if (connected_ids.find(robot_id) != connected_ids.end()) {
+      mTeamConnected[robot_id] = true;
+    } else {
+      // ROS_WARN("Robot %u is disconnected.", robot_id);
+      mTeamConnected[robot_id] = false;
+    }
+  }
+}
+
 void PGOAgentROS::liftingMatrixCallback(const MatrixMsgConstPtr &msg) {
   // if (mParams.verbose) {
   //   ROS_INFO("Robot %u receives lifting matrix.", getID());
@@ -822,7 +837,6 @@ void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
   }
   mTeamStatusMsg[msg->robot_id] = received_msg;
   setNeighborStatus(statusFromMsg(received_msg));
-  mTeamLatestStatusTime[msg->robot_id] = ros::Time::now();
 }
 
 void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
@@ -927,6 +941,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       publishPublicPoses(false);
       if (getID() == 0) {
         publishLiftingMatrix();
+        updateActiveRobots();
         publishActiveRobotsCommand();
       }
       publishStatus();

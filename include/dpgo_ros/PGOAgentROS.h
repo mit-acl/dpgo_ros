@@ -17,6 +17,7 @@
 #include <dpgo_ros/Status.h>
 #include <pose_graph_tools/PoseGraph.h>
 #include <visualization_msgs/Marker.h>
+#include <std_msgs/UInt16MultiArray.h>
 #include <ros/console.h>
 #include <ros/ros.h>
 
@@ -155,7 +156,9 @@ class PGOAgentROS : public PGOAgent {
   std::vector<unsigned> mTeamIterReceived;
   std::vector<unsigned> mTeamIterRequired;
   std::vector<bool> mTeamReceivedSharedLoopClosures;
-  std::vector<ros::Time> mTeamLatestStatusTime;
+  
+  // Store if other robots are currently connected 
+  std::vector<bool> mTeamConnected;  
 
   // Store the latest optimized trajectory and loop closures for visualization
   std::optional<PoseArray> mCachedPoses;
@@ -243,6 +246,7 @@ class PGOAgentROS : public PGOAgent {
   void randomSleep(double sec);
 
   // ROS callbacks
+  void connectivityCallback(const std_msgs::UInt16MultiArrayConstPtr &msg);
   void liftingMatrixCallback(const MatrixMsgConstPtr &msg);
   void anchorCallback(const PublicPosesConstPtr &msg);
   void statusCallback(const StatusConstPtr &msg);
@@ -274,6 +278,7 @@ class PGOAgentROS : public PGOAgent {
   SubscriberVector mPublicPosesSubscriber;
   SubscriberVector mSharedLoopClosureSubscriber;
   SubscriberVector mMeasurementWeightsSubscriber;
+  ros::Subscriber mConnectivitySubscriber;
 
   // ROS timer
   ros::Timer timer;
