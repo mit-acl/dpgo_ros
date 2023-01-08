@@ -903,13 +903,6 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
             stat.accept_loop_closures, 
             stat.reject_loop_closures, 
             stat.undecided_loop_closures);
-        // Set undecided measurement weights to 1 again
-        // to prepare for the next round of distributed GNC
-        for (auto &m : mPoseGraph->allLoopClosures()) {
-          if (!m->fixedWeight) {
-            m->weight = 1;
-          }
-        }
         publishMeasurementWeights();
       }
       
@@ -935,13 +928,15 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     }
 
     case Command::INITIALIZE: {
+      // TODO: ignore if status == WAIT_FOR_DATA
+
       mLastCommandTime = std::chrono::high_resolution_clock::now();
       mGlobalStartTime = std::chrono::high_resolution_clock::now();
       publishPublicMeasurements();
       publishPublicPoses(false);
       if (getID() == 0) {
         publishLiftingMatrix();
-        updateActiveRobots();
+        // updateActiveRobots();
         publishActiveRobotsCommand();
       }
       publishStatus();
