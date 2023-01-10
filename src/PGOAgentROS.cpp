@@ -127,8 +127,10 @@ void PGOAgentROS::runOnceAsynchronous() {
     if (getID() == 0) publishAnchor();
     publishStatus();
     if (mParamsROS.publishIterate) {
-      publishLatestTrajectory();
-      publishLatestLoopClosureMarkers();
+      storeOptimizedTrajectory();
+      storeLoopClosureMarkers();
+      publishOptimizedTrajectory();
+      publishLoopClosureMarkers();
     }
     if (mParams.logData) {
       logIteration();
@@ -150,8 +152,7 @@ void PGOAgentROS::runOnceSynchronous() {
 
     // Check if ready to perform iterate
     bool ready = true;
-    for (unsigned neighbor : getNeighbors()) {
-      if (!isRobotActive(neighbor)) continue;
+    for (unsigned neighbor : mPoseGraph->activeNeighborIDs()) {
       int requiredIter = (int) mTeamIterRequired[neighbor];
       if (mParams.acceleration) requiredIter = (int) iteration_number() + 1;
       requiredIter = requiredIter - mParamsROS.maxDelayedIterations;
@@ -166,6 +167,8 @@ void PGOAgentROS::runOnceSynchronous() {
 
     // Perform iterate with optimization if ready
     if (ready) {
+      // TODO: apply stored neighbor poses and edge weights for in-active robots
+      applyStoredNeighborPoses();
       // Iterate
       auto startTime = std::chrono::high_resolution_clock::now();
       iterate(true);
@@ -187,8 +190,10 @@ void PGOAgentROS::runOnceSynchronous() {
 
       // Publish trajectory
       if (mParamsROS.publishIterate) {
-        publishLatestTrajectory();
-        publishLatestLoopClosureMarkers();
+        storeOptimizedTrajectory();
+        storeLoopClosureMarkers();
+        publishOptimizedTrajectory();
+        publishLoopClosureMarkers();
       }
 
       // Log local iteration
@@ -336,6 +341,8 @@ bool PGOAgentROS::tryInitialize() {
       const auto TInit = odometryInitialization(mPoseGraph->odometry(), &TPrev);
       initialize(&TInit);
       initializeInGlobalFrame(Pose(d));
+      initializeGlobalAnchor();
+      applyStoredNeighborPoses();
     } else {
       // No result is available so far, we will attempt to initialize with
       // robust initialization
@@ -356,7 +363,7 @@ bool PGOAgentROS::isRobotConnected(unsigned robot_id) const {
   return mTeamConnected[robot_id];
 }
 
-void PGOAgentROS::updateActiveRobots() {
+void PGOAgentROS::checkConnections() {
   // Update set of active robots based on connectivity
   for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
     if (!isRobotConnected(robot_id)) {
@@ -364,6 +371,18 @@ void PGOAgentROS::updateActiveRobots() {
       setRobotActive(robot_id, false);
     } else {
       ROS_INFO("Robot %u is connected.", robot_id);
+      setRobotActive(robot_id, true);
+    }
+  }
+}
+
+void PGOAgentROS::updateActiveRobots(const CommandConstPtr &msg) {
+  std::set<unsigned> active_robots_set(msg->active_robots.begin(),
+                                       msg->active_robots.end());
+  for (unsigned int robot_id = 0; robot_id < mParams.numRobots; robot_id++) {
+    if (active_robots_set.find(robot_id) == active_robots_set.end()) {
+      setRobotActive(robot_id, false);
+    } else {
       setRobotActive(robot_id, true);
     }
   }
@@ -474,12 +493,16 @@ void PGOAgentROS::publishRequestPoseGraphCommand() {
     ROS_ERROR("Only robot 0 should send request pose graph command! ");
     return;
   }
-  updateActiveRobots();
-
+  checkConnections();
   Command msg;
   msg.header.stamp = ros::Time::now();
   msg.publishing_robot = getID();
   msg.command = Command::REQUEST_POSE_GRAPH;
+  for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
+    if (isRobotActive(robot_id)) {
+      msg.active_robots.push_back(robot_id);
+    }
+  }
   mCommandPublisher.publish(msg);
   ROS_INFO("Robot %u published REQUEST_POSE_GRAPH command.", getID());
 }
@@ -537,7 +560,7 @@ void PGOAgentROS::storeOptimizedTrajectory() {
   }
 }
 
-void PGOAgentROS::publishStoredTrajectory() {
+void PGOAgentROS::publishOptimizedTrajectory() {
   if (!isRobotActive(getID()))
     return;
   if (!mCachedPoses.has_value())
@@ -556,11 +579,6 @@ void PGOAgentROS::publishStoredTrajectory() {
   // Publish as optimized pose graph
   pose_graph_tools::PoseGraph pose_graph = TrajectoryToPoseGraphMsg(getID(), T.d(), T.n(), T.getData());
   mPoseGraphPublisher.publish(pose_graph);
-}
-
-void PGOAgentROS::publishLatestTrajectory() {
-  storeOptimizedTrajectory();
-  publishStoredTrajectory();
 }
 
 void PGOAgentROS::publishPublicPoses(bool aux) {
@@ -735,14 +753,9 @@ void PGOAgentROS::storeLoopClosureMarkers() {
     mCachedLoopClosureMarkers.emplace(line_list);
 }
 
-void PGOAgentROS::publishStoredLoopClosureMarkers() {
+void PGOAgentROS::publishLoopClosureMarkers() {
   if (mCachedLoopClosureMarkers.has_value())
     mLoopClosureMarkerPublisher.publish(mCachedLoopClosureMarkers.value());
-}
-
-void PGOAgentROS::publishLatestLoopClosureMarkers() {
-  storeLoopClosureMarkers();
-  publishStoredLoopClosureMarkers();
 }
 
 bool PGOAgentROS::createIterationLog(const std::string &filename) {
@@ -850,6 +863,8 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
         ROS_WARN_STREAM("Robot " << getID() << " reset... ");
         reset();
       }
+      // Update local record of currently active robots
+      updateActiveRobots(msg);
       // Request latest pose graph
       requestPoseGraph();
       // Create log file for new round
@@ -869,10 +884,6 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     case Command::TERMINATE: {
       mLastCommandTime = std::chrono::high_resolution_clock::now();
       ROS_INFO("Robot %u received TERMINATE command. ", getID());
-      // Store and publish optimized trajectory in global frame
-      publishLatestTrajectory();
-      publishLatestLoopClosureMarkers();
-      
       // When running distributed GNC, fix loop closures that have converged
       if (mParams.robustCostParams.costType ==
           RobustCostParameters::Type::GNC_TLS && 
@@ -892,7 +903,6 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
             } 
           }
         }
-        publishLatestLoopClosureMarkers();
         const auto stat = mPoseGraph->statistics();
         ROS_INFO(
             "Robot %u loop closure statistics:\n "
@@ -905,7 +915,12 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
             stat.undecided_loop_closures);
         publishMeasurementWeights();
       }
-      
+      // Store and publish optimized trajectory in global frame
+      storeOptimizedTrajectory();
+      storeLoopClosureMarkers();
+      storeActiveNeighborPoses();
+      publishOptimizedTrajectory();
+      publishLoopClosureMarkers();
       reset();
       // First robot initiates next optimization round
       if (getID() == 0) {
@@ -1082,12 +1097,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
 
     case Command::SET_ACTIVE_ROBOTS: {
       // Update local record of currently active robots
-      for (unsigned int robot_id = 0; robot_id < mParams.numRobots; robot_id++) {
-        setRobotActive(robot_id, false);
-      }
-      for (unsigned active_robot_id : msg->active_robots) {
-        setRobotActive(active_robot_id, true);
-      }
+      updateActiveRobots(msg);
       break;
     }
 
@@ -1208,18 +1218,56 @@ void PGOAgentROS::timerCallback(const ros::TimerEvent &event) {
 }
 
 void PGOAgentROS::visualizationTimerCallback(const ros::TimerEvent &event) {
-  publishStoredTrajectory();
-  publishStoredLoopClosureMarkers();
+  publishOptimizedTrajectory();
+  publishLoopClosureMarkers();
 }
 
-void PGOAgentROS::randomSleep(double sec) {
-  if (sec < 1e-3)
+void PGOAgentROS::storeActiveNeighborPoses() {
+  Matrix matrix;
+  int num_poses_stored = 0;
+  for (const auto &nbr_pose_id : mPoseGraph->activeNeighborPublicPoseIDs()) {
+    if (getNeighborPoseInGlobalFrame(nbr_pose_id.robot_id, nbr_pose_id.frame_id,
+                                     matrix)) {
+      Pose T(dimension());
+      T.setData(matrix);
+      mCachedNeighborPoses[nbr_pose_id] = T;
+      num_poses_stored++;
+    }
+  }
+  ROS_INFO("Stored %i neighbor poses in world frame.", num_poses_stored);
+}
+
+void PGOAgentROS::applyStoredNeighborPoses() {
+  if (!YLift) {
+    ROS_WARN("Missing lifting matrix! Cannot apply neighbor poses.");
     return;
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<double> distribution(0.0, sec);
-  double sleep_time = distribution(gen);
-  ROS_INFO("Sleep %f sec...", sleep_time);
-  ros::Duration(sleep_time).sleep();
+  }
+  int num_poses_initialized = 0;
+  for (const auto &it : mCachedNeighborPoses) {
+    const auto &pose_id = it.first;
+    // Active neighbors will transmit their poses
+    // Therefore we only use stored poses for inactive neighbors
+    if (!isRobotActive(pose_id.robot_id)) {
+      const auto &Ti = it.second;
+      Matrix Xi_mat = YLift.value() * Ti.getData();
+      LiftedPose Xi(r, d);
+      Xi.setData(Xi_mat);
+      neighborPoseDict[pose_id] = Xi;
+      num_poses_initialized++;
+    }
+  }
+  ROS_INFO("Applied %i neighbor public poses.", num_poses_initialized);
+}
+
+void PGOAgentROS::initializeGlobalAnchor() {
+  if (!YLift) {
+    ROS_WARN("Missing lifting matrix! Cannot initialize global anchor.");
+    return;
+  }
+  LiftedPose X(r, d);
+  X.rotation() = YLift.value();
+  X.translation() = Vector::Zero(r);
+  setGlobalAnchor(X.getData());
+  ROS_INFO("Initialized global anchor.");
 }
 }  // namespace dpgo_ros

@@ -164,6 +164,9 @@ class PGOAgentROS : public PGOAgent {
   std::optional<PoseArray> mCachedPoses;
   std::optional<visualization_msgs::Marker> mCachedLoopClosureMarkers;
 
+  // Store the latest SE(d) poses from neighbors in the global frame 
+  std::map<PoseID, Pose, ComparePoseID> mCachedNeighborPoses; 
+
   // Reset the pose graph. This function overrides the function from the base class.
   void reset() override;
 
@@ -183,7 +186,10 @@ class PGOAgentROS : public PGOAgent {
   bool isRobotConnected(unsigned robot_id) const;
 
   // Update the set of active robots based on connectivity
-  void updateActiveRobots();
+  void checkConnections();
+
+  // Update the set of active robots based on input vector
+  void updateActiveRobots(const CommandConstPtr &msg);
 
   // Publish status
   void publishStatus();
@@ -220,8 +226,7 @@ class PGOAgentROS : public PGOAgent {
 
   // Publish trajectory
   void storeOptimizedTrajectory();
-  void publishStoredTrajectory();
-  void publishLatestTrajectory();
+  void publishOptimizedTrajectory();
 
   // Publish latest public poses
   void publishPublicPoses(bool aux = false);
@@ -234,16 +239,17 @@ class PGOAgentROS : public PGOAgent {
 
   // Publish loop closures for visualization
   void storeLoopClosureMarkers();
-  void publishStoredLoopClosureMarkers();
-  void publishLatestLoopClosureMarkers();
+  void publishLoopClosureMarkers();
+
+  // Store neighbor SE(d) poses in the global frame
+  void storeActiveNeighborPoses();
+  void applyStoredNeighborPoses();
+  void initializeGlobalAnchor();
 
   // Log iteration
   bool createIterationLog(const std::string &filename);
   bool logIteration();
   bool logWeightUpdate();
-
-  // Sleep for a randomly generated between (0, sec)
-  void randomSleep(double sec);
 
   // ROS callbacks
   void connectivityCallback(const std_msgs::UInt16MultiArrayConstPtr &msg);
