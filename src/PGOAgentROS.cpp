@@ -167,8 +167,9 @@ void PGOAgentROS::runOnceSynchronous() {
 
     // Perform iterate with optimization if ready
     if (ready) {
-      // TODO: apply stored neighbor poses and edge weights for in-active robots
-      applyStoredNeighborPoses();
+      // Apply stored neighbor poses and edge weights for inactive robots
+      setInactiveNeighborPoses();
+      setInactiveEdgeWeights();
       // Iterate
       auto startTime = std::chrono::high_resolution_clock::now();
       iterate(true);
@@ -342,7 +343,6 @@ bool PGOAgentROS::tryInitialize() {
       initialize(&TInit);
       initializeInGlobalFrame(Pose(d));
       initializeGlobalAnchor();
-      applyStoredNeighborPoses();
     } else {
       // No result is available so far, we will attempt to initialize with
       // robust initialization
@@ -714,7 +714,7 @@ void PGOAgentROS::storeLoopClosureMarkers() {
     Matrix mT, nT;
     Matrix mt, nt;
     bool mb, nb;
-    size_t neighbor_id;
+    unsigned neighbor_id;
     if (measurement.r1 == getID()) {
       neighbor_id = measurement.r2;
       mb = getPoseInGlobalFrame(measurement.p1, mT);
@@ -738,7 +738,9 @@ void PGOAgentROS::storeLoopClosureMarkers() {
       line_list.points.push_back(np);
       std_msgs::ColorRGBA line_color;
       line_color.a = 1;
-      if (measurement.weight > 1 - weight_tol) {
+      if (!isRobotActive(neighbor_id)) {
+        // Black
+      } else if (measurement.weight > 1 - weight_tol) {
         line_color.g = 1;
       } else if (measurement.weight < weight_tol) {
         line_color.r = 1;
@@ -919,6 +921,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       storeOptimizedTrajectory();
       storeLoopClosureMarkers();
       storeActiveNeighborPoses();
+      storeActiveEdgeWeights();
       publishOptimizedTrajectory();
       publishLoopClosureMarkers();
       reset();
@@ -1226,7 +1229,8 @@ void PGOAgentROS::storeActiveNeighborPoses() {
   Matrix matrix;
   int num_poses_stored = 0;
   for (const auto &nbr_pose_id : mPoseGraph->activeNeighborPublicPoseIDs()) {
-    if (getNeighborPoseInGlobalFrame(nbr_pose_id.robot_id, nbr_pose_id.frame_id,
+    if (getNeighborPoseInGlobalFrame(nbr_pose_id.robot_id, 
+                                     nbr_pose_id.frame_id,
                                      matrix)) {
       Pose T(dimension());
       T.setData(matrix);
@@ -1237,7 +1241,7 @@ void PGOAgentROS::storeActiveNeighborPoses() {
   ROS_INFO("Stored %i neighbor poses in world frame.", num_poses_stored);
 }
 
-void PGOAgentROS::applyStoredNeighborPoses() {
+void PGOAgentROS::setInactiveNeighborPoses() {
   if (!YLift) {
     ROS_WARN("Missing lifting matrix! Cannot apply neighbor poses.");
     return;
@@ -1256,7 +1260,36 @@ void PGOAgentROS::applyStoredNeighborPoses() {
       num_poses_initialized++;
     }
   }
-  ROS_INFO("Applied %i neighbor public poses.", num_poses_initialized);
+  ROS_INFO("Set %i inactive neighbor poses.", num_poses_initialized);
+}
+
+void PGOAgentROS::storeActiveEdgeWeights() {
+  int num_edges_stored = 0;
+  for (const RelativeSEMeasurement *m: mPoseGraph->activeLoopClosures()) {
+    const PoseID src_id(m->r1, m->p1);
+    const PoseID dst_id(m->r2, m->p2);
+    const EdgeID edge_id(src_id, dst_id);
+    if (edge_id.isSharedLoopClosure()) {
+      mCachedEdgeWeights[edge_id] = m->weight;
+      num_edges_stored++;
+    }
+  }
+  ROS_INFO("Stored %i active edge weights.", num_edges_stored);
+}
+
+void PGOAgentROS::setInactiveEdgeWeights() {
+  int num_edges_set = 0;
+  for (RelativeSEMeasurement *m: mPoseGraph->inactiveLoopClosures()) {
+    const PoseID src_id(m->r1, m->p1);
+    const PoseID dst_id(m->r2, m->p2);
+    const EdgeID edge_id(src_id, dst_id);
+    const auto &it = mCachedEdgeWeights.find(edge_id);
+    if (it != mCachedEdgeWeights.end()) {
+      m->weight = it->second;
+      num_edges_set++;
+    } 
+  }
+  ROS_INFO("Set %i inactive edge weights.", num_edges_set);
 }
 
 void PGOAgentROS::initializeGlobalAnchor() {

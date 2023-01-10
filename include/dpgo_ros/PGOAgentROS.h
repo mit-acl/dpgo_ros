@@ -167,6 +167,9 @@ class PGOAgentROS : public PGOAgent {
   // Store the latest SE(d) poses from neighbors in the global frame 
   std::map<PoseID, Pose, ComparePoseID> mCachedNeighborPoses; 
 
+  // Store the latest measurement weights with neighbors
+  std::unordered_map<EdgeID, double, HashEdgeID> mCachedEdgeWeights;
+
   // Reset the pose graph. This function overrides the function from the base class.
   void reset() override;
 
@@ -243,7 +246,13 @@ class PGOAgentROS : public PGOAgent {
 
   // Store neighbor SE(d) poses in the global frame
   void storeActiveNeighborPoses();
-  void applyStoredNeighborPoses();
+  void setInactiveNeighborPoses();
+
+  // Store edge weights
+  void storeActiveEdgeWeights();
+  void setInactiveEdgeWeights();
+
+  // Initialize global anchor using stored information
   void initializeGlobalAnchor();
 
   // Log iteration
