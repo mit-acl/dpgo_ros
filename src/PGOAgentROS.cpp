@@ -172,6 +172,7 @@ void PGOAgentROS::runOnceSynchronous() {
       // Apply stored neighbor poses and edge weights for inactive robots
       setInactiveNeighborPoses();
       setInactiveEdgeWeights();
+      mPoseGraph->useInactiveNeighbors();
       // Iterate
       auto startTime = std::chrono::high_resolution_clock::now();
       iterate(true);
