@@ -94,6 +94,7 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
     ros::Duration(0.5).sleep();
   }
   mLastResetTime = ros::Time::now();
+  mLaunchTime = ros::Time::now();
 }
 
 void PGOAgentROS::runOnce() {
@@ -815,9 +816,9 @@ bool PGOAgentROS::createIterationLog(const std::string &filename) {
     ROS_ERROR_STREAM("Error opening log file: " << filename);
     return false;
   }
-  // Instance number, global iteration number, Number of poses, total bytes
+  // Robot ID, Cluster ID, global iteration number, Number of poses, total bytes
   // received, iteration time (sec), total elapsed time (sec), relative change
-  mIterationLog << "instance, iteration, num_poses, total_bytes_received, "
+  mIterationLog << "robot_id, cluster_id, iteration, num_poses, total_bytes_received, "
                    "iteration_time_sec, total_time_sec, relative_change \n";
   mIterationLog.flush();
   return true;
@@ -833,9 +834,10 @@ bool PGOAgentROS::logIteration() {
   auto counter = std::chrono::high_resolution_clock::now() - mGlobalStartTime;
   double globalElapsedMs = (double) std::chrono::duration_cast<std::chrono::milliseconds>(counter).count();
 
-  // Instance number, global iteration number, Number of poses, total bytes
+  // Robot ID, Cluster ID, global iteration number, Number of poses, total bytes
   // received, iteration time (sec), total elapsed time (sec), relative change
-  mIterationLog << instance_number() << ",";
+  mIterationLog << getID() << ",";
+  mIterationLog << getClusterID() << ",";
   mIterationLog << iteration_number() << ",";
   mIterationLog << num_poses() << ",";
   mIterationLog << mTotalBytesReceived << ",";
@@ -928,7 +930,10 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       requestPoseGraph();
       // Create log file for new round
       if (mParams.logData) {
-        createIterationLog(mParams.logDirectory + "dpgo_log_" + std::to_string(instance_number()) + ".csv");
+        auto time_since_launch = ros::Time::now() - mLaunchTime;
+        int sec_since_launch = int(time_since_launch.toSec());
+        std::string log_path = mParams.logDirectory + "dpgo_log_" + std::to_string(sec_since_launch) + ".csv";
+        createIterationLog(log_path);
       }
       publishStatus();
       // Enter initialization round

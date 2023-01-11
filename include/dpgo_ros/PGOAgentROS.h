@@ -179,6 +179,9 @@ class PGOAgentROS : public PGOAgent {
   // Last time reset is called
   ros::Time mLastResetTime;
 
+  // Time this node is launched
+  ros::Time mLaunchTime;
+
   // Reset the pose graph. This function overrides the function from the base class.
   void reset() override;
 
