@@ -927,9 +927,9 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       // Update local record of currently active robots
       updateActiveRobots(msg);
       // Request latest pose graph
-      requestPoseGraph();
+      bool received_pose_graph = requestPoseGraph();
       // Create log file for new round
-      if (mParams.logData) {
+      if (mParams.logData && received_pose_graph) {
         auto time_since_launch = ros::Time::now() - mLaunchTime;
         int sec_since_launch = int(time_since_launch.toSec());
         std::string log_path = mParams.logDirectory + "dpgo_log_" + std::to_string(sec_since_launch) + ".csv";
@@ -938,9 +938,12 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       publishStatus();
       // Enter initialization round
       if (isLeader()) {
-        publishAnchor();
-        ros::Duration(1).sleep();
-        publishInitializeCommand();
+        if (!received_pose_graph) {
+          publishHardTerminateCommand();
+        } else {
+          publishAnchor();
+          publishInitializeCommand();
+        }
       }
       break;
     }
