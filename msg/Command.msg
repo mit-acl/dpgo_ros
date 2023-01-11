@@ -9,6 +9,7 @@ uint8 NOOP=7                  # NoOp (used for debugging)
 
 std_msgs/Header header
 uint8 command
+uint16 cluster_id             # Cluster ID
 uint16 publishing_robot       # The robot that publishes this command
 uint16 executing_robot        # The robot that is scheduled to update (only used by UPDATE command)
 uint16 executing_iteration    # Iteration number of the scheduled update (only used by UPDATE command)

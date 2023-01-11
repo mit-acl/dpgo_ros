@@ -1,4 +1,5 @@
 uint16 robot_id                     # ID of the publishing robot
+uint16 cluster_id                   # ID of the cluster that the publishing robot belongs to
 uint16 destination_robot_id         # ID of the receiving robot
 uint16 instance_number
 uint16 iteration_number

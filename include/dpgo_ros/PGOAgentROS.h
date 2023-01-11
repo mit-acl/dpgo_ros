@@ -122,6 +122,9 @@ class PGOAgentROS : public PGOAgent {
   // A copy of the parameter struct
   const PGOAgentROSParameters mParamsROS;
 
+  // ID of the cluster that this robot belongs to
+  unsigned mClusterID;
+
   // Received request to iterate with optimization in synchronous mode
   bool mSynchronousOptimizationRequested = false;
 
@@ -160,6 +163,9 @@ class PGOAgentROS : public PGOAgent {
   // Store if other robots are currently connected 
   std::vector<bool> mTeamConnected;  
 
+  // Store the current cluster each robot belongs to
+  std::vector<unsigned> mTeamClusterID;
+
   // Store the latest optimized trajectory and loop closures for visualization
   std::optional<PoseArray> mCachedPoses;
   std::optional<visualization_msgs::Marker> mCachedLoopClosureMarkers;
@@ -169,6 +175,9 @@ class PGOAgentROS : public PGOAgent {
 
   // Store the latest measurement weights with neighbors
   std::unordered_map<EdgeID, double, HashEdgeID> mCachedEdgeWeights;
+
+  // Last time reset is called
+  ros::Time mLastResetTime;
 
   // Reset the pose graph. This function overrides the function from the base class.
   void reset() override;
@@ -185,11 +194,27 @@ class PGOAgentROS : public PGOAgent {
   // Attempt to initialize optimization
   bool tryInitialize();
 
+  // Get the ID of the current cluster
+  unsigned getClusterID() const;
+
+  // Return true if this robot is currently serving as the leader of the cluster
+  bool isLeader() const;
+
+  // Update cluster for this robot
+  void updateCluster();
+
+  // Get the cluster a robot belongs to
+  unsigned getRobotClusterID(unsigned robot_id) const;
+
+  // Set the cluster a robot belongs to
+  void setRobotClusterID(unsigned robot_id, unsigned cluster_id);
+  void resetRobotClusterIDs();
+
   // Return true if the robot is connected
   bool isRobotConnected(unsigned robot_id) const;
 
   // Update the set of active robots based on connectivity
-  void checkConnections();
+  void setActiveRobots();
 
   // Update the set of active robots based on input vector
   void updateActiveRobots(const CommandConstPtr &msg);
@@ -205,6 +230,8 @@ class PGOAgentROS : public PGOAgent {
 
   // Publish update command
   void publishUpdateCommand();
+  // Publish update command and specify next robot to update
+  void publishUpdateCommand(unsigned robot_id);
 
   // Publish termination command
   void publishTerminateCommand();
