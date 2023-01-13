@@ -110,19 +110,10 @@ void PGOAgentROS::runOnce() {
     mPublishPublicPosesRequested = false;
   }
 
-  if (mState == PGOAgentState::INITIALIZED) {
-    // Terminate if quiet for long time (possible message drop)
-    auto counter = std::chrono::high_resolution_clock::now() - mLastCommandTime;
-    double elapsedSecond = (double) std::chrono::duration_cast<std::chrono::milliseconds>(counter).count() / 1e3;
-    if (elapsedSecond > mParamsROS.timeoutThreshold) {
-      ROS_WARN("Robot %u timeout: last command was more than %f sec ago.", getID(), mParamsROS.timeoutThreshold);
-      reset();
-      if (isLeader()) {
-        publishHardTerminateCommand();
-      }
-    }
+  checkCommandTimeout();
+  if (isLeader() && mState == PGOAgentState::INITIALIZED) {
+    checkDisconnectedRobot();
   }
-
 }
 
 void PGOAgentROS::runOnceAsynchronous() {
@@ -173,7 +164,7 @@ void PGOAgentROS::runOnceSynchronous() {
       // Apply stored neighbor poses and edge weights for inactive robots
       setInactiveNeighborPoses();
       setInactiveEdgeWeights();
-      mPoseGraph->useInactiveNeighbors();
+      // mPoseGraph->useInactiveNeighbors();
       // Iterate
       auto startTime = std::chrono::high_resolution_clock::now();
       iterate(true);
@@ -905,12 +896,17 @@ void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
 }
 
 void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
+  if (msg->command == Command::NOOP) {
+    // Ignore NOOP command (used for debugging communication)
+    return;
+  }
   if (msg->cluster_id != getClusterID()) {
     ROS_WARN("Ignore command from wrong cluster (%u vs. %u).", msg->cluster_id,
              getClusterID());
     return;
   }
-
+  mLastCommandTime = std::chrono::high_resolution_clock::now();
+  
   switch (msg->command) {
     case Command::REQUEST_POSE_GRAPH: {
       if (msg->publishing_robot != getClusterID()) {
@@ -918,7 +914,6 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
                  msg->publishing_robot);
         return;
       }
-      mLastCommandTime = std::chrono::high_resolution_clock::now();
       ROS_INFO("Robot %u received REQUEST_POSE_GRAPH command.", getID());
       if (mState != PGOAgentState::WAIT_FOR_DATA) {
         ROS_WARN_STREAM("Robot " << getID() << " status is not WAIT_FOR_DATA. Reset...");
@@ -949,7 +944,6 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     }
 
     case Command::TERMINATE: {
-      mLastCommandTime = std::chrono::high_resolution_clock::now();
       ROS_INFO("Robot %u received TERMINATE command. ", getID());
       // When running distributed GNC, fix loop closures that have converged
       if (mParams.robustCostParams.costType ==
@@ -996,7 +990,6 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     }
 
     case Command::HARD_TERMINATE: {
-      mLastCommandTime = std::chrono::high_resolution_clock::now();
       ROS_INFO("Robot %u received HARD TERMINATE command. ", getID());
       reset();
       break;
@@ -1009,7 +1002,6 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
                  msg->publishing_robot);
         return;
       }
-      mLastCommandTime = std::chrono::high_resolution_clock::now();
       mGlobalStartTime = std::chrono::high_resolution_clock::now();
       publishPublicMeasurements();
       publishPublicPoses(false);
@@ -1074,7 +1066,6 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     }
 
     case Command::UPDATE: {
-      mLastCommandTime = std::chrono::high_resolution_clock::now();
       CHECK(!mParams.asynchronous);
       // Handle case when this robot is not active
       if (!isRobotActive(getID())) {
@@ -1105,7 +1096,6 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
     }
 
     case Command::UPDATE_WEIGHT: {
-      mLastCommandTime = std::chrono::high_resolution_clock::now();
       CHECK(!mParams.asynchronous);
       if (!isRobotActive(getID())) {
         ROS_WARN_STREAM("Robot " << getID() << " is deactivated. Ignore UPDATE_WEIGHT command... ");
@@ -1401,6 +1391,34 @@ void PGOAgentROS::resetRobotClusterIDs() {
   mTeamClusterID.assign(mParams.numRobots, 0);
   for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
     mTeamClusterID[robot_id] = robot_id;
+  }
+}
+
+void PGOAgentROS::checkCommandTimeout() {
+  // Timeout if command channel quiet for long time 
+  // This usually happen when robots get disconnected 
+  auto counter = std::chrono::high_resolution_clock::now() - mLastCommandTime;
+  double elapsedSecond =
+      (double)std::chrono::duration_cast<std::chrono::milliseconds>(counter)
+          .count() / 1e3;
+  if (elapsedSecond > mParamsROS.timeoutThreshold) {
+    ROS_WARN("Robot %u timeout: last command was %f sec ago.",
+             getID(), elapsedSecond);
+    reset();
+    if (isLeader()) {
+      publishHardTerminateCommand();
+    }
+    mLastCommandTime = std::chrono::high_resolution_clock::now();
+  }
+}
+
+void PGOAgentROS::checkDisconnectedRobot() {
+  for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
+    if (isRobotActive(robot_id) && !isRobotConnected(robot_id)) {
+      ROS_WARN("Active robot %u is disconnected.", robot_id);
+      publishHardTerminateCommand();
+      break;
+    }
   }
 }
 

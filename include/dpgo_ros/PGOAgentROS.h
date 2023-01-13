@@ -257,6 +257,12 @@ class PGOAgentROS : public PGOAgent {
   // Publish anchor
   void publishAnchor();
 
+  // Check timeout
+  void checkCommandTimeout();
+
+  // Check disconnected robot
+  void checkDisconnectedRobot();
+
   // Publish trajectory
   void storeOptimizedTrajectory();
   void publishOptimizedTrajectory();
