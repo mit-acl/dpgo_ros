@@ -147,7 +147,7 @@ class PGOAgentROS : public PGOAgent {
   double mIterationElapsedMs;
 
   // Global optimization start time
-  std::chrono::time_point<std::chrono::high_resolution_clock> mGlobalStartTime, mLastCommandTime;
+  ros::Time mGlobalStartTime, mLastCommandTime;
 
   // Map from robot ID to name
   std::map<unsigned, std::string> mRobotNames;

@@ -95,6 +95,7 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
   }
   mLastResetTime = ros::Time::now();
   mLaunchTime = ros::Time::now();
+  mLastCommandTime = ros::Time::now();
 }
 
 void PGOAgentROS::runOnce() {
@@ -822,8 +823,7 @@ bool PGOAgentROS::logIteration() {
   }
 
   // Compute total elapsed time since beginning of optimization
-  auto counter = std::chrono::high_resolution_clock::now() - mGlobalStartTime;
-  double globalElapsedMs = (double) std::chrono::duration_cast<std::chrono::milliseconds>(counter).count();
+  double globalElapsedSec = (ros::Time::now() - mGlobalStartTime).toSec();
 
   // Robot ID, Cluster ID, global iteration number, Number of poses, total bytes
   // received, iteration time (sec), total elapsed time (sec), relative change
@@ -833,7 +833,7 @@ bool PGOAgentROS::logIteration() {
   mIterationLog << num_poses() << ",";
   mIterationLog << mTotalBytesReceived << ",";
   mIterationLog << mIterationElapsedMs / 1e3 << ",";
-  mIterationLog << globalElapsedMs / 1e3 << ",";
+  mIterationLog << globalElapsedSec << ",";
   mIterationLog << mStatus.relativeChange << "\n";
   mIterationLog.flush();
   return true;
@@ -905,7 +905,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
              getClusterID());
     return;
   }
-  mLastCommandTime = std::chrono::high_resolution_clock::now();
+  mLastCommandTime = ros::Time::now();
   
   switch (msg->command) {
     case Command::REQUEST_POSE_GRAPH: {
@@ -1002,7 +1002,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
                  msg->publishing_robot);
         return;
       }
-      mGlobalStartTime = std::chrono::high_resolution_clock::now();
+      mGlobalStartTime = ros::Time::now();
       publishPublicMeasurements();
       publishPublicPoses(false);
       publishStatus();
@@ -1397,10 +1397,7 @@ void PGOAgentROS::resetRobotClusterIDs() {
 void PGOAgentROS::checkCommandTimeout() {
   // Timeout if command channel quiet for long time 
   // This usually happen when robots get disconnected 
-  auto counter = std::chrono::high_resolution_clock::now() - mLastCommandTime;
-  double elapsedSecond =
-      (double)std::chrono::duration_cast<std::chrono::milliseconds>(counter)
-          .count() / 1e3;
+  double elapsedSecond = (ros::Time::now() - mLastCommandTime).toSec();
   if (elapsedSecond > mParamsROS.timeoutThreshold) {
     ROS_WARN("Robot %u timeout: last command was %f sec ago.",
              getID(), elapsedSecond);
@@ -1408,7 +1405,7 @@ void PGOAgentROS::checkCommandTimeout() {
     if (isLeader()) {
       publishHardTerminateCommand();
     }
-    mLastCommandTime = std::chrono::high_resolution_clock::now();
+    mLastCommandTime = ros::Time::now();
   }
 }
 
