@@ -165,7 +165,7 @@ void PGOAgentROS::runOnceSynchronous() {
       // Apply stored neighbor poses and edge weights for inactive robots
       setInactiveNeighborPoses();
       setInactiveEdgeWeights();
-      // mPoseGraph->useInactiveNeighbors();
+      // mPoseGraph->useInactiveNeighbors(true);
       // Iterate
       auto startTime = std::chrono::high_resolution_clock::now();
       iterate(true);
@@ -180,7 +180,9 @@ void PGOAgentROS::runOnceSynchronous() {
                mLocalOptResult.gradNormOpt);
 
       // First robot publish anchor
-      if (isLeader()) publishAnchor();
+      if (isLeader()) {
+        publishAnchor();
+      }
 
       // Publish status
       publishStatus();
@@ -764,7 +766,7 @@ void PGOAgentROS::storeLoopClosureMarkers() {
       mb = getPoseInGlobalFrame(measurement.p2, mT);
       nb = getNeighborPoseInGlobalFrame(measurement.r1, measurement.p1, nT);
     }
-    if (mb && nb && getID() < neighbor_id) {
+    if (mb && nb) {
       mt = mT.block(0, d, d, 1);
       nt = nT.block(0, d, d, 1);
       geometry_msgs::Point mp, np;
@@ -896,16 +898,16 @@ void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
 }
 
 void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
-  if (msg->command == Command::NOOP) {
-    // Ignore NOOP command (used for debugging communication)
-    return;
-  }
   if (msg->cluster_id != getClusterID()) {
     ROS_WARN("Ignore command from wrong cluster (%u vs. %u).", msg->cluster_id,
              getClusterID());
     return;
   }
-  mLastCommandTime = ros::Time::now();
+  // Update latest command time
+  // Ignore commands that are periodically published
+  if (msg->command != Command::NOOP && msg->command != Command::SET_ACTIVE_ROBOTS) {
+    mLastCommandTime = ros::Time::now();
+  }
   
   switch (msg->command) {
     case Command::REQUEST_POSE_GRAPH: {
