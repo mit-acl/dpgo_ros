@@ -162,10 +162,11 @@ void PGOAgentROS::runOnceSynchronous() {
 
     // Perform iterate with optimization if ready
     if (ready) {
-      // Apply stored neighbor poses and edge weights for inactive robots
-      setInactiveNeighborPoses();
-      setInactiveEdgeWeights();
+      // Beta feature: Apply stored neighbor poses and edge weights for inactive robots
+      // setInactiveNeighborPoses();
+      // setInactiveEdgeWeights();
       // mPoseGraph->useInactiveNeighbors(true);
+      
       // Iterate
       auto startTime = std::chrono::high_resolution_clock::now();
       iterate(true);
@@ -347,6 +348,18 @@ bool PGOAgentROS::tryInitialize() {
       initialize(&TInit);
       initializeInGlobalFrame(Pose(d));
       initializeGlobalAnchor();
+      // Leader adds a prior to prevent drifting in the global frame
+      if (getClusterID() != 0 && isLeader()) {
+        Matrix M;
+        if (getSharedPose(0, M)) {
+          LiftedPose prior(relaxation_rank(), dimension());
+          prior.setData(M);
+          mPoseGraph->setPrior(0, prior);
+          ROS_INFO("Robot %u sets prior.", getID());
+        } else {
+          ROS_ERROR("Robot %u fails to set prior!", getID());
+        }
+      }
     } else {
       // No result is available so far, we will attempt to initialize with
       // robust initialization
@@ -892,9 +905,12 @@ void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
       return;
     }
   }
-  setRobotClusterID(msg->robot_id, msg->cluster_id);
   mTeamStatusMsg[msg->robot_id] = received_msg;
-  setNeighborStatus(statusFromMsg(received_msg));
+  
+  setRobotClusterID(msg->robot_id, msg->cluster_id);
+  if (msg->cluster_id == getClusterID()) {
+    setNeighborStatus(statusFromMsg(received_msg));;
+  }
 }
 
 void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
