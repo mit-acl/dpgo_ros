@@ -265,6 +265,7 @@ class PGOAgentROS : public PGOAgent {
 
   // Publish trajectory
   void storeOptimizedTrajectory();
+  void publishTrajectory(const PoseArray &T);
   void publishOptimizedTrajectory();
 
   // Publish latest public poses
@@ -294,7 +295,7 @@ class PGOAgentROS : public PGOAgent {
   // Log iteration
   bool createIterationLog(const std::string &filename);
   bool logIteration();
-  bool logWeightUpdate();
+  bool logString(const std::string &str);
 
   // ROS callbacks
   void connectivityCallback(const std_msgs::UInt16MultiArrayConstPtr &msg);
