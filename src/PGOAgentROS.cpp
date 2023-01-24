@@ -1211,6 +1211,9 @@ void PGOAgentROS::publicPosesCallback(const PublicPosesConstPtr &msg) {
 }
 
 void PGOAgentROS::publicMeasurementsCallback(const RelativeMeasurementListConstPtr &msg) {
+  if (msg->to_robot != (int)getID()) {
+    return;
+  }
   // Ignore if does not have local odometry
   if (mPoseGraph->numOdometry() == 0)
     return;
