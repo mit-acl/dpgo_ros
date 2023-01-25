@@ -284,10 +284,14 @@ bool PGOAgentROS::requestPoseGraph() {
   unsigned int num_measurements_before = mPoseGraph->numMeasurements();
   for (const auto &edge : pose_graph.edges) {
     RelativeSEMeasurement m = RelativeMeasurementFromMsg(edge);
+    const PoseID src_id(m.r1, m.p1);
+    const PoseID dst_id(m.r2, m.p2);
     if (m.r1 != getID() && m.r2 != getID()) {
       ROS_ERROR("Robot %u received irrelevant measurement! ", getID());
     }
-    addMeasurement(m);
+    if (!mPoseGraph->hasMeasurement(src_id, dst_id)) {
+      addMeasurement(m);
+    }
   }
   unsigned int num_measurements_after = mPoseGraph->numMeasurements();
   ROS_INFO("Received pose graph from ROS service (%u new measurements).",
@@ -313,10 +317,18 @@ bool PGOAgentROS::requestPoseGraph() {
       }
     }
   }
+  if (mParamsROS.synchronizeMeasurements) {
+    // Synchronize shared measurements with other robots
+    // In Kimera-Multi, we wait for inter-robot loops 
+    // from robots with smaller ID
+    mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
+    for (size_t robot_id = getID(); robot_id < mParams.numRobots; ++robot_id)
+      mTeamReceivedSharedLoopClosures[robot_id] = true;
+  } else {
+    // Assume measurements are already synchronized by front end
+    mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, true);
+  }
 
-  mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
-  for (size_t robot_id = getID(); robot_id < mParams.numRobots; ++robot_id)
-    mTeamReceivedSharedLoopClosures[robot_id] = true;
   mTryInitializeRequested = true;
   return true;
 }
@@ -674,6 +686,11 @@ void PGOAgentROS::publishPublicPoses(bool aux) {
 }
 
 void PGOAgentROS::publishPublicMeasurements() {
+  if (!mParamsROS.synchronizeMeasurements) {
+    // Do not publish shared measurements 
+    // when assuming measurements are already synched
+    return;
+  }
   std::map<unsigned, RelativeMeasurementList> msg_map;
   for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
     RelativeMeasurementList msg;
@@ -1211,7 +1228,8 @@ void PGOAgentROS::publicPosesCallback(const PublicPosesConstPtr &msg) {
 }
 
 void PGOAgentROS::publicMeasurementsCallback(const RelativeMeasurementListConstPtr &msg) {
-  if (msg->to_robot != (int)getID()) {
+  // Ignore if message not addressed to this robot
+  if (msg->to_robot != getID()) {
     return;
   }
   // Ignore if does not have local odometry

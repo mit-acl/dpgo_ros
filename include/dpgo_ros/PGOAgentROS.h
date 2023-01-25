@@ -46,6 +46,9 @@ class PGOAgentROSParameters : public PGOAgentParameters {
   // Completely reset dpgo after each distributed optimization round
   bool completeReset;
 
+  // Synchronize shared measurements between robots before each optimization round
+  bool synchronizeMeasurements;
+
   // Maximum attempts for multi-robot initialization
   int maxDistributedInitSteps;
 
@@ -67,6 +70,7 @@ class PGOAgentROSParameters : public PGOAgentParameters {
         updateRule(UpdateRule::Uniform),
         publishIterate(false),
         completeReset(false),
+        synchronizeMeasurements(true),
         maxDistributedInitSteps(30),
         maxDelayedIterations(3),
         weightConvergenceThreshold(1e-6),
@@ -82,6 +86,7 @@ class PGOAgentROSParameters : public PGOAgentParameters {
     os << "Update rule: " << updateRuleToString(params.updateRule) << std::endl; 
     os << "Publish iterate: " << params.publishIterate << std::endl;
     os << "Complete reset: " << params.completeReset << std::endl;
+    os << "Synchronize measurements: " << params.synchronizeMeasurements << std::endl;
     os << "Maximum distributed initialization attempts: " << params.maxDistributedInitSteps << std::endl;
     os << "Maximum delayed iterations: " << params.maxDelayedIterations << std::endl;
     os << "Measurement weight convergence threshold: " << params.weightConvergenceThreshold << std::endl;
