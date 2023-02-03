@@ -1039,6 +1039,8 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
       storeLoopClosureMarkers();
       storeActiveNeighborPoses();
       storeActiveEdgeWeights();
+
+      randomSleep(0.1, 5);
       publishOptimizedTrajectory();
       publishLoopClosureMarkers();
       reset();
