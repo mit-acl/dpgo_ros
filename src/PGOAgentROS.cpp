@@ -839,6 +839,9 @@ void PGOAgentROS::storeLoopClosureMarkers() {
 }
 
 void PGOAgentROS::publishLoopClosureMarkers() {
+  if (!mParamsROS.visualizeLoopClosures) {
+    return;
+  }
   if (mCachedLoopClosureMarkers.has_value())
     mLoopClosureMarkerPublisher.publish(mCachedLoopClosureMarkers.value());
 }
@@ -1331,7 +1334,7 @@ void PGOAgentROS::timerCallback(const ros::TimerEvent &event) {
 
 void PGOAgentROS::visualizationTimerCallback(const ros::TimerEvent &event) {
   publishOptimizedTrajectory();
-  //publishLoopClosureMarkers();
+  publishLoopClosureMarkers();
 }
 
 void PGOAgentROS::storeActiveNeighborPoses() {

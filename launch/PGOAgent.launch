@@ -37,6 +37,7 @@
   <arg name="log_directory"                    default="$(find dpgo_ros)/logs/agent$(arg agent_id)/" />
   <arg name="robot_names_file"                 default="$(find dpgo_ros)/params/robot_names.yaml" />
   <arg name="publish_iterate"                  default="false"/>
+  <arg name="visualize_loop_closures"          default="false"/>
   <arg name="complete_reset"                   default="false"/>
   <arg name="synchronize_measurements"         default="true" />
   <arg name="max_distributed_init_steps"       default="30" />
@@ -75,6 +76,7 @@
     <param name="~max_iteration_number"             type="int"    value="$(arg max_iteration_number)" />
     <param name="~relative_change_tolerance"        type="double" value="$(arg relative_change_tolerance)" />
     <param name="~publish_iterate"                  type="bool"   value="$(arg publish_iterate)" />
+    <param name="~visualize_loop_closures"          type="bool"   value="$(arg visualize_loop_closures)" />
     <param name="~complete_reset"                   type="bool"   value="$(arg complete_reset)" />
     <param name="~synchronize_measurements"         type="bool"   value="$(arg synchronize_measurements)" />
     <param name="~max_distributed_init_steps"       type="int"    value="$(arg max_distributed_init_steps)" />

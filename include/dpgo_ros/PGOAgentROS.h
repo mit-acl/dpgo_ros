@@ -43,6 +43,9 @@ class PGOAgentROSParameters : public PGOAgentParameters {
   // Publish intermediate iterates during optimization
   bool publishIterate;
 
+  // If true dpgo will publish loop closure as ROS markers
+  bool visualizeLoopClosures;
+
   // Completely reset dpgo after each distributed optimization round
   bool completeReset;
 
@@ -69,6 +72,7 @@ class PGOAgentROSParameters : public PGOAgentParameters {
       : PGOAgentParameters(dIn, rIn, numRobotsIn),
         updateRule(UpdateRule::Uniform),
         publishIterate(false),
+        visualizeLoopClosures(false),
         completeReset(false),
         synchronizeMeasurements(true),
         maxDistributedInitSteps(30),
@@ -85,6 +89,7 @@ class PGOAgentROSParameters : public PGOAgentParameters {
     os << "PGOAgentROS parameters: " << std::endl;
     os << "Update rule: " << updateRuleToString(params.updateRule) << std::endl; 
     os << "Publish iterate: " << params.publishIterate << std::endl;
+    os << "Visualize loop closures: " << params.visualizeLoopClosures << std::endl;
     os << "Complete reset: " << params.completeReset << std::endl;
     os << "Synchronize measurements: " << params.synchronizeMeasurements << std::endl;
     os << "Maximum distributed initialization attempts: " << params.maxDistributedInitSteps << std::endl;

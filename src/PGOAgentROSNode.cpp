@@ -138,6 +138,9 @@ int main(int argc, char **argv) {
   // Publish iterate during optimization
   ros::param::get("~publish_iterate", params.publishIterate);
 
+  // Publish loop closures as ROS markers for visualization
+  ros::param::get("~visualize_loop_closures", params.visualizeLoopClosures);
+
   // Completely reset dpgo after each distributed optimization round
   ros::param::get("~complete_reset", params.completeReset);
 
