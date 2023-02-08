@@ -39,6 +39,7 @@
   <arg name="publish_iterate"                  default="false"/>
   <arg name="visualize_loop_closures"          default="false"/>
   <arg name="complete_reset"                   default="false"/>
+  <arg name="enable_recovery"                  default="true"/>
   <arg name="synchronize_measurements"         default="true" />
   <arg name="max_distributed_init_steps"       default="30" />
   <arg name="inter_update_sleep_time"          default="0.1"/>
@@ -78,6 +79,7 @@
     <param name="~publish_iterate"                  type="bool"   value="$(arg publish_iterate)" />
     <param name="~visualize_loop_closures"          type="bool"   value="$(arg visualize_loop_closures)" />
     <param name="~complete_reset"                   type="bool"   value="$(arg complete_reset)" />
+    <param name="~enable_recovery"                  type="bool"   value="$(arg enable_recovery)" />
     <param name="~synchronize_measurements"         type="bool"   value="$(arg synchronize_measurements)" />
     <param name="~max_distributed_init_steps"       type="int"    value="$(arg max_distributed_init_steps)" />
     <param name="~inter_update_sleep_time"          type="double" value="$(arg inter_update_sleep_time)" />

@@ -144,6 +144,9 @@ int main(int argc, char **argv) {
   // Completely reset dpgo after each distributed optimization round
   ros::param::get("~complete_reset", params.completeReset);
 
+  // Try to recover and resume optimization after disconnection
+  ros::param::get("~enable_recovery", params.enableRecovery);
+
   // Synchronize shared measurements between robots before each optimization round
   ros::param::get("~synchronize_measurements", params.synchronizeMeasurements);
 

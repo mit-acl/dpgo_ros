@@ -112,9 +112,7 @@ void PGOAgentROS::runOnce() {
   }
 
   checkCommandTimeout();
-  if (isLeader() && mState == PGOAgentState::INITIALIZED) {
-    checkDisconnectedRobot();
-  }
+  // checkDisconnectedRobot();
 }
 
 void PGOAgentROS::runOnceAsynchronous() {
@@ -470,8 +468,7 @@ void PGOAgentROS::publishUpdateCommand() {
       std::vector<unsigned> active_robots;
       for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
         if (isRobotActive(robot_id) && 
-            isRobotInitialized(robot_id) && 
-            isRobotConnected(robot_id)) {
+            isRobotInitialized(robot_id)) {
           active_robots.push_back(robot_id);
         }
       }
@@ -488,8 +485,7 @@ void PGOAgentROS::publishUpdateCommand() {
       // Round robin updates
       unsigned next_robot_id = (getID() + 1) % mParams.numRobots;
       while (!isRobotActive(next_robot_id) ||
-             !isRobotInitialized(next_robot_id) || 
-             !isRobotConnected(next_robot_id)) {
+             !isRobotInitialized(next_robot_id)) {
         next_robot_id = (next_robot_id + 1) % mParams.numRobots;
       }
       selected_robot = next_robot_id;
@@ -518,6 +514,17 @@ void PGOAgentROS::publishUpdateCommand(unsigned robot_id) {
                                           << " to perform iteration "
                                           << msg.executing_iteration << ".");
   mCommandPublisher.publish(msg);
+}
+
+void PGOAgentROS::publishRecoverCommand() {
+  Command msg;
+  msg.header.stamp = ros::Time::now();
+  msg.publishing_robot = getID();
+  msg.cluster_id = getClusterID();
+  msg.command = Command::RECOVER;
+  msg.executing_iteration = iteration_number();
+  mCommandPublisher.publish(msg);
+  ROS_INFO("Robot %u published RECOVER command.", getID());
 }
 
 void PGOAgentROS::publishTerminateCommand() {
@@ -948,12 +955,18 @@ void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
   setRobotClusterID(msg->robot_id, msg->cluster_id);
   if (msg->cluster_id == getClusterID()) {
     setNeighborStatus(statusFromMsg(received_msg));;
+  } 
+
+  if (isLeader() && isRobotActive(msg->robot_id) && msg->cluster_id != getClusterID()) {
+    ROS_WARN("Robot %u joined other cluster %u... set to inactive.", msg->robot_id, msg->cluster_id);
+    setRobotActive(msg->robot_id, false);
+    publishActiveRobotsCommand();
   }
 }
 
 void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
   if (msg->cluster_id != getClusterID()) {
-    ROS_WARN_THROTTLE(1, "Ignore command from wrong cluster (%u vs. %u).",
+    ROS_WARN_THROTTLE(1, "Ignore command from wrong cluster (recv %u, expect %u).",
                       msg->cluster_id, getClusterID());
     return;
   }
@@ -1153,6 +1166,25 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
         // Agents that are not selected for optimization can iterate immediately
         iterate(false);
         publishStatus();
+      }
+      break;
+    }
+
+    case Command::RECOVER: {
+      CHECK(!mParams.asynchronous);
+      if (!isRobotActive(getID()) || mState != PGOAgentState::INITIALIZED) {
+        return;
+      }
+      mIterationNumber = msg->executing_iteration;
+      for (const auto &neighbor : getNeighbors()) {
+        mTeamIterRequired[neighbor] = iteration_number();
+        mTeamIterReceived[neighbor] = 0;  // Force robot to wait for updated public poses from neighbors
+      }
+      ROS_WARN("Robot %u received RECOVER command and reset iteration number to %u.", getID(), iteration_number());
+
+      if (isLeader()) {
+        ROS_WARN("Leader %u publishes update command.", getID());
+        publishUpdateCommand(getID());
       }
       break;
     }
@@ -1466,16 +1498,25 @@ void PGOAgentROS::checkCommandTimeout() {
   // This usually happen when robots get disconnected 
   double elapsedSecond = (ros::Time::now() - mLastCommandTime).toSec();
   if (elapsedSecond > mParamsROS.timeoutThreshold) {
-    ROS_WARN("Robot %u timeout: last command was %.1f sec ago.",
-             getID(), elapsedSecond);
     if (mState == PGOAgentState::INITIALIZED && iteration_number() > 0) {
-      ROS_WARN("Detected timeout during optimization.");
+      ROS_WARN("Robot %u timeout during optimization: last command was %.1f sec ago.", 
+               getID(), elapsedSecond);
       if (isLeader()) {
+        if (checkDisconnectedRobot()) {
+          publishActiveRobotsCommand();
+          ros::Duration(3).sleep();
+        }
+        ROS_WARN("Number of active robots: %zu.", numActiveRobots());
         if (numActiveRobots() > 1) {
-          ROS_WARN("Attempt to resume optimization...");
-          publishUpdateCommand(getID());
+          if (mParamsROS.enableRecovery) {
+            // ROS_WARN("Attempt to resume optimization with %zu robots.", numActiveRobots());
+            publishRecoverCommand();
+          } else {
+            // ROS_WARN("Terminate with %zu robots.", numActiveRobots());
+            publishHardTerminateCommand();
+          }
         } else {
-          ROS_WARN("Not enough active robots.");
+          // ROS_WARN("Terminate... Not enough active robots.");
           publishHardTerminateCommand();
         }
       } else {
@@ -1494,7 +1535,7 @@ void PGOAgentROS::checkCommandTimeout() {
   }
 }
 
-void PGOAgentROS::checkDisconnectedRobot() {
+bool PGOAgentROS::checkDisconnectedRobot() {
   bool robot_disconnected = false;
   for (unsigned robot_id = 0; robot_id < mParams.numRobots; ++robot_id) {
     if (isRobotActive(robot_id) && !isRobotConnected(robot_id)) {
@@ -1503,15 +1544,7 @@ void PGOAgentROS::checkDisconnectedRobot() {
       robot_disconnected = true;
     }
   }
-  if (robot_disconnected) {
-    if (numActiveRobots() > 1) {
-      ROS_WARN("Continue optimization with %zu robots.", numActiveRobots());
-      publishActiveRobotsCommand();
-    } else {
-      ROS_WARN("Not enough active robots.");
-      publishHardTerminateCommand();
-    }
-  }
+  return robot_disconnected;
 }
 
 }  // namespace dpgo_ros

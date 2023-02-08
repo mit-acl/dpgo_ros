@@ -52,6 +52,9 @@ class PGOAgentROSParameters : public PGOAgentParameters {
   // Synchronize shared measurements between robots before each optimization round
   bool synchronizeMeasurements;
 
+  // Let dpgo try to recover if some robots disconnect during distributed optimization
+  bool enableRecovery;
+
   // Maximum attempts for multi-robot initialization
   int maxDistributedInitSteps;
 
@@ -75,6 +78,7 @@ class PGOAgentROSParameters : public PGOAgentParameters {
         visualizeLoopClosures(false),
         completeReset(false),
         synchronizeMeasurements(true),
+        enableRecovery(true),
         maxDistributedInitSteps(30),
         maxDelayedIterations(3),
         weightConvergenceThreshold(1e-6),
@@ -91,6 +95,7 @@ class PGOAgentROSParameters : public PGOAgentParameters {
     os << "Publish iterate: " << params.publishIterate << std::endl;
     os << "Visualize loop closures: " << params.visualizeLoopClosures << std::endl;
     os << "Complete reset: " << params.completeReset << std::endl;
+    os << "Enable recovery: " << params.enableRecovery << std::endl;
     os << "Synchronize measurements: " << params.synchronizeMeasurements << std::endl;
     os << "Maximum distributed initialization attempts: " << params.maxDistributedInitSteps << std::endl;
     os << "Maximum delayed iterations: " << params.maxDelayedIterations << std::endl;
@@ -246,6 +251,9 @@ class PGOAgentROS : public PGOAgent {
   // Publish update command and specify next robot to update
   void publishUpdateCommand(unsigned robot_id);
 
+  // Publish recover command
+  void publishRecoverCommand();
+
   // Publish termination command
   void publishTerminateCommand();
 
@@ -271,7 +279,7 @@ class PGOAgentROS : public PGOAgent {
   void checkCommandTimeout();
 
   // Check disconnected robot
-  void checkDisconnectedRobot();
+  bool checkDisconnectedRobot();
 
   // Publish trajectory
   void storeOptimizedTrajectory();

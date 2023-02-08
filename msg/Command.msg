@@ -3,9 +3,10 @@ uint8 UPDATE=1                # Perform update / iteration
 uint8 TERMINATE=2             # Nominal termination (after successful optimization)
 uint8 HARD_TERMINATE=3        # Hard termination (e.g., after communication loss)
 uint8 INITIALIZE=4            # Perform initialization
-uint8 UPDATE_WEIGHT = 5       # Update measurement weights (for robust optimization)
-uint8 SET_ACTIVE_ROBOTS=6     # Set the list of active robots that will participate in distributed optimization
-uint8 NOOP=7                  # NoOp (used for debugging)
+uint8 UPDATE_WEIGHT=5         # Update measurement weights (for robust optimization)
+uint8 RECOVER=6               # Recover from disconnection
+uint8 SET_ACTIVE_ROBOTS=7     # Set the list of active robots that will participate in distributed optimization
+uint8 NOOP=8                  # NoOp (used for debugging)
 
 std_msgs/Header header
 uint8 command
