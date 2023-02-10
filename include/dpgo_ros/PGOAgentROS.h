@@ -197,6 +197,9 @@ class PGOAgentROS : public PGOAgent {
   // Time this node is launched
   ros::Time mLaunchTime;
 
+  // Time this node has been waiting since
+  std::optional<ros::Time> mWaitStartTime;
+
   // Reset the pose graph. This function overrides the function from the base class.
   void reset() override;
 
@@ -285,6 +288,10 @@ class PGOAgentROS : public PGOAgent {
   void storeOptimizedTrajectory();
   void publishTrajectory(const PoseArray &T);
   void publishOptimizedTrajectory();
+
+  // Publish trajectory estimates from the latest iteration in distributed optimization.
+  // This function is mostly for visualization and debugging purpose.
+  void publishIterate();
 
   // Publish latest public poses
   void publishPublicPoses(bool aux = false);

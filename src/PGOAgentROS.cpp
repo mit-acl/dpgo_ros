@@ -119,12 +119,7 @@ void PGOAgentROS::runOnceAsynchronous() {
   if (mPublishAsynchronousRequested) {
     if (isLeader()) publishAnchor();
     publishStatus();
-    if (mParamsROS.publishIterate) {
-      storeOptimizedTrajectory();
-      storeLoopClosureMarkers();
-      publishOptimizedTrajectory();
-      publishLoopClosureMarkers();
-    }
+    publishIterate();
     logIteration();
     mPublishAsynchronousRequested = false;
   }
@@ -148,14 +143,25 @@ void PGOAgentROS::runOnceSynchronous() {
       if (mParams.acceleration) requiredIter = (int) iteration_number() + 1;
       requiredIter = requiredIter - mParamsROS.maxDelayedIterations;
       if ((int) mTeamIterReceived[neighbor] < requiredIter) {
-        if (mParams.verbose) {
-          ROS_WARN_THROTTLE(1,
-                            "Robot %u iteration %u waits for neighbor %u "
-                            "iteration %u (last received iteration %u).",
-                            getID(), iteration_number() + 1, neighbor,
-                            requiredIter, mTeamIterReceived[neighbor]);
-        }
         ready = false;
+        // Check time since start of waiting
+        if (!mWaitStartTime.has_value()) {
+          mWaitStartTime.emplace(ros::Time::now());
+        }
+        const auto wait_duration = ros::Time::now() - mWaitStartTime.value();
+        const double wait_sec = wait_duration.toSec();
+        ROS_WARN_THROTTLE(1,
+                          "Robot %u iteration %u waits for neighbor %u "
+                          "iteration %u (last received %u), total wait time %.1f sec.",
+                          getID(), iteration_number() + 1, neighbor,
+                          requiredIter, mTeamIterReceived[neighbor], wait_sec);
+        if (wait_sec > 2 * mParamsROS.timeoutThreshold) {
+          ROS_ERROR("Robot %u stuck for long time. Reset!", getID());
+          logString("ERROR");
+          publishHardTerminateCommand();
+          reset();
+          return;
+        }
       }
     }
 
@@ -172,6 +178,7 @@ void PGOAgentROS::runOnceSynchronous() {
       auto counter = std::chrono::high_resolution_clock::now() - startTime;
       mIterationElapsedMs = (double) std::chrono::duration_cast<std::chrono::milliseconds>(counter).count();
       mSynchronousOptimizationRequested = false;
+      mWaitStartTime.reset();
       if (success) {
         ROS_INFO("Robot %u iteration %u: success=%d, func_decr=%.1e, grad_init=%.1e, grad_opt=%.1e.", 
                getID(), 
@@ -192,13 +199,8 @@ void PGOAgentROS::runOnceSynchronous() {
       // Publish status
       publishStatus();
 
-      // Publish trajectory
-      if (mParamsROS.publishIterate) {
-        storeOptimizedTrajectory();
-        storeLoopClosureMarkers();
-        publishOptimizedTrajectory();
-        publishLoopClosureMarkers();
-      }
+      // Publish iterate (for visualization)
+      publishIterate();
 
       // Log local iteration
       logIteration();
@@ -255,6 +257,7 @@ void PGOAgentROS::reset() {
   }
   resetRobotClusterIDs();
   mLastResetTime = ros::Time::now();
+  mWaitStartTime.reset();
 }
 
 bool PGOAgentROS::requestPoseGraph() {
@@ -355,26 +358,18 @@ bool PGOAgentROS::tryInitialize() {
              mPoseGraph->numOdometry(),
              mPoseGraph->numPrivateLoopClosures(),
              mPoseGraph->numSharedLoopClosures());
-    if (mCachedPoses.has_value()) {
+    if (isLeader() && mCachedPoses.has_value()) {
       // Result from previous round is available, and we use it to directly
-      // initialize in global frame
-      ROS_INFO("Initialize in global frame using result from previous round.");
+      // initialize leader in global frame
+      ROS_INFO("Leader %u initializes in global frame using result from previous round.", getID());
       const auto TPrev = mCachedPoses.value();
       const auto TInit = odometryInitialization(mPoseGraph->odometry(), &TPrev);
       initialize(&TInit);
       initializeInGlobalFrame(Pose(d));
       initializeGlobalAnchor();
       // Leader adds a prior to prevent drifting in the global frame
-      if (getClusterID() != 0 && isLeader()) {
-        Matrix M;
-        if (getSharedPose(0, M)) {
-          LiftedPose prior(relaxation_rank(), dimension());
-          prior.setData(M);
-          mPoseGraph->setPrior(0, prior);
-          ROS_INFO("Robot %u sets prior.", getID());
-        } else {
-          ROS_ERROR("Robot %u fails to set prior!", getID());
-        }
+      if (getClusterID() != 0) {
+        anchorFirstPose();
       }
     } else {
       // No result is available so far, we will attempt to initialize with
@@ -453,6 +448,7 @@ void PGOAgentROS::publishAnchor() {
   msg.robot_id = 0;
   msg.instance_number = instance_number();
   msg.iteration_number = iteration_number();
+  msg.cluster_id = getClusterID();
   msg.is_auxiliary = false;
   msg.pose_ids.push_back(0);
   msg.poses.push_back(MatrixToMsg(T0));
@@ -491,6 +487,9 @@ void PGOAgentROS::publishUpdateCommand() {
       selected_robot = next_robot_id;
       break;
     }
+  }
+  if (selected_robot == getID()) {
+    ROS_WARN("[publishUpdateCommand] Robot %u selects self to update next!", getID());
   }
   publishUpdateCommand(selected_robot);
 }
@@ -660,6 +659,16 @@ void PGOAgentROS::publishOptimizedTrajectory() {
   if (!mCachedPoses.has_value())
     return;
   publishTrajectory(mCachedPoses.value());
+}
+
+void PGOAgentROS::publishIterate() {
+  if (!mParamsROS.publishIterate) {
+    return;
+  }
+  PoseArray T(dimension(), num_poses());
+  if (getTrajectoryInGlobalFrame(T)) {
+    publishTrajectory(T);
+  }
 }
 
 void PGOAgentROS::publishPublicPoses(bool aux) {
@@ -934,9 +943,20 @@ void PGOAgentROS::liftingMatrixCallback(const MatrixMsgConstPtr &msg) {
 void PGOAgentROS::anchorCallback(const PublicPosesConstPtr &msg) {
   if (msg->robot_id != 0 || msg->pose_ids[0] != 0) {
     ROS_ERROR("Received wrong pose as anchor!");
-    ros::shutdown();
+    return;
+  }
+  if (msg->cluster_id != getClusterID()) {
+    return;
   }
   setGlobalAnchor(MatrixFromMsg(msg->poses[0]));
+  // Print anchor error
+  if (YLift.has_value() && globalAnchor.has_value()) {
+    const Matrix Ya = globalAnchor.value().rotation();
+    const Matrix pa = globalAnchor.value().translation();
+    double anchor_rotation_error = (Ya - YLift.value()).norm();
+    double anchor_translation_error = pa.norm();
+    ROS_INFO("Anchor rotation error=%.1e, translation error=%.1e.", anchor_rotation_error, anchor_translation_error);
+  }
 }
 
 void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
