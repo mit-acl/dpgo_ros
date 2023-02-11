@@ -197,8 +197,8 @@ class PGOAgentROS : public PGOAgent {
   // Time this node is launched
   ros::Time mLaunchTime;
 
-  // Time this node has been waiting since
-  std::optional<ros::Time> mWaitStartTime;
+  // Time this node last performed an iteration
+  std::optional<ros::Time> mLastUpdateTime;
 
   // Reset the pose graph. This function overrides the function from the base class.
   void reset() override;
@@ -279,7 +279,7 @@ class PGOAgentROS : public PGOAgent {
   void publishAnchor();
 
   // Check timeout
-  void checkCommandTimeout();
+  void checkTimeout();
 
   // Check disconnected robot
   bool checkDisconnectedRobot();

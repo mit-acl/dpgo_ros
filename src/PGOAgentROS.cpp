@@ -96,6 +96,7 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
   mLastResetTime = ros::Time::now();
   mLaunchTime = ros::Time::now();
   mLastCommandTime = ros::Time::now();
+  mLastUpdateTime.reset();
 }
 
 void PGOAgentROS::runOnce() {
@@ -111,7 +112,7 @@ void PGOAgentROS::runOnce() {
     mPublishPublicPosesRequested = false;
   }
 
-  checkCommandTimeout();
+  checkTimeout();
   // checkDisconnectedRobot();
 }
 
@@ -144,24 +145,11 @@ void PGOAgentROS::runOnceSynchronous() {
       requiredIter = requiredIter - mParamsROS.maxDelayedIterations;
       if ((int) mTeamIterReceived[neighbor] < requiredIter) {
         ready = false;
-        // Check time since start of waiting
-        if (!mWaitStartTime.has_value()) {
-          mWaitStartTime.emplace(ros::Time::now());
-        }
-        const auto wait_duration = ros::Time::now() - mWaitStartTime.value();
-        const double wait_sec = wait_duration.toSec();
         ROS_WARN_THROTTLE(1,
                           "Robot %u iteration %u waits for neighbor %u "
-                          "iteration %u (last received %u), total wait time %.1f sec.",
+                          "iteration %u (last received %u).",
                           getID(), iteration_number() + 1, neighbor,
-                          requiredIter, mTeamIterReceived[neighbor], wait_sec);
-        if (wait_sec > 2 * mParamsROS.timeoutThreshold) {
-          ROS_ERROR("Robot %u stuck for long time. Reset!", getID());
-          logString("ERROR");
-          publishHardTerminateCommand();
-          reset();
-          return;
-        }
+                          requiredIter, mTeamIterReceived[neighbor]);
       }
     }
 
@@ -178,8 +166,8 @@ void PGOAgentROS::runOnceSynchronous() {
       auto counter = std::chrono::high_resolution_clock::now() - startTime;
       mIterationElapsedMs = (double) std::chrono::duration_cast<std::chrono::milliseconds>(counter).count();
       mSynchronousOptimizationRequested = false;
-      mWaitStartTime.reset();
       if (success) {
+        mLastUpdateTime.emplace(ros::Time::now());
         ROS_INFO("Robot %u iteration %u: success=%d, func_decr=%.1e, grad_init=%.1e, grad_opt=%.1e.", 
                getID(), 
                iteration_number(),
@@ -257,7 +245,7 @@ void PGOAgentROS::reset() {
   }
   resetRobotClusterIDs();
   mLastResetTime = ros::Time::now();
-  mWaitStartTime.reset();
+  mLastUpdateTime.reset();
 }
 
 bool PGOAgentROS::requestPoseGraph() {
@@ -977,10 +965,21 @@ void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
     setNeighborStatus(statusFromMsg(received_msg));;
   } 
 
-  if (isLeader() && isRobotActive(msg->robot_id) && msg->cluster_id != getClusterID()) {
-    ROS_WARN("Robot %u joined other cluster %u... set to inactive.", msg->robot_id, msg->cluster_id);
-    setRobotActive(msg->robot_id, false);
-    publishActiveRobotsCommand();
+  // Edge cases
+  if (isLeader() && isRobotActive(msg->robot_id)) {
+    bool should_deactivate = false;
+    if (msg->cluster_id != getClusterID()) {
+      ROS_WARN("Robot %u joined other cluster %u... set to inactive.", msg->robot_id, msg->cluster_id);
+      should_deactivate = true;
+    }
+    if (iteration_number() > 0 && msg->state != Status::INITIALIZED) {
+      ROS_WARN("Robot %u is no longer initialized in global frame... set to inactive.", msg->robot_id);
+      should_deactivate = true;
+    }
+    if (should_deactivate) {
+      setRobotActive(msg->robot_id, false);
+      publishActiveRobotsCommand();
+    }
   }
 }
 
@@ -1196,6 +1195,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
         return;
       }
       mIterationNumber = msg->executing_iteration;
+      mSynchronousOptimizationRequested = false;
       for (const auto &neighbor : getNeighbors()) {
         mTeamIterRequired[neighbor] = iteration_number();
         mTeamIterReceived[neighbor] = 0;  // Force robot to wait for updated public poses from neighbors
@@ -1513,7 +1513,7 @@ void PGOAgentROS::resetRobotClusterIDs() {
   }
 }
 
-void PGOAgentROS::checkCommandTimeout() {
+void PGOAgentROS::checkTimeout() {
   // Timeout if command channel quiet for long time 
   // This usually happen when robots get disconnected 
   double elapsedSecond = (ros::Time::now() - mLastCommandTime).toSec();
@@ -1552,6 +1552,22 @@ void PGOAgentROS::checkCommandTimeout() {
       }
     }
     mLastCommandTime = ros::Time::now();
+  }
+
+  // Check hard timeout
+  if (mState == PGOAgentState::INITIALIZED && iteration_number() > 0) {
+    if (mLastUpdateTime.has_value()) {
+      double sec_idle = (ros::Time::now() - mLastUpdateTime.value()).toSec();
+      if (sec_idle > 1) {
+        ROS_WARN_THROTTLE(1, "Robot %u last successful update is %.1f sec ago.", getID(), sec_idle);
+      }
+      if (sec_idle > 3 * mParamsROS.timeoutThreshold) {
+        ROS_ERROR("Hard timeout!");
+        logString("TIMEOUT");
+        if (isLeader()) publishHardTerminateCommand();
+        reset();
+      }
+    }
   }
 }
 
