@@ -346,18 +346,23 @@ bool PGOAgentROS::tryInitialize() {
              mPoseGraph->numOdometry(),
              mPoseGraph->numPrivateLoopClosures(),
              mPoseGraph->numSharedLoopClosures());
-    if (isLeader() && mCachedPoses.has_value()) {
-      // Result from previous round is available, and we use it to directly
-      // initialize leader in global frame
-      ROS_INFO("Leader %u initializes in global frame using result from previous round.", getID());
+    if (mCachedPoses.has_value()) {
+      // Result from previous round is available
+      ROS_INFO("Robot %u uses result from previous round.", getID());
       const auto TPrev = mCachedPoses.value();
       const auto TInit = odometryInitialization(mPoseGraph->odometry(), &TPrev);
       initialize(&TInit);
-      initializeInGlobalFrame(Pose(d));
-      initializeGlobalAnchor();
-      // Leader adds a prior to prevent drifting in the global frame
-      if (getClusterID() != 0) {
-        anchorFirstPose();
+      if (isLeader()) {
+        initializeInGlobalFrame(Pose(d));
+        initializeGlobalAnchor();
+        // Leader adds a prior to prevent drifting in the global frame
+        if (getClusterID() != 0) {
+          anchorFirstPose();
+        } else {
+          const Matrix T0 = TInit.pose(0);
+          double err = (T0 - Pose::Identity(dimension()).pose()).norm();
+          ROS_INFO("Robot 0 first pose deviation from identity: %.1e.", err);
+        }
       }
     } else {
       // No result is available so far, we will attempt to initialize with
@@ -938,13 +943,13 @@ void PGOAgentROS::anchorCallback(const PublicPosesConstPtr &msg) {
   }
   setGlobalAnchor(MatrixFromMsg(msg->poses[0]));
   // Print anchor error
-  if (YLift.has_value() && globalAnchor.has_value()) {
-    const Matrix Ya = globalAnchor.value().rotation();
-    const Matrix pa = globalAnchor.value().translation();
-    double anchor_rotation_error = (Ya - YLift.value()).norm();
-    double anchor_translation_error = pa.norm();
-    ROS_INFO("Anchor rotation error=%.1e, translation error=%.1e.", anchor_rotation_error, anchor_translation_error);
-  }
+  // if (YLift.has_value() && globalAnchor.has_value()) {
+  //   const Matrix Ya = globalAnchor.value().rotation();
+  //   const Matrix pa = globalAnchor.value().translation();
+  //   double anchor_rotation_error = (Ya - YLift.value()).norm();
+  //   double anchor_translation_error = pa.norm();
+  //   ROS_INFO("Anchor rotation error=%.1e, translation error=%.1e.", anchor_rotation_error, anchor_translation_error);
+  // }
 }
 
 void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
