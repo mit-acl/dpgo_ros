@@ -339,35 +339,29 @@ bool PGOAgentROS::tryInitialize() {
     }
   }
   if (ready) {
-    ROS_INFO("Robot %u sets pose graph. "
+    ROS_INFO("Robot %u initializes. "
              "num_poses:%u, odom:%u, local_lc:%u, shared_lc:%u.",
              getID(),
              num_poses(),
              mPoseGraph->numOdometry(),
              mPoseGraph->numPrivateLoopClosures(),
              mPoseGraph->numSharedLoopClosures());
-    if (mCachedPoses.has_value()) {
-      // Result from previous round is available
-      ROS_INFO("Robot %u uses result from previous round.", getID());
-      const auto TPrev = mCachedPoses.value();
-      const auto TInit = odometryInitialization(mPoseGraph->odometry(), &TPrev);
-      initialize(&TInit);
-      if (isLeader()) {
+    
+    // Perform local initialization
+    initialize(); 
+
+    // Leader first initializes in global frame
+    if (isLeader()) {
+      if (getID() == 0) {
         initializeInGlobalFrame(Pose(d));
+      } else if (getID() != 0 && mCachedPoses.has_value()) {
+        ROS_INFO("Leader %u initializes in global frame using previous result.", getID());
+        const auto TPrev = mCachedPoses.value();
+        const Pose T_world_leader(TPrev.pose(0));
+        initializeInGlobalFrame(T_world_leader);
         initializeGlobalAnchor();
-        // Leader adds a prior to prevent drifting in the global frame
-        if (getClusterID() != 0) {
-          anchorFirstPose();
-        } else {
-          const Matrix T0 = TInit.pose(0);
-          double err = (T0 - Pose::Identity(dimension()).pose()).norm();
-          ROS_INFO("Robot 0 first pose deviation from identity: %.1e.", err);
-        }
+        anchorFirstPose();
       }
-    } else {
-      // No result is available so far, we will attempt to initialize with
-      // robust initialization
-      initialize();
     }
     mTryInitializeRequested = false;
   }
@@ -1051,10 +1045,7 @@ void PGOAgentROS::commandCallback(const CommandConstPtr &msg) {
         for (auto &m : mPoseGraph->activeLoopClosures()) {
           if (!m->fixedWeight && computeMeasurementResidual(*m, &residual)) {
             weight = mRobustCost.weight(residual);
-            if (residual < mParams.robustCostParams.GNCBarc) {
-              m->weight = 1;
-              m->fixedWeight = true;
-            } else if (weight < mParamsROS.weightConvergenceThreshold) {
+            if (weight < mParamsROS.weightConvergenceThreshold) {
               ROS_INFO("Reject measurement with residual %f and weight %f.", residual, weight);
               m->weight = 0;
               m->fixedWeight = true;

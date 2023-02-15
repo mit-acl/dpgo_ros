@@ -39,11 +39,11 @@
   <arg name="publish_iterate"                  default="false"/>
   <arg name="visualize_loop_closures"          default="false"/>
   <arg name="complete_reset"                   default="false"/>
-  <arg name="enable_recovery"                  default="true"/>
+  <arg name="enable_recovery"                  default="false"/>
   <arg name="synchronize_measurements"         default="true" />
   <arg name="max_distributed_init_steps"       default="30" />
   <arg name="inter_update_sleep_time"          default="0.1"/>
-  <arg name="weight_convergence_threshold"     default="1e-8"/>
+  <arg name="weight_convergence_threshold"     default="-1"/>
   <arg name="max_delayed_iterations"           default="0" />
   <arg name="timeout_threshold"                default="15" />
 
