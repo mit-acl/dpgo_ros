@@ -6,6 +6,7 @@ std_msgs/Header header
 uint16 instance_number
 uint16 iteration_number
 uint16 robot_id
+uint16 cluster_id
 uint8 state
 bool ready_to_terminate
 float32 relative_change

@@ -17,6 +17,7 @@
 #include <dpgo_ros/Status.h>
 #include <pose_graph_tools/PoseGraph.h>
 #include <visualization_msgs/Marker.h>
+#include <std_msgs/UInt16MultiArray.h>
 #include <ros/console.h>
 #include <ros/ros.h>
 
@@ -42,8 +43,17 @@ class PGOAgentROSParameters : public PGOAgentParameters {
   // Publish intermediate iterates during optimization
   bool publishIterate;
 
+  // If true dpgo will publish loop closure as ROS markers
+  bool visualizeLoopClosures;
+
   // Completely reset dpgo after each distributed optimization round
   bool completeReset;
+
+  // Synchronize shared measurements between robots before each optimization round
+  bool synchronizeMeasurements;
+
+  // Let dpgo try to recover if some robots disconnect during distributed optimization
+  bool enableRecovery;
 
   // Maximum attempts for multi-robot initialization
   int maxDistributedInitSteps;
@@ -65,7 +75,10 @@ class PGOAgentROSParameters : public PGOAgentParameters {
       : PGOAgentParameters(dIn, rIn, numRobotsIn),
         updateRule(UpdateRule::Uniform),
         publishIterate(false),
+        visualizeLoopClosures(false),
         completeReset(false),
+        synchronizeMeasurements(true),
+        enableRecovery(true),
         maxDistributedInitSteps(30),
         maxDelayedIterations(3),
         weightConvergenceThreshold(1e-6),
@@ -80,7 +93,10 @@ class PGOAgentROSParameters : public PGOAgentParameters {
     os << "PGOAgentROS parameters: " << std::endl;
     os << "Update rule: " << updateRuleToString(params.updateRule) << std::endl; 
     os << "Publish iterate: " << params.publishIterate << std::endl;
+    os << "Visualize loop closures: " << params.visualizeLoopClosures << std::endl;
     os << "Complete reset: " << params.completeReset << std::endl;
+    os << "Enable recovery: " << params.enableRecovery << std::endl;
+    os << "Synchronize measurements: " << params.synchronizeMeasurements << std::endl;
     os << "Maximum distributed initialization attempts: " << params.maxDistributedInitSteps << std::endl;
     os << "Maximum delayed iterations: " << params.maxDelayedIterations << std::endl;
     os << "Measurement weight convergence threshold: " << params.weightConvergenceThreshold << std::endl;
@@ -121,6 +137,9 @@ class PGOAgentROS : public PGOAgent {
   // A copy of the parameter struct
   const PGOAgentROSParameters mParamsROS;
 
+  // ID of the cluster that this robot belongs to
+  unsigned mClusterID;
+
   // Received request to iterate with optimization in synchronous mode
   bool mSynchronousOptimizationRequested = false;
 
@@ -143,7 +162,7 @@ class PGOAgentROS : public PGOAgent {
   double mIterationElapsedMs;
 
   // Global optimization start time
-  std::chrono::time_point<std::chrono::high_resolution_clock> mGlobalStartTime, mLastCommandTime;
+  ros::Time mGlobalStartTime, mLastCommandTime;
 
   // Map from robot ID to name
   std::map<unsigned, std::string> mRobotNames;
@@ -155,11 +174,31 @@ class PGOAgentROS : public PGOAgent {
   std::vector<unsigned> mTeamIterReceived;
   std::vector<unsigned> mTeamIterRequired;
   std::vector<bool> mTeamReceivedSharedLoopClosures;
-  std::vector<ros::Time> mTeamLatestStatusTime;
+  
+  // Store if other robots are currently connected 
+  std::vector<bool> mTeamConnected;  
+
+  // Store the current cluster each robot belongs to
+  std::vector<unsigned> mTeamClusterID;
 
   // Store the latest optimized trajectory and loop closures for visualization
   std::optional<PoseArray> mCachedPoses;
   std::optional<visualization_msgs::Marker> mCachedLoopClosureMarkers;
+
+  // Store the latest SE(d) poses from neighbors in the global frame 
+  std::map<PoseID, Pose, ComparePoseID> mCachedNeighborPoses; 
+
+  // Store the latest measurement weights with neighbors
+  std::unordered_map<EdgeID, double, HashEdgeID> mCachedEdgeWeights;
+
+  // Last time reset is called
+  ros::Time mLastResetTime;
+
+  // Time this node is launched
+  ros::Time mLaunchTime;
+
+  // Time this node last performed an iteration
+  std::optional<ros::Time> mLastUpdateTime;
 
   // Reset the pose graph. This function overrides the function from the base class.
   void reset() override;
@@ -176,11 +215,30 @@ class PGOAgentROS : public PGOAgent {
   // Attempt to initialize optimization
   bool tryInitialize();
 
+  // Get the ID of the current cluster
+  unsigned getClusterID() const;
+
+  // Return true if this robot is currently serving as the leader of the cluster
+  bool isLeader() const;
+
+  // Update cluster for this robot
+  void updateCluster();
+
+  // Get the cluster a robot belongs to
+  unsigned getRobotClusterID(unsigned robot_id) const;
+
+  // Set the cluster a robot belongs to
+  void setRobotClusterID(unsigned robot_id, unsigned cluster_id);
+  void resetRobotClusterIDs();
+
   // Return true if the robot is connected
   bool isRobotConnected(unsigned robot_id) const;
 
   // Update the set of active robots based on connectivity
-  void updateActiveRobots();
+  void setActiveRobots();
+
+  // Update the set of active robots based on input vector
+  void updateActiveRobots(const CommandConstPtr &msg);
 
   // Publish status
   void publishStatus();
@@ -193,6 +251,11 @@ class PGOAgentROS : public PGOAgent {
 
   // Publish update command
   void publishUpdateCommand();
+  // Publish update command and specify next robot to update
+  void publishUpdateCommand(unsigned robot_id);
+
+  // Publish recover command
+  void publishRecoverCommand();
 
   // Publish termination command
   void publishTerminateCommand();
@@ -215,10 +278,20 @@ class PGOAgentROS : public PGOAgent {
   // Publish anchor
   void publishAnchor();
 
+  // Check timeout
+  void checkTimeout();
+
+  // Check disconnected robot
+  bool checkDisconnectedRobot();
+
   // Publish trajectory
   void storeOptimizedTrajectory();
-  void publishStoredTrajectory();
-  void publishLatestTrajectory();
+  void publishTrajectory(const PoseArray &T);
+  void publishOptimizedTrajectory();
+
+  // Publish trajectory estimates from the latest iteration in distributed optimization.
+  // This function is mostly for visualization and debugging purpose.
+  void publishIterate();
 
   // Publish latest public poses
   void publishPublicPoses(bool aux = false);
@@ -231,18 +304,26 @@ class PGOAgentROS : public PGOAgent {
 
   // Publish loop closures for visualization
   void storeLoopClosureMarkers();
-  void publishStoredLoopClosureMarkers();
-  void publishLatestLoopClosureMarkers();
+  void publishLoopClosureMarkers();
+
+  // Store neighbor SE(d) poses in the global frame
+  void storeActiveNeighborPoses();
+  void setInactiveNeighborPoses();
+
+  // Store edge weights
+  void storeActiveEdgeWeights();
+  void setInactiveEdgeWeights();
+
+  // Initialize global anchor using stored information
+  void initializeGlobalAnchor();
 
   // Log iteration
   bool createIterationLog(const std::string &filename);
   bool logIteration();
-  bool logWeightUpdate();
-
-  // Sleep for a randomly generated between (0, sec)
-  void randomSleep(double sec);
+  bool logString(const std::string &str);
 
   // ROS callbacks
+  void connectivityCallback(const std_msgs::UInt16MultiArrayConstPtr &msg);
   void liftingMatrixCallback(const MatrixMsgConstPtr &msg);
   void anchorCallback(const PublicPosesConstPtr &msg);
   void statusCallback(const StatusConstPtr &msg);
@@ -274,6 +355,7 @@ class PGOAgentROS : public PGOAgent {
   SubscriberVector mPublicPosesSubscriber;
   SubscriberVector mSharedLoopClosureSubscriber;
   SubscriberVector mMeasurementWeightsSubscriber;
+  ros::Subscriber mConnectivitySubscriber;
 
   // ROS timer
   ros::Timer timer;

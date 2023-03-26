@@ -138,8 +138,17 @@ int main(int argc, char **argv) {
   // Publish iterate during optimization
   ros::param::get("~publish_iterate", params.publishIterate);
 
+  // Publish loop closures as ROS markers for visualization
+  ros::param::get("~visualize_loop_closures", params.visualizeLoopClosures);
+
   // Completely reset dpgo after each distributed optimization round
   ros::param::get("~complete_reset", params.completeReset);
+
+  // Try to recover and resume optimization after disconnection
+  ros::param::get("~enable_recovery", params.enableRecovery);
+
+  // Synchronize shared measurements between robots before each optimization round
+  ros::param::get("~synchronize_measurements", params.synchronizeMeasurements);
 
   // Maximum multi-robot initialization attempts 
   ros::param::get("~max_distributed_init_steps", params.maxDistributedInitSteps);
