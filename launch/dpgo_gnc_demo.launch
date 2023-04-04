@@ -1,0 +1,236 @@
+<launch>
+  <arg name="num_robots"                            value="6" />
+  <arg name="debug"                                 default="false" />
+  <arg name="verbose"                               default="true" />
+  <arg name="rel_change_tol"                        default="0.2" />
+  <arg name="robot_names_file"                      default="$(find dpgo_ros)/params/robot_names.yaml"/>
+  <arg name="robot_measurements_file"               default="$(find dpgo_ros)/params/robot_measurements.yaml"/>
+
+  <!-- Launch ROS node to publish pose graph -->
+  <node name="dataset_publisher"   pkg="dpgo_ros" type="dpgo_ros_dataset_publisher_node" output="screen">
+    <param name="~num_robots"         type="int"     value="$(arg num_robots)" />
+    <rosparam file="$(arg robot_names_file)" />
+    <rosparam file="$(arg robot_measurements_file)" subst_value="true"/>
+  </node>
+
+  <!-- Launch individual PGO agents. Number must match /num_robots -->
+  <group ns="kimera0">
+    <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
+      <arg name="agent_id"                         value="0" />
+      <arg name="num_robots"                       value="$(arg num_robots)" />
+      <arg name="robot_names_file"                 value="$(arg robot_names_file)" />
+      <arg name="debug"                            value="$(arg debug)" />
+      <arg name="verbose"                          value="$(arg verbose)" />
+      <arg name="publish_iterate"                  value="false"/>
+      <arg name="acceleration"                     value="false" />
+      <arg name="update_rule"                      value="RoundRobin"/>
+      <arg name="local_initialization_method"      value="Odometry"/>
+      <arg name="multirobot_initialization"        value="true"/>
+      <arg name="RTR_iterations"                   value="3" />
+      <arg name="RTR_tCG_iterations"               value="50" />
+      <arg name="RTR_gradnorm_tol"                 value="0.5" />
+      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
+      <arg name="robust_cost_type"                 value="GNC_TLS" />
+      <arg name="GNC_use_probability"              value="false" />
+      <arg name="GNC_barc"                         value="3.0" />
+      <arg name="GNC_mu_step"                      value="2.0" />
+      <arg name="GNC_init_mu"                      value="1e-5" />
+      <arg name="robust_init_min_inliers"          value="3" />
+      <arg name="robust_opt_num_weight_updates"    value="3" />
+      <arg name="robust_opt_num_resets"            value="3" />
+      <arg name="robust_opt_min_convergence_ratio" value="0.0" />
+      <arg name="robust_opt_inner_iters_per_robot" value="50" />
+      <arg name="inter_update_sleep_time"          value="0.1" />
+      <arg name="max_delayed_iterations"           value="0"  />
+      <arg name="max_distributed_init_steps"       value="20" />
+      <arg name="timeout_threshold"                value="15" />
+      <arg name="synchronize_measurements"         value="false" />
+      <arg name="visualize_loop_closures"          value="false" />
+      <arg name="enable_recovery"                  value="false" />
+    </include> 
+  </group>
+
+  <group ns="kimera1">
+    <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
+      <arg name="agent_id"                         value="1" />
+      <arg name="num_robots"                       value="$(arg num_robots)" />
+      <arg name="robot_names_file"                 value="$(arg robot_names_file)" />
+      <arg name="debug"                            value="$(arg debug)" />
+      <arg name="verbose"                          value="$(arg verbose)" />
+      <arg name="publish_iterate"                  value="false"/>
+      <arg name="acceleration"                     value="false" />
+      <arg name="update_rule"                      value="RoundRobin"/>
+      <arg name="local_initialization_method"      value="Odometry"/>
+      <arg name="multirobot_initialization"        value="true"/>
+      <arg name="RTR_iterations"                   value="3" />
+      <arg name="RTR_tCG_iterations"               value="50" />
+      <arg name="RTR_gradnorm_tol"                 value="0.5" />
+      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
+      <arg name="robust_cost_type"                 value="GNC_TLS" />
+      <arg name="GNC_use_probability"              value="false" />
+      <arg name="GNC_barc"                         value="3.0" />
+      <arg name="GNC_mu_step"                      value="2.0" />
+      <arg name="GNC_init_mu"                      value="1e-5" />
+      <arg name="robust_init_min_inliers"          value="3" />
+      <arg name="robust_opt_num_weight_updates"    value="3" />
+      <arg name="robust_opt_num_resets"            value="3" />
+      <arg name="robust_opt_min_convergence_ratio" value="0.0" />
+      <arg name="robust_opt_inner_iters_per_robot" value="50" />
+      <arg name="inter_update_sleep_time"          value="0.1" />
+      <arg name="max_delayed_iterations"           value="0"  />
+      <arg name="max_distributed_init_steps"       value="20" />
+      <arg name="timeout_threshold"                value="15" />
+      <arg name="synchronize_measurements"         value="false" />
+      <arg name="visualize_loop_closures"          value="false" />
+      <arg name="enable_recovery"                  value="false" />
+    </include> 
+  </group>
+
+  <group ns="kimera2">
+    <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
+      <arg name="agent_id"                         value="2" />
+      <arg name="num_robots"                       value="$(arg num_robots)" />
+      <arg name="robot_names_file"                 value="$(arg robot_names_file)" />
+      <arg name="debug"                            value="$(arg debug)" />
+      <arg name="verbose"                          value="$(arg verbose)" />
+      <arg name="publish_iterate"                  value="false"/>
+      <arg name="acceleration"                     value="false" />
+      <arg name="update_rule"                      value="RoundRobin"/>
+      <arg name="local_initialization_method"      value="Odometry"/>
+      <arg name="multirobot_initialization"        value="true"/>
+      <arg name="RTR_iterations"                   value="3" />
+      <arg name="RTR_tCG_iterations"               value="50" />
+      <arg name="RTR_gradnorm_tol"                 value="0.5" />
+      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
+      <arg name="robust_cost_type"                 value="GNC_TLS" />
+      <arg name="GNC_use_probability"              value="false" />
+      <arg name="GNC_barc"                         value="3.0" />
+      <arg name="GNC_mu_step"                      value="2.0" />
+      <arg name="GNC_init_mu"                      value="1e-5" />
+      <arg name="robust_init_min_inliers"          value="3" />
+      <arg name="robust_opt_num_weight_updates"    value="3" />
+      <arg name="robust_opt_num_resets"            value="3" />
+      <arg name="robust_opt_min_convergence_ratio" value="0.0" />
+      <arg name="robust_opt_inner_iters_per_robot" value="50" />
+      <arg name="inter_update_sleep_time"          value="0.1" />
+      <arg name="max_delayed_iterations"           value="0"  />
+      <arg name="max_distributed_init_steps"       value="20" />
+      <arg name="timeout_threshold"                value="15" />
+      <arg name="synchronize_measurements"         value="false" />
+      <arg name="visualize_loop_closures"          value="false" />
+      <arg name="enable_recovery"                  value="false" />
+    </include> 
+  </group>
+
+  <group ns="kimera3">
+    <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
+      <arg name="agent_id"                         value="3" />
+      <arg name="num_robots"                       value="$(arg num_robots)" />
+      <arg name="robot_names_file"                 value="$(arg robot_names_file)" />
+      <arg name="debug"                            value="$(arg debug)" />
+      <arg name="verbose"                          value="$(arg verbose)" />
+      <arg name="publish_iterate"                  value="false"/>
+      <arg name="acceleration"                     value="false" />
+      <arg name="update_rule"                      value="RoundRobin"/>
+      <arg name="local_initialization_method"      value="Odometry"/>
+      <arg name="multirobot_initialization"        value="true"/>
+      <arg name="RTR_iterations"                   value="3" />
+      <arg name="RTR_tCG_iterations"               value="50" />
+      <arg name="RTR_gradnorm_tol"                 value="0.5" />
+      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
+      <arg name="robust_cost_type"                 value="GNC_TLS" />
+      <arg name="GNC_use_probability"              value="false" />
+      <arg name="GNC_barc"                         value="3.0" />
+      <arg name="GNC_mu_step"                      value="2.0" />
+      <arg name="GNC_init_mu"                      value="1e-5" />
+      <arg name="robust_init_min_inliers"          value="3" />
+      <arg name="robust_opt_num_weight_updates"    value="3" />
+      <arg name="robust_opt_num_resets"            value="3" />
+      <arg name="robust_opt_min_convergence_ratio" value="0.0" />
+      <arg name="robust_opt_inner_iters_per_robot" value="50" />
+      <arg name="inter_update_sleep_time"          value="0.1" />
+      <arg name="max_delayed_iterations"           value="0"  />
+      <arg name="max_distributed_init_steps"       value="20" />
+      <arg name="timeout_threshold"                value="15" />
+      <arg name="synchronize_measurements"         value="false" />
+      <arg name="visualize_loop_closures"          value="false" />
+      <arg name="enable_recovery"                  value="false" />
+    </include> 
+  </group>
+
+  <group ns="kimera4">
+    <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
+      <arg name="agent_id"                         value="4" />
+      <arg name="num_robots"                       value="$(arg num_robots)" />
+      <arg name="robot_names_file"                 value="$(arg robot_names_file)" />
+      <arg name="debug"                            value="$(arg debug)" />
+      <arg name="verbose"                          value="$(arg verbose)" />
+      <arg name="publish_iterate"                  value="false"/>
+      <arg name="acceleration"                     value="false" />
+      <arg name="update_rule"                      value="RoundRobin"/>
+      <arg name="local_initialization_method"      value="Odometry"/>
+      <arg name="multirobot_initialization"        value="true"/>
+      <arg name="RTR_iterations"                   value="3" />
+      <arg name="RTR_tCG_iterations"               value="50" />
+      <arg name="RTR_gradnorm_tol"                 value="0.5" />
+      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
+      <arg name="robust_cost_type"                 value="GNC_TLS" />
+      <arg name="GNC_use_probability"              value="false" />
+      <arg name="GNC_barc"                         value="3.0" />
+      <arg name="GNC_mu_step"                      value="2.0" />
+      <arg name="GNC_init_mu"                      value="1e-5" />
+      <arg name="robust_init_min_inliers"          value="3" />
+      <arg name="robust_opt_num_weight_updates"    value="3" />
+      <arg name="robust_opt_num_resets"            value="3" />
+      <arg name="robust_opt_min_convergence_ratio" value="0.0" />
+      <arg name="robust_opt_inner_iters_per_robot" value="50" />
+      <arg name="inter_update_sleep_time"          value="0.1" />
+      <arg name="max_delayed_iterations"           value="0"  />
+      <arg name="max_distributed_init_steps"       value="20" />
+      <arg name="timeout_threshold"                value="15" />
+      <arg name="synchronize_measurements"         value="false" />
+      <arg name="visualize_loop_closures"          value="false" />
+      <arg name="enable_recovery"                  value="false" />
+    </include> 
+  </group>
+
+  <group ns="kimera5">
+    <include file="$(find dpgo_ros)/launch/PGOAgent.launch">
+      <arg name="agent_id"                         value="5" />
+      <arg name="num_robots"                       value="$(arg num_robots)" />
+      <arg name="robot_names_file"                 value="$(arg robot_names_file)" />
+      <arg name="debug"                            value="$(arg debug)" />
+      <arg name="verbose"                          value="$(arg verbose)" />
+      <arg name="publish_iterate"                  value="false"/>
+      <arg name="acceleration"                     value="false" />
+      <arg name="update_rule"                      value="RoundRobin"/>
+      <arg name="local_initialization_method"      value="Odometry"/>
+      <arg name="multirobot_initialization"        value="true"/>
+      <arg name="RTR_iterations"                   value="3" />
+      <arg name="RTR_tCG_iterations"               value="50" />
+      <arg name="RTR_gradnorm_tol"                 value="0.5" />
+      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
+      <arg name="robust_cost_type"                 value="GNC_TLS" />
+      <arg name="GNC_use_probability"              value="false" />
+      <arg name="GNC_barc"                         value="3.0" />
+      <arg name="GNC_mu_step"                      value="2.0" />
+      <arg name="GNC_init_mu"                      value="1e-5" />
+      <arg name="robust_init_min_inliers"          value="3" />
+      <arg name="robust_opt_num_weight_updates"    value="3" />
+      <arg name="robust_opt_num_resets"            value="3" />
+      <arg name="robust_opt_min_convergence_ratio" value="0.0" />
+      <arg name="robust_opt_inner_iters_per_robot" value="50" />
+      <arg name="inter_update_sleep_time"          value="0.1" />
+      <arg name="max_delayed_iterations"           value="0"  />
+      <arg name="max_distributed_init_steps"       value="20" />
+      <arg name="timeout_threshold"                value="15" />
+      <arg name="synchronize_measurements"         value="false" />
+      <arg name="visualize_loop_closures"          value="false" />
+      <arg name="enable_recovery"                  value="false" />
+    </include> 
+  </group>
+
+  <!-- Launch visualization in rviz -->
+  <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find dpgo_ros)/rviz/default.rviz"/>
+
+</launch>

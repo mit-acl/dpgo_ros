@@ -1,6 +1,6 @@
-robot0_measurements: /home/yulun/git/arl_ws/src/kimera_distributed/post_processing/mit_6_robots/kimera0/measurements.csv
-robot1_measurements: /home/yulun/git/arl_ws/src/kimera_distributed/post_processing/mit_6_robots/kimera1/measurements.csv
-robot2_measurements: /home/yulun/git/arl_ws/src/kimera_distributed/post_processing/mit_6_robots/kimera2/measurements.csv
-robot3_measurements: /home/yulun/git/arl_ws/src/kimera_distributed/post_processing/mit_6_robots/kimera3/measurements.csv
-robot4_measurements: /home/yulun/git/arl_ws/src/kimera_distributed/post_processing/mit_6_robots/kimera4/measurements.csv
-robot5_measurements: /home/yulun/git/arl_ws/src/kimera_distributed/post_processing/mit_6_robots/kimera5/measurements.csv
+robot0_measurements: $(find dpgo_ros)/data/outdoor/robot0/measurements.csv
+robot1_measurements: $(find dpgo_ros)/data/outdoor/robot1/measurements.csv
+robot2_measurements: $(find dpgo_ros)/data/outdoor/robot2/measurements.csv
+robot3_measurements: $(find dpgo_ros)/data/outdoor/robot3/measurements.csv
+robot4_measurements: $(find dpgo_ros)/data/outdoor/robot4/measurements.csv
+robot5_measurements: $(find dpgo_ros)/data/outdoor/robot5/measurements.csv
