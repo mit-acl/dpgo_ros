@@ -1,5 +1,6 @@
 <launch>
   <arg name="num_robots"                            value="5" />
+  <arg name="g2o_dataset"                           default="sphere2500" />
   <arg name="debug"                                 default="false" />
   <arg name="verbose"                               default="false" />
   <arg name="acceleration"                          default="false"/>
@@ -12,9 +13,8 @@
   <!-- Launch ROS node to publish pose graph -->
   <node name="dataset_publisher"   pkg="dpgo_ros" type="dpgo_ros_dataset_publisher_node" output="screen">
     <param name="~num_robots"         type="int"     value="$(arg num_robots)" />
-    <param name="~g2o_file"           type="str"     value="$(find dpgo_ros)/data/sphere2500.g2o" />
+    <param name="~g2o_file"           type="str"     value="$(find dpgo_ros)/data/$(arg g2o_dataset).g2o" />
     <rosparam file="$(arg robot_names_file)" />
-    <rosparam file="$(arg robot_measurements_file)" />
   </node>
 
   <!-- Launch individual PGO agents. Number must match /num_robots -->
