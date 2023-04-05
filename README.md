@@ -49,6 +49,10 @@ In the launch file, the key change is setting `robust_cost_type` to `GNC_TLS`, w
 
 Y. Tian, Y. Chang, F. Herrera Arias, C. Nieto-Granda, J. P. How and L. Carlone, "Kimera-Multi: Robust, Distributed, Dense Metric-Semantic SLAM for Multi-Robot Systems," in IEEE Transactions on Robotics, vol. 38, no. 4, pp. 2022-2038, Aug. 2022, doi: 10.1109/TRO.2021.3137751, [pdf](https://arxiv.org/abs/2106.14386).
 
+## Usage in multi-robot collaborative SLAM
+
+DPGO is currently used as the distributed back-end in [Kimera-Multi](https://github.com/MIT-SPARK/Kimera-Multi), which is a robust and fully distributed system for multi-robot collaborative SLAM. Check out the [full system](https://github.com/MIT-SPARK/Kimera-Multi) as well as the accompanying [datasets](https://github.com/MIT-SPARK/Kimera-Multi-Data)!
+
 ## Citations
 
 If you are using this library, please cite the following papers:
