@@ -13,6 +13,8 @@
   <arg name="asynchronous"                     default="false"/>
   <arg name="asynchronous_rate"                default="10" />
   <arg name="verbose"                          default="false"/>
+  <arg name="RGD_stepsize"                     default="1e-3" />
+  <arg name="RGD_use_preconditioner"           default="true" />
   <arg name="RTR_iterations"                   default="3" />
   <arg name="RTR_tCG_iterations"               default="50" />
   <arg name="RTR_gradnorm_tol"                 default="1e-2" />
@@ -21,7 +23,7 @@
   <arg name="multirobot_initialization"        default="true"/>
   <arg name="acceleration"                     default="false"/>
   <arg name="restart_interval"                 default="50" />
-  <arg name="robust_cost_type"                 default="GNC_TLS" />
+  <arg name="robust_cost_type"                 default="L2" />
   <arg name="GNC_use_probability"              default="true" />
   <arg name="GNC_quantile"                     default="0.9" />
   <arg name="GNC_barc"                         default="5.0" />
@@ -42,7 +44,7 @@
   <arg name="enable_recovery"                  default="false"/>
   <arg name="synchronize_measurements"         default="true" />
   <arg name="max_distributed_init_steps"       default="30" />
-  <arg name="inter_update_sleep_time"          default="0.1"/>
+  <arg name="inter_update_sleep_time"          default="0"/>
   <arg name="weight_convergence_threshold"     default="-1"/>
   <arg name="max_delayed_iterations"           default="0" />
   <arg name="timeout_threshold"                default="15" />
@@ -57,6 +59,8 @@
     <param name="~update_rule"                      type="str"    value="$(arg update_rule)" />
     <param name="~local_initialization_method"      type="str"    value="$(arg local_initialization_method)" />
     <param name="~multirobot_initialization"        type="bool"   value="$(arg multirobot_initialization)" />
+    <param name="~RGD_stepsize"                     type="double" value="$(arg RGD_stepsize)" />
+    <param name="~RGD_use_preconditioner"           type="bool"   value="$(arg RGD_use_preconditioner)" />
     <param name="~RTR_iterations"                   type="int"    value="$(arg RTR_iterations)" />
     <param name="~RTR_tCG_iterations"               type="int"    value="$(arg RTR_tCG_iterations)" />
     <param name="~RTR_gradnorm_tol"                 type="double" value="$(arg RTR_gradnorm_tol)" />
