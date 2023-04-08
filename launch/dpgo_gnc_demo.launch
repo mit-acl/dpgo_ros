@@ -3,6 +3,7 @@
   <arg name="robust_cost_type"                      default="GNC_TLS" />
   <arg name="debug"                                 default="false" />
   <arg name="verbose"                               default="true" />
+  <arg name="acceleration"                          default="false"/>
   <arg name="rel_change_tol"                        default="0.2" />
   <arg name="robot_names_file"                      default="$(find dpgo_ros)/params/robot_names.yaml"/>
   <arg name="robot_measurements_file"               default="$(find dpgo_ros)/params/robot_measurements.yaml"/>
@@ -22,16 +23,15 @@
       <arg name="robot_names_file"                 value="$(arg robot_names_file)" />
       <arg name="debug"                            value="$(arg debug)" />
       <arg name="verbose"                          value="$(arg verbose)" />
+      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
+      <arg name="robust_cost_type"                 value="$(arg robust_cost_type)" />
+      <arg name="acceleration"                     value="$(arg acceleration)" />
       <arg name="publish_iterate"                  value="false"/>
-      <arg name="acceleration"                     value="false" />
       <arg name="update_rule"                      value="RoundRobin"/>
       <arg name="local_initialization_method"      value="Odometry"/>
-      <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="3" />
       <arg name="RTR_tCG_iterations"               value="50" />
       <arg name="RTR_gradnorm_tol"                 value="0.5" />
-      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
-      <arg name="robust_cost_type"                 value="$(arg robust_cost_type)" />
       <arg name="GNC_use_probability"              value="false" />
       <arg name="GNC_barc"                         value="3.0" />
       <arg name="GNC_mu_step"                      value="2.0" />
@@ -39,12 +39,7 @@
       <arg name="robust_init_min_inliers"          value="3" />
       <arg name="robust_opt_num_weight_updates"    value="3" />
       <arg name="robust_opt_num_resets"            value="3" />
-      <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="50" />
-      <arg name="inter_update_sleep_time"          value="0.1" />
-      <arg name="max_delayed_iterations"           value="0"  />
-      <arg name="max_distributed_init_steps"       value="20" />
-      <arg name="timeout_threshold"                value="15" />
       <arg name="synchronize_measurements"         value="false" />
       <arg name="visualize_loop_closures"          value="true" />
     </include> 
@@ -57,16 +52,15 @@
       <arg name="robot_names_file"                 value="$(arg robot_names_file)" />
       <arg name="debug"                            value="$(arg debug)" />
       <arg name="verbose"                          value="$(arg verbose)" />
+      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
+      <arg name="robust_cost_type"                 value="$(arg robust_cost_type)" />
+      <arg name="acceleration"                     value="$(arg acceleration)" />
       <arg name="publish_iterate"                  value="false"/>
-      <arg name="acceleration"                     value="false" />
       <arg name="update_rule"                      value="RoundRobin"/>
       <arg name="local_initialization_method"      value="Odometry"/>
-      <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="3" />
       <arg name="RTR_tCG_iterations"               value="50" />
       <arg name="RTR_gradnorm_tol"                 value="0.5" />
-      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
-      <arg name="robust_cost_type"                 value="$(arg robust_cost_type)" />
       <arg name="GNC_use_probability"              value="false" />
       <arg name="GNC_barc"                         value="3.0" />
       <arg name="GNC_mu_step"                      value="2.0" />
@@ -74,12 +68,7 @@
       <arg name="robust_init_min_inliers"          value="3" />
       <arg name="robust_opt_num_weight_updates"    value="3" />
       <arg name="robust_opt_num_resets"            value="3" />
-      <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="50" />
-      <arg name="inter_update_sleep_time"          value="0.1" />
-      <arg name="max_delayed_iterations"           value="0"  />
-      <arg name="max_distributed_init_steps"       value="20" />
-      <arg name="timeout_threshold"                value="15" />
       <arg name="synchronize_measurements"         value="false" />
       <arg name="visualize_loop_closures"          value="true" />
     </include> 
@@ -92,16 +81,15 @@
       <arg name="robot_names_file"                 value="$(arg robot_names_file)" />
       <arg name="debug"                            value="$(arg debug)" />
       <arg name="verbose"                          value="$(arg verbose)" />
+      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
+      <arg name="robust_cost_type"                 value="$(arg robust_cost_type)" />
+      <arg name="acceleration"                     value="$(arg acceleration)" />
       <arg name="publish_iterate"                  value="false"/>
-      <arg name="acceleration"                     value="false" />
       <arg name="update_rule"                      value="RoundRobin"/>
       <arg name="local_initialization_method"      value="Odometry"/>
-      <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="3" />
       <arg name="RTR_tCG_iterations"               value="50" />
       <arg name="RTR_gradnorm_tol"                 value="0.5" />
-      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
-      <arg name="robust_cost_type"                 value="$(arg robust_cost_type)" />
       <arg name="GNC_use_probability"              value="false" />
       <arg name="GNC_barc"                         value="3.0" />
       <arg name="GNC_mu_step"                      value="2.0" />
@@ -109,12 +97,7 @@
       <arg name="robust_init_min_inliers"          value="3" />
       <arg name="robust_opt_num_weight_updates"    value="3" />
       <arg name="robust_opt_num_resets"            value="3" />
-      <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="50" />
-      <arg name="inter_update_sleep_time"          value="0.1" />
-      <arg name="max_delayed_iterations"           value="0"  />
-      <arg name="max_distributed_init_steps"       value="20" />
-      <arg name="timeout_threshold"                value="15" />
       <arg name="synchronize_measurements"         value="false" />
       <arg name="visualize_loop_closures"          value="true" />
     </include> 
@@ -127,16 +110,15 @@
       <arg name="robot_names_file"                 value="$(arg robot_names_file)" />
       <arg name="debug"                            value="$(arg debug)" />
       <arg name="verbose"                          value="$(arg verbose)" />
+      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
+      <arg name="robust_cost_type"                 value="$(arg robust_cost_type)" />
+      <arg name="acceleration"                     value="$(arg acceleration)" />
       <arg name="publish_iterate"                  value="false"/>
-      <arg name="acceleration"                     value="false" />
       <arg name="update_rule"                      value="RoundRobin"/>
       <arg name="local_initialization_method"      value="Odometry"/>
-      <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="3" />
       <arg name="RTR_tCG_iterations"               value="50" />
       <arg name="RTR_gradnorm_tol"                 value="0.5" />
-      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
-      <arg name="robust_cost_type"                 value="$(arg robust_cost_type)" />
       <arg name="GNC_use_probability"              value="false" />
       <arg name="GNC_barc"                         value="3.0" />
       <arg name="GNC_mu_step"                      value="2.0" />
@@ -144,12 +126,7 @@
       <arg name="robust_init_min_inliers"          value="3" />
       <arg name="robust_opt_num_weight_updates"    value="3" />
       <arg name="robust_opt_num_resets"            value="3" />
-      <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="50" />
-      <arg name="inter_update_sleep_time"          value="0.1" />
-      <arg name="max_delayed_iterations"           value="0"  />
-      <arg name="max_distributed_init_steps"       value="20" />
-      <arg name="timeout_threshold"                value="15" />
       <arg name="synchronize_measurements"         value="false" />
       <arg name="visualize_loop_closures"          value="true" />
     </include> 
@@ -162,16 +139,15 @@
       <arg name="robot_names_file"                 value="$(arg robot_names_file)" />
       <arg name="debug"                            value="$(arg debug)" />
       <arg name="verbose"                          value="$(arg verbose)" />
+      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
+      <arg name="robust_cost_type"                 value="$(arg robust_cost_type)" />
+      <arg name="acceleration"                     value="$(arg acceleration)" />
       <arg name="publish_iterate"                  value="false"/>
-      <arg name="acceleration"                     value="false" />
       <arg name="update_rule"                      value="RoundRobin"/>
       <arg name="local_initialization_method"      value="Odometry"/>
-      <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="3" />
       <arg name="RTR_tCG_iterations"               value="50" />
       <arg name="RTR_gradnorm_tol"                 value="0.5" />
-      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
-      <arg name="robust_cost_type"                 value="$(arg robust_cost_type)" />
       <arg name="GNC_use_probability"              value="false" />
       <arg name="GNC_barc"                         value="3.0" />
       <arg name="GNC_mu_step"                      value="2.0" />
@@ -179,12 +155,7 @@
       <arg name="robust_init_min_inliers"          value="3" />
       <arg name="robust_opt_num_weight_updates"    value="3" />
       <arg name="robust_opt_num_resets"            value="3" />
-      <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="50" />
-      <arg name="inter_update_sleep_time"          value="0.1" />
-      <arg name="max_delayed_iterations"           value="0"  />
-      <arg name="max_distributed_init_steps"       value="20" />
-      <arg name="timeout_threshold"                value="15" />
       <arg name="synchronize_measurements"         value="false" />
       <arg name="visualize_loop_closures"          value="true" />
     </include> 
@@ -197,16 +168,15 @@
       <arg name="robot_names_file"                 value="$(arg robot_names_file)" />
       <arg name="debug"                            value="$(arg debug)" />
       <arg name="verbose"                          value="$(arg verbose)" />
+      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
+      <arg name="robust_cost_type"                 value="$(arg robust_cost_type)" />
+      <arg name="acceleration"                     value="$(arg acceleration)" />
       <arg name="publish_iterate"                  value="false"/>
-      <arg name="acceleration"                     value="false" />
       <arg name="update_rule"                      value="RoundRobin"/>
       <arg name="local_initialization_method"      value="Odometry"/>
-      <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="3" />
       <arg name="RTR_tCG_iterations"               value="50" />
       <arg name="RTR_gradnorm_tol"                 value="0.5" />
-      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
-      <arg name="robust_cost_type"                 value="$(arg robust_cost_type)" />
       <arg name="GNC_use_probability"              value="false" />
       <arg name="GNC_barc"                         value="3.0" />
       <arg name="GNC_mu_step"                      value="2.0" />
@@ -214,12 +184,7 @@
       <arg name="robust_init_min_inliers"          value="3" />
       <arg name="robust_opt_num_weight_updates"    value="3" />
       <arg name="robust_opt_num_resets"            value="3" />
-      <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="50" />
-      <arg name="inter_update_sleep_time"          value="0.1" />
-      <arg name="max_delayed_iterations"           value="0"  />
-      <arg name="max_distributed_init_steps"       value="20" />
-      <arg name="timeout_threshold"                value="15" />
       <arg name="synchronize_measurements"         value="false" />
       <arg name="visualize_loop_closures"          value="true" />
     </include> 
@@ -232,16 +197,15 @@
       <arg name="robot_names_file"                 value="$(arg robot_names_file)" />
       <arg name="debug"                            value="$(arg debug)" />
       <arg name="verbose"                          value="$(arg verbose)" />
+      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
+      <arg name="robust_cost_type"                 value="$(arg robust_cost_type)" />
+      <arg name="acceleration"                     value="$(arg acceleration)" />
       <arg name="publish_iterate"                  value="false"/>
-      <arg name="acceleration"                     value="false" />
       <arg name="update_rule"                      value="RoundRobin"/>
       <arg name="local_initialization_method"      value="Odometry"/>
-      <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="3" />
       <arg name="RTR_tCG_iterations"               value="50" />
       <arg name="RTR_gradnorm_tol"                 value="0.5" />
-      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
-      <arg name="robust_cost_type"                 value="$(arg robust_cost_type)" />
       <arg name="GNC_use_probability"              value="false" />
       <arg name="GNC_barc"                         value="3.0" />
       <arg name="GNC_mu_step"                      value="2.0" />
@@ -249,12 +213,7 @@
       <arg name="robust_init_min_inliers"          value="3" />
       <arg name="robust_opt_num_weight_updates"    value="3" />
       <arg name="robust_opt_num_resets"            value="3" />
-      <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="50" />
-      <arg name="inter_update_sleep_time"          value="0.1" />
-      <arg name="max_delayed_iterations"           value="0"  />
-      <arg name="max_distributed_init_steps"       value="20" />
-      <arg name="timeout_threshold"                value="15" />
       <arg name="synchronize_measurements"         value="false" />
       <arg name="visualize_loop_closures"          value="true" />
     </include> 
@@ -267,16 +226,15 @@
       <arg name="robot_names_file"                 value="$(arg robot_names_file)" />
       <arg name="debug"                            value="$(arg debug)" />
       <arg name="verbose"                          value="$(arg verbose)" />
+      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
+      <arg name="robust_cost_type"                 value="$(arg robust_cost_type)" />
+      <arg name="acceleration"                     value="$(arg acceleration)" />
       <arg name="publish_iterate"                  value="false"/>
-      <arg name="acceleration"                     value="false" />
       <arg name="update_rule"                      value="RoundRobin"/>
       <arg name="local_initialization_method"      value="Odometry"/>
-      <arg name="multirobot_initialization"        value="true"/>
       <arg name="RTR_iterations"                   value="3" />
       <arg name="RTR_tCG_iterations"               value="50" />
       <arg name="RTR_gradnorm_tol"                 value="0.5" />
-      <arg name="relative_change_tolerance"        value="$(arg rel_change_tol)" />
-      <arg name="robust_cost_type"                 value="$(arg robust_cost_type)" />
       <arg name="GNC_use_probability"              value="false" />
       <arg name="GNC_barc"                         value="3.0" />
       <arg name="GNC_mu_step"                      value="2.0" />
@@ -284,12 +242,7 @@
       <arg name="robust_init_min_inliers"          value="3" />
       <arg name="robust_opt_num_weight_updates"    value="3" />
       <arg name="robust_opt_num_resets"            value="3" />
-      <arg name="robust_opt_min_convergence_ratio" value="0.0" />
       <arg name="robust_opt_inner_iters_per_robot" value="50" />
-      <arg name="inter_update_sleep_time"          value="0.1" />
-      <arg name="max_delayed_iterations"           value="0"  />
-      <arg name="max_distributed_init_steps"       value="20" />
-      <arg name="timeout_threshold"                value="15" />
       <arg name="synchronize_measurements"         value="false" />
       <arg name="visualize_loop_closures"          value="true" />
     </include> 
