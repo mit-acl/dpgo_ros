@@ -79,10 +79,22 @@ int main(int argc, char **argv) {
   // Run in asynchronous mode
   ros::param::get("~asynchronous", params.asynchronous);
 
-  // Frequency of optimization loop in asynchronous mode
-  ros::param::get("~asynchronous_rate", params.asynchronousOptimizationRate);
+  if (!params.asynchronous) {
+    // Synchronous mode
+    // Use Riemannian trust-region solver
+    params.localOptimizationParams.method = ROptParameters::ROptMethod::RTR;
+  } else {
+    // Asynchronous mode
+    ROS_WARN("Running asynchronous mode.");
+    // Use gradient descent in asynchronous mode
+    params.localOptimizationParams.method = ROptParameters::ROptMethod::RGD;
+    // Frequency of optimization loop in asynchronous mode
+    ros::param::get("~asynchronous_rate", params.asynchronousOptimizationRate);
+  }
 
   // Local Riemannian optimization options
+  ros::param::get("~RGD_stepsize", params.localOptimizationParams.RGD_stepsize);
+  ros::param::get("~RGD_use_preconditioner", params.localOptimizationParams.RGD_use_preconditioner);
   ros::param::get("~RTR_iterations", params.localOptimizationParams.RTR_iterations);
   ros::param::get("~RTR_tCG_iterations", params.localOptimizationParams.RTR_tCG_iterations);
   ros::param::get("~RTR_gradnorm_tol", params.localOptimizationParams.gradnorm_tol);

@@ -124,11 +124,6 @@ void PGOAgentROS::runOnceAsynchronous() {
     logIteration();
     mPublishAsynchronousRequested = false;
   }
-
-  // Check for termination condition
-  if (isLeader() && shouldTerminate()) {
-    publishTerminateCommand();
-  }
 }
 
 void PGOAgentROS::runOnceSynchronous() {
@@ -308,11 +303,13 @@ bool PGOAgentROS::requestPoseGraph() {
   }
   if (mParamsROS.synchronizeMeasurements) {
     // Synchronize shared measurements with other robots
+    mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
+    mTeamReceivedSharedLoopClosures[getID()] = true;
+
     // In Kimera-Multi, we wait for inter-robot loops 
     // from robots with smaller ID
-    mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, false);
-    for (size_t robot_id = getID(); robot_id < mParams.numRobots; ++robot_id)
-      mTeamReceivedSharedLoopClosures[robot_id] = true;
+    // for (size_t robot_id = getID(); robot_id < mParams.numRobots; ++robot_id)
+    //   mTeamReceivedSharedLoopClosures[robot_id] = true;
   } else {
     // Assume measurements are already synchronized by front end
     mTeamReceivedSharedLoopClosures.assign(mParams.numRobots, true);
@@ -482,11 +479,15 @@ void PGOAgentROS::publishUpdateCommand() {
 }
 
 void PGOAgentROS::publishUpdateCommand(unsigned robot_id) {
+  if (mParams.asynchronous) {
+    // In asynchronous mode, no need to publish update command
+    // because each robot's local optimziation loop is constantly running
+    return;
+  }
   if (!isRobotActive(robot_id)) {
     ROS_ERROR("Next robot to update %u is not active!", robot_id);
     return;
   }
-  CHECK(!mParams.asynchronous);
   if (mParamsROS.interUpdateSleepTime > 1e-3)
     ros::Duration(mParamsROS.interUpdateSleepTime).sleep();
   Command msg;
@@ -964,20 +965,22 @@ void PGOAgentROS::statusCallback(const StatusConstPtr &msg) {
     setNeighborStatus(statusFromMsg(received_msg));;
   } 
 
-  // Edge cases
-  if (isLeader() && isRobotActive(msg->robot_id)) {
-    bool should_deactivate = false;
-    if (msg->cluster_id != getClusterID()) {
-      ROS_WARN("Robot %u joined other cluster %u... set to inactive.", msg->robot_id, msg->cluster_id);
-      should_deactivate = true;
-    }
-    if (iteration_number() > 0 && msg->state != Status::INITIALIZED) {
-      ROS_WARN("Robot %u is no longer initialized in global frame... set to inactive.", msg->robot_id);
-      should_deactivate = true;
-    }
-    if (should_deactivate) {
-      setRobotActive(msg->robot_id, false);
-      publishActiveRobotsCommand();
+  // Edge cases in synchronous mode
+  if (!mParams.asynchronous) {
+    if (isLeader() && isRobotActive(msg->robot_id)) {
+      bool should_deactivate = false;
+      if (msg->cluster_id != getClusterID()) {
+        ROS_WARN("Robot %u joined other cluster %u... set to inactive.", msg->robot_id, msg->cluster_id);
+        should_deactivate = true;
+      }
+      if (iteration_number() > 0 && msg->state != Status::INITIALIZED) {
+        ROS_WARN("Robot %u is no longer initialized in global frame... set to inactive.", msg->robot_id);
+        should_deactivate = true;
+      }
+      if (should_deactivate) {
+        setRobotActive(msg->robot_id, false);
+        publishActiveRobotsCommand();
+      }
     }
   }
 }
@@ -1510,6 +1513,10 @@ void PGOAgentROS::resetRobotClusterIDs() {
 }
 
 void PGOAgentROS::checkTimeout() {
+  if (mParams.asynchronous) {
+    return;
+  }
+
   // Timeout if command channel quiet for long time 
   // This usually happen when robots get disconnected 
   double elapsedSecond = (ros::Time::now() - mLastCommandTime).toSec();
