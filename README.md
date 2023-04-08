@@ -41,7 +41,7 @@ DPGO also implements a feature called Nesterov acceleration to speed up converge
 # run demo on example g2o dataset
 roslaunch dpgo_ros dpgo_demo.launch local_initialization_method:=Odometry acceleration:=true
 ```
-Compared to the first example, acceleration helps to reduce the number of iterations from around 240 to around 150 on a test computer.
+On a test computer with an Intel i7 processor, we observed that acceleration helps to reduce the number of iterations from around 240 to around 150.
 
 
 ### Asynchronous optimization
@@ -50,7 +50,8 @@ The following example runs the asynchronous version of dpgo on the sphere datase
 ```
 roslaunch dpgo_ros asapp_demo.launch
 ```
-Details of asynchronous optimization is described in the following paper:
+Details of asynchronous optimization is described in the following paper.
+
 Y.Tian, A. Koppel, A. S. Bedi, J. P. How.  [**Asynchronous and Parallel Distributed Pose Graph Optimization**](https://arxiv.org/abs/2003.03281), in IEEE Robotics and Automation Letters, 2020, **honorable mention for 2020 RA-L best paper**. 
 
 
