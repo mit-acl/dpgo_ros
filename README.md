@@ -21,7 +21,7 @@ catkin build
 
 ## Examples
 
-#### A first demo
+### A first demo
 
 Use the following command to run a 5-robot distributed pose graph SLAM demo simulated using the sphere dataset:
 ```
@@ -29,12 +29,32 @@ Use the following command to run a 5-robot distributed pose graph SLAM demo simu
 source ~/catkin_ws/devel/setup.bash
 
 # run demo on example g2o dataset
-roslaunch dpgo_ros dpgo_demo.launch
+roslaunch dpgo_ros dpgo_demo.launch local_initialization_method:=Odometry
 ```
 
-You can try out other benchmark datasets by changing the `g2o_dataset` argument in `dpgo_demo.launch`. Take a look inside the `data` directory to see the provided datasets (stored in g2o format).
+The above example runs the standard dpgo, where each robot's trajectory estimates is initialized using its odometry measurements. You can try out other benchmark datasets by changing the `g2o_dataset` argument in `dpgo_demo.launch`. Take a look inside the `data` directory to see the provided datasets (stored in g2o format).
 
-#### Enabling robust optimization
+### Enabling acceleration
+
+DPGO also implements a feature called Nesterov acceleration to speed up convergence of distributed optimization. To enable this, use the `acceleration` argument:
+```
+# run demo on example g2o dataset
+roslaunch dpgo_ros dpgo_demo.launch local_initialization_method:=Odometry acceleration:=true
+```
+Compared to the first example, acceleration helps to reduce the number of iterations from around 240 to around 150 on a test computer.
+
+
+### Asynchronous optimization
+
+The following example runs the asynchronous version of dpgo on the sphere dataset:
+```
+roslaunch dpgo_ros asapp_demo.launch
+```
+Details of asynchronous optimization is described in the following paper:
+Y.Tian, A. Koppel, A. S. Bedi, J. P. How.  [**Asynchronous and Parallel Distributed Pose Graph Optimization**](https://arxiv.org/abs/2003.03281), in IEEE Robotics and Automation Letters, 2020, **honorable mention for 2020 RA-L best paper**. 
+
+
+### Outlier-robust optimization
 
 In practice, multi-robot SLAM systems need to be robust against *outlier* measurements. For example, in distributed visual SLAM, outlier loop closures can be created as a result of incorrect visual place recognition and geometric verification. DPGO supports outlier-robust distributed optimization by implementing the [graduated non-convexity (GNC)](https://ieeexplore.ieee.org/document/8957085) framework in a distributed fashion. The following runs a demo on a real-world 8-robot pose graph SLAM dataset. This dataset was extracted from a multi-robot visual SLAM experiment inside the MIT tunnel systems, and contains many outlier loop closures due to visual ambiguities of the environment.
 ```
