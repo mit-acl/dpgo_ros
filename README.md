@@ -53,7 +53,7 @@ roslaunch dpgo_ros asapp_demo.launch local_initialization_method:=Odometry RGD_s
 ```
 In the command, the `RGD_stepsize` argument controls the local stepsize of agents during asynchronous optimization. More details of this method is described in the following paper.
 
-Y.Tian, A. Koppel, A. S. Bedi, J. P. How.  [**Asynchronous and Parallel Distributed Pose Graph Optimization**](https://arxiv.org/abs/2003.03281), in IEEE Robotics and Automation Letters, 2020, **honorable mention for 2020 RA-L best paper**. 
+Y.Tian, A. Koppel, A. S. Bedi, J. P. How.  ["Asynchronous and Parallel Distributed Pose Graph Optimization"](https://arxiv.org/abs/2003.03281), in IEEE Robotics and Automation Letters, 2020, **honorable mention for 2020 RA-L best paper**. 
 
 
 ### Outlier-robust optimization
@@ -66,7 +66,7 @@ roslaunch dpgo_ros dpgo_gnc_demo.launch
 
 In the launch file, the key change is setting `robust_cost_type` to `GNC_TLS`, which tells dpgo to optimize the truncated least squares (TLS) objective using GNC (the other option is `L2`, which corresponds to the standard least squares objective). Details of distirbuted GNC can be found in the following paper:
 
-Y. Tian, Y. Chang, F. Herrera Arias, C. Nieto-Granda, J. P. How and L. Carlone, "Kimera-Multi: Robust, Distributed, Dense Metric-Semantic SLAM for Multi-Robot Systems," in IEEE Transactions on Robotics, vol. 38, no. 4, pp. 2022-2038, Aug. 2022, doi: 10.1109/TRO.2021.3137751, [pdf](https://arxiv.org/abs/2106.14386).
+Y. Tian, Y. Chang, F. Herrera Arias, C. Nieto-Granda, J. P. How and L. Carlone, ["Kimera-Multi: Robust, Distributed, Dense Metric-Semantic SLAM for Multi-Robot Systems,"](https://arxiv.org/abs/2106.14386) in IEEE Transactions on Robotics, vol. 38, no. 4, pp. 2022-2038, Aug. 2022, doi: 10.1109/TRO.2021.3137751.
 
 ## Usage in multi-robot collaborative SLAM
 
