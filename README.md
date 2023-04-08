@@ -32,7 +32,7 @@ source ~/catkin_ws/devel/setup.bash
 roslaunch dpgo_ros dpgo_demo.launch local_initialization_method:=Odometry
 ```
 
-The above example runs the standard dpgo, where each robot's trajectory estimates is initialized using its odometry measurements. You can try out other benchmark datasets by changing the `g2o_dataset` argument in `dpgo_demo.launch`. Take a look inside the `data` directory to see the provided datasets (stored in g2o format).
+The above example runs the standard dpgo, where each robot's trajectory estimates is initialized using its odometry measurements. The launch file will open a rviz window, which will visualize the iterates produced by dpgo as optimization progresses. You can try out other benchmark datasets by changing the `g2o_dataset` argument in `dpgo_demo.launch`. Take a look inside the `data` directory to see the provided datasets (stored in g2o format).
 
 ### Enabling acceleration
 
@@ -48,9 +48,10 @@ On a test computer with an Intel i7 processor, we observed that acceleration hel
 
 The following example runs the asynchronous version of dpgo on the sphere dataset:
 ```
-roslaunch dpgo_ros asapp_demo.launch
+# run demo on example g2o dataset
+roslaunch dpgo_ros asapp_demo.launch local_initialization_method:=Odometry RGD_stepsize:=0.2
 ```
-Details of asynchronous optimization is described in the following paper.
+In the command, the `RGD_stepsize` argument controls the local stepsize of agents during asynchronous optimization. More details of this method is described in the following paper.
 
 Y.Tian, A. Koppel, A. S. Bedi, J. P. How.  [**Asynchronous and Parallel Distributed Pose Graph Optimization**](https://arxiv.org/abs/2003.03281), in IEEE Robotics and Automation Letters, 2020, **honorable mention for 2020 RA-L best paper**. 
 
@@ -59,9 +60,6 @@ Y.Tian, A. Koppel, A. S. Bedi, J. P. How.  [**Asynchronous and Parallel Distribu
 
 In practice, multi-robot SLAM systems need to be robust against *outlier* measurements. For example, in distributed visual SLAM, outlier loop closures can be created as a result of incorrect visual place recognition and geometric verification. DPGO supports outlier-robust distributed optimization by implementing the [graduated non-convexity (GNC)](https://ieeexplore.ieee.org/document/8957085) framework in a distributed fashion. The following runs a demo on a real-world 8-robot pose graph SLAM dataset. This dataset was extracted from a multi-robot visual SLAM experiment inside the MIT tunnel systems, and contains many outlier loop closures due to visual ambiguities of the environment.
 ```
-# source workspace
-source ~/catkin_ws/devel/setup.bash
-
 # run demo with robust optimization
 roslaunch dpgo_ros dpgo_gnc_demo.launch
 ```
