@@ -19,7 +19,8 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   visualization_msgs
   message_generation
-  pose_graph_tools
+  pose_graph_tools_msgs
+  pose_graph_tools_ros
 )
 
 
@@ -85,7 +86,7 @@ add_service_files(
    DEPENDENCIES
    std_msgs
    geometry_msgs
-   pose_graph_tools
+   pose_graph_tools_msgs
  )
 
 ################################################

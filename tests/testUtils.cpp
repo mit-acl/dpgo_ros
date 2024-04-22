@@ -41,7 +41,7 @@ TEST(UtilsTest, PoseGraphEdge) {
   t << -1.5, 2.1, 3.9;
 
   DPGO::RelativeSEMeasurement m(r1, r2, p1, p2, R, t, kappa, tau);
-  pose_graph_tools::PoseGraphEdge msg = RelativeMeasurementToMsg(m);
+  pose_graph_tools_msgs::PoseGraphEdge msg = RelativeMeasurementToMsg(m);
   DPGO::RelativeSEMeasurement mOut = RelativeMeasurementFromMsg(msg);
 
   ASSERT_EQ(mOut.r1, r1);
