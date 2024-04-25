@@ -17,7 +17,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <sensor_msgs/PointCloud.h>
 #include <nav_msgs/Path.h>
-#include <pose_graph_tools/PoseGraph.h>
+#include <pose_graph_tools_msgs/PoseGraph.h>
 #include <tf/tf.h>
 
 #include <cassert>
@@ -25,7 +25,7 @@
 #include <vector>
 
 using namespace DPGO;
-using pose_graph_tools::PoseGraphEdge;
+using pose_graph_tools_msgs::PoseGraphEdge;
 
 namespace dpgo_ros {
 
@@ -117,7 +117,7 @@ sensor_msgs::PointCloud TrajectoryToPointCloud(unsigned d, unsigned n, const Mat
  * @param T
  * @return
  */
-pose_graph_tools::PoseGraph TrajectoryToPoseGraphMsg(unsigned robotID, unsigned d, unsigned n, const Matrix &T);
+pose_graph_tools_msgs::PoseGraph TrajectoryToPoseGraphMsg(unsigned robotID, unsigned d, unsigned n, const Matrix &T);
 
 /**
 Compute the number of bytes of a PublicPoses message.

@@ -7,8 +7,8 @@
 
 #include <DPGO/DPGO_utils.h>
 #include <dpgo_ros/utils.h>
-#include <pose_graph_tools/PoseGraph.h>
-#include <pose_graph_tools/PoseGraphQuery.h>
+#include <pose_graph_tools_msgs/PoseGraph.h>
+#include <pose_graph_tools_msgs/PoseGraphQuery.h>
 #include <ros/console.h>
 #include <ros/ros.h>
 
@@ -56,12 +56,12 @@ class DatasetPublisher {
  private:
   ros::NodeHandle nh;
   int num_robots;
-  vector<pose_graph_tools::PoseGraph> poseGraphs;
+  vector<pose_graph_tools_msgs::PoseGraph> poseGraphs;
   vector<ros::ServiceServer> poseGraphServers;
   std::map<unsigned, std::string> robotNames;
   bool queryPoseGraphCallback(
-      pose_graph_tools::PoseGraphQueryRequest &request,
-      pose_graph_tools::PoseGraphQueryResponse &response) {
+      pose_graph_tools_msgs::PoseGraphQueryRequest &request,
+      pose_graph_tools_msgs::PoseGraphQueryResponse &response) {
     if (request.robot_id >= poseGraphs.size()) {
       ROS_ERROR("DatasetPublisher: requested robot does not exist!");
       return false;
@@ -135,22 +135,22 @@ class DatasetPublisher {
     }
 
     for (size_t robot = 0; robot < (unsigned) num_robots; ++robot) {
-      pose_graph_tools::PoseGraph pose_graph;
+      pose_graph_tools_msgs::PoseGraph pose_graph;
       // Add odometry factors
       for (size_t k = 0; k < odometry[robot].size(); ++k) {
-        pose_graph_tools::PoseGraphEdge edge =
+        pose_graph_tools_msgs::PoseGraphEdge edge =
             dpgo_ros::RelativeMeasurementToMsg(odometry[robot][k]);
         pose_graph.edges.push_back(edge);
       }
       // Add private loop closures
       for (size_t k = 0; k < private_loop_closures[robot].size(); ++k) {
-        pose_graph_tools::PoseGraphEdge edge =
+        pose_graph_tools_msgs::PoseGraphEdge edge =
             dpgo_ros::RelativeMeasurementToMsg(private_loop_closures[robot][k]);
         pose_graph.edges.push_back(edge);
       }
       // Add shared loop closures
       for (size_t k = 0; k < shared_loop_closure[robot].size(); ++k) {
-        pose_graph_tools::PoseGraphEdge edge =
+        pose_graph_tools_msgs::PoseGraphEdge edge =
             dpgo_ros::RelativeMeasurementToMsg(shared_loop_closure[robot][k]);
         pose_graph.edges.push_back(edge);
       }
@@ -160,7 +160,7 @@ class DatasetPublisher {
 
   void loadFromMeasurements() {
     for (size_t robot_id = 0; robot_id < (unsigned) num_robots; ++robot_id) {
-      pose_graph_tools::PoseGraph pose_graph;
+      pose_graph_tools_msgs::PoseGraph pose_graph;
       std::string measurement_file;
       if (!ros::param::get("~robot" + std::to_string(robot_id) + "_measurements", measurement_file)) {
         ROS_ERROR("No measurement file specified for robot %zu!", robot_id);
@@ -168,7 +168,7 @@ class DatasetPublisher {
       std::vector<RelativeSEMeasurement> measurements = PGOLogger::loadMeasurements(measurement_file,
                                                                                     false);
       for (const auto &m : measurements) {
-        pose_graph_tools::PoseGraphEdge edge =
+        pose_graph_tools_msgs::PoseGraphEdge edge =
             dpgo_ros::RelativeMeasurementToMsg(m);
         pose_graph.edges.push_back(edge);
       }
