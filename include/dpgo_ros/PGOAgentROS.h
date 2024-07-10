@@ -15,7 +15,7 @@
 #include <dpgo_ros/RelativeMeasurementWeights.h>
 #include <dpgo_ros/QueryLiftingMatrix.h>
 #include <dpgo_ros/Status.h>
-#include <pose_graph_tools/PoseGraph.h>
+#include <pose_graph_tools/pose_graph.h>
 #include <visualization_msgs/Marker.h>
 #include <std_msgs/UInt16MultiArray.h>
 #include <ros/console.h>
