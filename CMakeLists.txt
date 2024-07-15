@@ -4,6 +4,7 @@ project(dpgo_ros)
 SET(CMAKE_BUILD_TYPE Debug)
 
 find_package(DPGO REQUIRED)
+find_package(pose_graph_tools REQUIRED)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++17 -march=native -pthread -O3")
@@ -19,7 +20,8 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   visualization_msgs
   message_generation
-  pose_graph_tools
+  pose_graph_tools_msgs
+  pose_graph_tools_ros
 )
 
 
@@ -85,7 +87,7 @@ add_service_files(
    DEPENDENCIES
    std_msgs
    geometry_msgs
-   pose_graph_tools
+   pose_graph_tools_msgs
  )
 
 ################################################
@@ -148,8 +150,10 @@ add_library(${PROJECT_NAME}
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  DPGO
+  PUBLIC
+    ${catkin_LIBRARIES}
+    DPGO
+    pose_graph_tools::pose_graph_tools
 )
 
 # Declare a C++ executable

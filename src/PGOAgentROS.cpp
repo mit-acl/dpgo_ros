@@ -11,8 +11,8 @@
 #include <geometry_msgs/PoseArray.h>
 #include <nav_msgs/Path.h>
 #include <tf/tf.h>
-#include <pose_graph_tools/PoseGraphQuery.h>
-#include <pose_graph_tools/utils.h>
+#include <pose_graph_tools_msgs/PoseGraphQuery.h>
+#include <pose_graph_tools_ros/utils.h>
 #include <glog/logging.h>
 #include <map>
 #include <random>
@@ -78,7 +78,7 @@ PGOAgentROS::PGOAgentROS(const ros::NodeHandle &nh_, unsigned ID,
   mMeasurementWeightsPublisher = nh.advertise<RelativeMeasurementWeights>("measurement_weights", 20);
   mPoseArrayPublisher = nh.advertise<geometry_msgs::PoseArray>("trajectory", 1);
   mPathPublisher = nh.advertise<nav_msgs::Path>("path", 1);
-  mPoseGraphPublisher = nh.advertise<pose_graph_tools::PoseGraph>("optimized_pose_graph", 1);
+  mPoseGraphPublisher = nh.advertise<pose_graph_tools_msgs::PoseGraph>("optimized_pose_graph", 1);
   mLoopClosureMarkerPublisher = nh.advertise<visualization_msgs::Marker>("loop_closures", 1);
 
   // ROS timer
@@ -245,7 +245,7 @@ void PGOAgentROS::reset() {
 
 bool PGOAgentROS::requestPoseGraph() {
   // Query local pose graph
-  pose_graph_tools::PoseGraphQuery query;
+  pose_graph_tools_msgs::PoseGraphQuery query;
   query.request.robot_id = getID();
   std::string service_name = "/" + mRobotNames.at(getID()) +
       "/distributed_loop_closure/request_pose_graph";
@@ -258,7 +258,7 @@ bool PGOAgentROS::requestPoseGraph() {
     return false;
   }
 
-  pose_graph_tools::PoseGraph pose_graph = query.response.pose_graph;
+  pose_graph_tools_msgs::PoseGraph pose_graph = query.response.pose_graph;
   if (pose_graph.edges.size() <= 1) {
     ROS_WARN("Received empty pose graph.");
     return false;
@@ -285,7 +285,7 @@ bool PGOAgentROS::requestPoseGraph() {
   PoseArray initial_poses(dimension(), num_poses());
   if (!pose_graph.nodes.empty()) {
     // Filter nodes that do not belong to this robot
-    vector<pose_graph_tools::PoseGraphNode> nodes_filtered;
+    vector<pose_graph_tools_msgs::PoseGraphNode> nodes_filtered;
     for (const auto &node : pose_graph.nodes) {
       if ((unsigned) node.robot_id == getID()) nodes_filtered.push_back(node);
     }
@@ -637,7 +637,7 @@ void PGOAgentROS::publishTrajectory(const PoseArray &T) {
   mPathPublisher.publish(path);
 
   // Publish as optimized pose graph
-  pose_graph_tools::PoseGraph pose_graph = TrajectoryToPoseGraphMsg(getID(), T.d(), T.n(), T.getData());
+  pose_graph_tools_msgs::PoseGraph pose_graph = TrajectoryToPoseGraphMsg(getID(), T.d(), T.n(), T.getData());
   mPoseGraphPublisher.publish(pose_graph);
 }
 

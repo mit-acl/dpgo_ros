@@ -13,7 +13,7 @@
 #include <map>
 
 using namespace DPGO;
-using pose_graph_tools::PoseGraphEdge;
+using pose_graph_tools_msgs::PoseGraphEdge;
 
 namespace dpgo_ros {
 
@@ -220,15 +220,15 @@ sensor_msgs::PointCloud TrajectoryToPointCloud(unsigned d, unsigned n, const Mat
   return msg;
 }
 
-pose_graph_tools::PoseGraph TrajectoryToPoseGraphMsg(unsigned robotID, unsigned d, unsigned n, const Matrix &T) {
+pose_graph_tools_msgs::PoseGraph TrajectoryToPoseGraphMsg(unsigned robotID, unsigned d, unsigned n, const Matrix &T) {
   assert(d == 3);
   assert(T.rows() == d);
   assert(T.cols() == (d + 1) * n);
-  pose_graph_tools::PoseGraph pose_graph_msg;
+  pose_graph_tools_msgs::PoseGraph pose_graph_msg;
   pose_graph_msg.header.frame_id = "/world";
   pose_graph_msg.header.stamp = ros::Time::now();
   for (size_t i = 0; i < n; ++i) {
-    pose_graph_tools::PoseGraphNode node_msg;
+    pose_graph_tools_msgs::PoseGraphNode node_msg;
     node_msg.robot_id = robotID;
     node_msg.key = i;
     node_msg.header.frame_id = "/world";
